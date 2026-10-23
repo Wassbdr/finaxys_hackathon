@@ -97,6 +97,7 @@ def test_runtime_gate_only_blocks_marked_and_herding_hook(setup):
             from vigie.core import Finding
             return [Finding(msg["tick"], 3, "herding", "traders", "warning", [msg["message_id"]], 1.0)]
     runtime = Runtime(cfg, keys, meta=setup[2].meta, layers=[Herding()])
+    runtime.on_message(factories['clock'].make(1,'tick','*',{'tick':1}))
     clean = factories["risk"].make(1, "risk_decision", "executor", {"kind": "payment"}, data_provenance=[{"service": "news-wire"}])
     assert runtime.request_approval(clean).approved
     runtime.on_message(factories["secu"].make(1, "alert", "*", {"kind": "cve_published", "cve": {
