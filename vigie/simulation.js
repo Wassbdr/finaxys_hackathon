@@ -665,7 +665,7 @@ function spread(k) {
 const flat = document.createElement("canvas"), g2 = flat.getContext("2d");
 flat.className = "sim-2d";
 stage.append(flat);
-const MAP = { x0: -15, x1: 17, z0: -13, z1: 12 };  // the part of the floor the map shows
+const MAP = { x0: -15, x1: 17, z0: -14.5, z1: 13.5 };  // the part of the floor the map shows
 let s2 = 1, o2 = [0, 0];
 const to2 = (x, z) => [o2[0] + x * s2, o2[1] + z * s2];
 function fit2d(w, h) {
