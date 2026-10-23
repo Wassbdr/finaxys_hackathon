@@ -69,3 +69,4 @@ All eight branches converge on one product: **when a call asks for money, the re
 | 6 | [Verification protocols for humans and agents](branches/06-verification-protocols.md) | "Prove the real" with a transaction-bound passkey signature: no model, cannot fail on stage |
 | 7 | [Regulation, market figures, what the jury wants](branches/07-regulation-market.md) | Pitch the fake bank advisor call: EUR 516m in France, and the bank pays |
 | 8 | [Past hackathon winners and 24 h project ideas](branches/08-winners-ideas.md) | Not Me: one-tap proof against a deepfake CFO on a video call; winners reenact one fraud live |
+| P | [The problem: manipulation fraud, Banque de France +34 %](problem-manipulation-fraud.md) | The fake advisor plays the bank and the real client signs in his own app: EUR 516m, +34 %, and the bank increasingly pays |
