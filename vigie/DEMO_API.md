@@ -1,7 +1,7 @@
 # API démo — pour le Dev 1
 
 **Pas de page livrée dans ce lot.** Brancher votre page sur `http://127.0.0.1:8010`.
-Tout est local ; CORS de l'API existante conservé. Aucun LLM ni appel payant.
+Tout est local ; CORS limité aux origines configurées ci-dessous. Aucun LLM ni appel payant.
 
 ```sh
 make install
@@ -15,6 +15,54 @@ consultable jusqu'à Ctrl+C, qui arrête les deux contrôleurs et leur Redis dé
 `make demo-replay RECORDING=recordings/<nom>` choisit une sauvegarde ; sans argument,
 il reprend le dernier direct. Le replay ne relance ni les agents ni les Vigies.
 
+## Autorisation des commandes locales (direct et replay)
+
+Les lectures restent accessibles sans jeton sur `127.0.0.1` ; le CORS HTTP permet
+leur lecture depuis les seules origines configurées. Les flux WebSocket sont des
+lectures et ne reçoivent pas de commande. **Toute écriture HTTP**, y compris les
+routes historiques `/record` et `/inject`, exige simultanément :
+
+- `Origin` exactement dans la liste autorisée (sinon HTTP 403) ;
+- `X-Demo-Token` égal au jeton du lancement (absent ou incorrect : HTTP 403) ;
+- `Content-Type: application/json` (sinon HTTP 415 après les vérifications précédentes).
+
+Le terminal affiche les origines et un jeton aléatoire neuf à chaque lancement,
+également pour le replay. Le jeton ne figure ni dans les réponses de lecture ni
+dans les URL ; le copier du terminal dans la configuration mémoire de la page.
+Ne pas le publier ni le conserver dans un enregistrement. Un ancien jeton est
+invalide après redémarrage. Aucun cookie d'authentification n'est utilisé.
+
+Par défaut, l'origine est `http://127.0.0.1:8010` (ou le `PORT` choisi).
+Configurer **l'origine exacte de la page du Dev 1**, par exemple :
+
+```sh
+VIGIE_DEMO_ORIGINS=http://localhost:5173 make demo-live SCENARIO=vigie/scenarios/krach_rumeur.yaml
+VIGIE_DEMO_ORIGINS=http://localhost:5173 make demo-replay
+```
+
+Plusieurs origines se séparent par une virgule. L'option CLI répétable
+`--allowed-origin http://localhost:5173` prime sur cette variable. Pas de joker,
+de chemin ni d'origine `null` : servir la page en HTTP local, plutôt qu'en `file:`.
+`localhost` et `127.0.0.1`, ports inclus, sont des origines différentes.
+Le navigateur envoie `Origin` ; le JavaScript ne doit pas essayer de le définir.
+Le prévol CORS autorise `Content-Type` et `X-Demo-Token` uniquement pour ces origines.
+
+```js
+// demoToken vient du jeton affiché dans le terminal, saisi par l'utilisateur.
+const response = await fetch('http://127.0.0.1:8010/demo/record', {
+  method: 'POST',
+  headers: {'Content-Type': 'application/json', 'X-Demo-Token': demoToken},
+  body: JSON.stringify({})
+});
+if (!response.ok) throw new Error(`Enregistrement refusé : ${response.status}`);
+const recording = await response.json();
+```
+
+Les requêtes simples de formulaire ou `text/plain` sont refusées. CORS n'est pas
+l'autorisation : le contrôle d'origine **et** du jeton s'applique avant l'exécution
+de la route, même à un client qui ignore CORS. Pour un client hors navigateur,
+fournir aussi `Origin` explicitement et le jeton en en-tête.
+
 ## Routes
 
 | Route | Usage |
@@ -24,7 +72,7 @@ il reprend le dernier direct. Le replay ne relance ni les agents ni les Vigies.
 | `GET /state?world=A` (ou `B`, `C`) | État complet au format existant de l'équipe. |
 | `GET /graph?world=C` | Graphe au format existant. |
 | `WS /stream?world=C&types=execution,alert` | Messages signés au format existant, sans changement pour A/B. |
-| `POST /demo/record` | Sans corps : sauvegarde cohérente des trois banques ; réponse `{recording, replay}`. |
+| `POST /demo/record` | Corps JSON `{}` et autorisation ci-dessous : sauvegarde cohérente des trois banques ; réponse `{recording, replay}`. |
 
 L'API est la même application `api.app.create_app`, alimentée par trois sources.
 Aucun changement d'`api/app.py` ni de `sim/compare.py`. Utiliser `/demo` ou son flux
@@ -108,3 +156,46 @@ identifiants d'exécutions et de refus pour retrouver chaque preuve dans le jour
 Cette notation emploie les annotations de l'arbitre après coup, jamais pour décider.
 **Le P&L de C est moins bon sur ces deux graines** : ce scénario démontre le
 confinement avec continuité des paiements, pas une économie financière.
+
+## Régime normal puis crise : vraie chute ou rumeur
+
+```sh
+make demo-live SCENARIO=vigie/scenarios/krach_reel.yaml
+make demo-live SCENARIO=vigie/scenarios/krach_rumeur.yaml
+```
+
+`make demo-measure SCENARIO=<même fichier>` rejoue A/B/C sur 42 et 43. Le format du
+flux reste inchangé. Les deux scénarios gardent 60 ticks ordinaires, puis portent
+le herding de 0,3 à 0,8. Le vrai krach injecte six nouvelles publiques (−8 à −12 %)
+sur les trois actifs entre t60 et t75, sans attaque. La rumeur compromet seulement
+news-wire à t60 : ses fausses dépêches natives arrivent à t61, t66 et t72 ; aucun
+choc fondamental n'est injecté. Bruit de marché et news ordinaires de la graine
+restent actifs. Aucun seuil des Vigies n'est adapté aux scénarios.
+
+- **Vrai krach** : B passe au rouge à t66 / t75. C ne bloque aucune action au
+  portique. Sur la graine 43, C produit toutefois deux faux gels, t118 et t178,
+  alors que Risk a déjà arrêté le trading. Leur coût financier mesuré est nul.
+  Ne pas afficher « attaque détectée » : `detection_tick=118` est ici un faux
+  constat comportemental. La similarité porte sur des traces à règles (LLM off).
+- **Rumeur** : premiers gels C à t89 / t80 ; 14 / 26 refus de demandes marquées
+  contaminées par l'arbitre. Le gel réduit les pertes de 846 901,57 / 1 019 404,92 €
+  par rapport au diagnostic C sans gel. B reste vert sur 42 et coupe tout à t143
+  sur 43. Le gel ne constitue pas une preuve que la source news-wire est compromise.
+
+Le JSON hors ligne ajoute `crisis.worlds[A|B|C]` : ventes proposées/exécutées,
+volumes, pic de ventes sur le même actif en dix ticks, pairs impliqués, preuves,
+arrêt de Risk, rouge global, gels et refus propres/contaminés. L'attribution
+financière sépare bruit, vraies news, glissement et impact de prix avec résorption.
+`crisis.freeze_effect` contient le diagnostic **hors ligne seulement** de C sans
+le gel, pour isoler son effet ; les trois colonnes du direct restent A/B/C avec
+le profil livré. « Aide / nuit / neutre » désigne le delta de P&L de cette ablation,
+pas une garantie sur d'autres graines. Un vrai krach peut coûter sans attaque ;
+un regroupement de ventes ne prouve pas une irrationalité.
+
+À vitesse très élevée, le bail de B expire plus vite en temps réel : lors d'une
+validation à `SPEED=10` sous charge, deux refus `STALE` ont changé la trajectoire
+B de la rumeur 42. Ce n'était pas une détection de la rumeur. Garder `SPEED=1.2`
+pour la démo ; les vérifications de ces crises sont rejouées à `SPEED=2`, sans
+modifier le bail ni les seuils de B. Un portable lent peut demander une vitesse
+encore plus basse. Les dossiers automatiques ont désormais un identifiant unique
+pour que deux mesures lancées dans la même seconde ne mélangent pas leurs journaux.

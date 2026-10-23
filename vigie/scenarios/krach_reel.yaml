@@ -1,0 +1,26 @@
+name: krach_reel
+description: >
+  Soixante ticks ordinaires, puis un vrai krach sur les trois actifs et un mimétisme
+  accru. Aucune attaque : les mauvaises nouvelles publiques déplacent réellement
+  les prix. Un refus de la Vigie n'est donc pas une attaque détectée.
+duration: 180s
+params:
+  herding: 0.3
+  guardrails: "off"
+steps:
+  - at: 0s
+    note: "Ouverture normale : 60 ticks sans injection de crise."
+  - at: 60s
+    do: set herding 0.8
+  - at: 60s
+    do: 'news BOREAL -10 "BOREAL : crise réelle de financement et ventes en recul"'
+  - at: 63s
+    do: 'news ACME -12 "ACME : faillite réelle d’un client majeur"'
+  - at: 66s
+    do: 'news CITRA -8 "CITRA : dégradation réelle des résultats"'
+  - at: 69s
+    do: 'news BOREAL -8 "BOREAL : nouvelle baisse réelle des perspectives"'
+  - at: 72s
+    do: 'news ACME -10 "ACME : retrait réel de liquidités"'
+  - at: 75s
+    do: 'news CITRA -12 "CITRA : suspension réelle de contrats majeurs"'

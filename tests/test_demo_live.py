@@ -11,7 +11,8 @@ from vigie.demo_live import DemoRunner, load_day, read_frames, saved_recording, 
 from vigie.demo_controller import Bridge
 
 
-@pytest.mark.parametrize('scenario_path',['vigie/scenarios/jour_noir.yaml','vigie/scenarios/derive_marche.yaml'])
+@pytest.mark.parametrize('scenario_path',['vigie/scenarios/jour_noir.yaml','vigie/scenarios/derive_marche.yaml',
+    'vigie/scenarios/krach_reel.yaml','vigie/scenarios/krach_rumeur.yaml'])
 def test_scenario_uses_only_existing_team_commands(cfg,scenario_path):
     from sim.lockstep import Lockstep
     scenario = load_day(scenario_path,cfg)
