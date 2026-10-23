@@ -233,6 +233,7 @@ for (const [role, members] of Object.entries(Object.groupBy(first.agents.filter(
   Object.assign(label.element.style, { color: "#" + new THREE.Color(c).getHexString(), fontSize: "15px", letterSpacing: ".12em", textTransform: "uppercase" });
   zone.position.set(x, 0, z);
   zone.rotation.y = Math.PI / 2;
+  zone.userData.pick = "pad:" + role;
   world.add(zone, label);
 }
 const tower = new THREE.Group(), lamp = mesh(ball, new THREE.MeshStandardMaterial({ color: 0x0b0d12, emissive: LIGHT.VERT, emissiveIntensity: 2 }), [0, 6.15, -1.15], 0.26);
@@ -252,6 +253,23 @@ for (const n of Object.values(nodes)) if (n.g.parent === world) n.g.position.set
 tower.position.set(POS.vigie[0], 0, POS.vigie[1]);
 
 const at = id => v(POS[id][0], id === "vigie" ? 4.4 : nodes[id].leds ? 0.8 : 1, POS[id][1]);
+
+// What stands under a point of the window (clientX, clientY): the id of an agent, a service or "vigie", "pad:<role>"
+// for a role's pad, or null. A ray from the camera, the first visible thing it meets that belongs to one of them.
+for (const n of Object.values(nodes)) n.g.userData.pick = n.id;
+tower.userData.pick = "vigie";
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function pick(x, y) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.set(((x - r.left) / r.width) * 2 - 1, 1 - ((y - r.top) / r.height) * 2);
+  ray.setFromCamera(ndc, camera);
+  for (const { object } of ray.intersectObject(world, true)) {
+    let id = null, o = object;
+    for (; o?.visible; o = o.parent) id ??= o.userData.pick;
+    if (!o && id) return id;
+  }
+  return null;
+}
 const links = new Map();
 function link(a, b, hidden) {
   const key = [a, b].sort().join("|");
