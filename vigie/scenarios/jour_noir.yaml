@@ -1,0 +1,28 @@
+name: jour_noir
+description: >
+  Une journée noire simulée : ledger menteur sans CVE, puis vulnérabilité PHP,
+  cours empoisonnés, passerelle de paiement détournée et vraies mauvaises nouvelles.
+  Seules les commandes d'injection de l'équipe sont utilisées.
+duration: 180s
+params:
+  herding: 0.3
+  guardrails: "off"
+steps:
+  - at: 0s
+    note: "Ouverture : les trois banques vivent la même journée."
+  - at: 20s
+    do: compromise core-ledger
+  - at: 30s
+    do: publish-cve
+  - at: 40s
+    do: compromise market-feed
+  - at: 40s
+    do: compromise payment-gateway
+  - at: 60s
+    do: 'news BOREAL -6 "BOREAL : avertissement sur résultats annuels"'
+  - at: 80s
+    do: 'news ACME -5 "ACME : perte d’un client majeur"'
+  - at: 100s
+    do: 'news CITRA -5 "CITRA : enquête de l’autorité de la concurrence"'
+  - at: 120s
+    do: 'news BOREAL -5 "BOREAL : notation abaissée"'

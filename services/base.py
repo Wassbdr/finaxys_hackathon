@@ -79,7 +79,13 @@ class ServiceCore:
         self.store.hset(f"{self.prefix}svc_modes", self.service_id, mode)
         status = {"service": self.service_id, "mode": mode, "previous": previous, "since_tick": tick, "by": by, "meta": self.meta()}
         if self.publish:
-            self.publish("service_status", status)
+            public = dict(status)
+            if not self.chaos.get("announce_compromised", True):
+                # Le bus conserve les pannes visibles, sans révéler l'attaque simulée.
+                for field in ("mode", "previous"):
+                    if public[field] == "compromised":
+                        public[field] = "normal"
+            self.publish("service_status", public)
         return status
 
     # --- traitement d'une requête ---------------------------------------------------------
