@@ -226,3 +226,126 @@ def test_later_malformed_claim_does_not_revoke_an_independent_admitted_read(bank
     rt.on_message(f['trader-1'].make(0,'llm_trace','*',{'response':{'justification':[]}},data_provenance=[entry()]))
     assert rt.request_approval(payment(bank,[entry()],parents=[original['message_id']])).approved
     assert not rt.freeze.uncertain
+
+
+@pytest.mark.parametrize('replacement_sender', ['trader-1', 'trader-2'])
+def test_rejected_identity_cannot_be_reintroduced_as_an_analysed_parent(bank, replacement_sender):
+    rt, f, keys = bank
+    rejected = f['trader-1'].make(0, 'order_proposal', '*',
+                                {'asset': [], 'side': 'sell', 'notional_eur': 100})
+    rt.on_message(rejected)
+    assert rejected['message_id'] not in rt.state.messages
+    replacement = copy.deepcopy(rejected)
+    replacement['from'] = replacement_sender
+    replacement['payload']['asset'] = 'ACME'
+    keys.sign(replacement)
+    rt.on_message(replacement)
+    operation = payment(bank, parents=[rejected['message_id']])
+    decision = rt.request_approval(operation)
+    assert not decision.approved, 'La réintroduction du même identifiant a blanchi une entrée rejetée'
+    assert rejected['message_id'] in decision.reason
+    assert rt.request_approval(payment(bank)).approved
+    assert not rt.freeze.uncertain
+
+
+def test_unverified_identity_does_not_poison_a_future_admitted_parent(bank):
+    rt, f, _ = bank
+    root = f['trader-1'].make(0, 'order_proposal', '*',
+                            {'asset': 'ACME', 'side': 'sell', 'notional_eur': 100})
+    forged = copy.deepcopy(root)
+    forged['signature'] = 'bad'
+    forged['payload']['asset'] = []
+    rt.on_message(forged)
+    rt.on_message(root)
+    assert rt.request_approval(payment(bank, parents=[root['message_id']])).approved
+    assert not rt.freeze.uncertain
+
+
+def test_later_rejected_identity_does_not_revoke_an_admitted_parent(bank):
+    rt, f, keys = bank
+    root = f['trader-1'].make(0, 'order_proposal', '*',
+                            {'asset': 'ACME', 'side': 'sell', 'notional_eur': 100})
+    rt.on_message(root)
+    changed = copy.deepcopy(root)
+    changed['payload']['asset'] = []
+    keys.sign(changed)
+    rt.on_message(changed)
+    assert rt.request_approval(payment(bank, parents=[root['message_id']])).approved
+    assert not rt.freeze.uncertain
+
+
+def test_rejected_identity_budget_stays_targeted_and_keeps_old_proofs(bank):
+    rt, f, _ = bank
+    original = public_root(bank)
+    limit = rt.admission.message_limit
+    rt.admission.message_limit = 2
+    for _ in range(5):
+        rt.on_message(f['trader-1'].make(0, 'order_proposal', '*', {'asset': [], 'side': 'sell'}))
+    rt.admission.message_limit = limit
+    fresh = f['trader-1'].make(0, 'order_proposal', '*',
+                             {'asset': 'ACME', 'side': 'sell', 'notional_eur': 100})
+    rt.on_message(fresh)
+    decision = rt.request_approval(payment(bank, parents=[fresh['message_id']]))
+    assert not decision.approved
+    assert len(rt.admission.rejected_identities['trader-1']) == 2
+    assert rt.admission.opaque_identities == {'trader-1'}
+    assert fresh['message_id'] in decision.reason
+    assert rt.request_approval(payment(bank, parents=[original['message_id']])).approved
+    assert rt.request_approval(payment(bank)).approved
+    assert not rt.freeze.uncertain
+
+
+@pytest.mark.parametrize('reason', ['source_memory', 'future_input'])
+def test_rejected_identity_survives_quota_recovery_and_clock_advance(bank, reason):
+    rt, f, _ = bank
+    root = f['trader-1'].make(1 if reason == 'future_input' else 0, 'order_proposal', '*',
+                            {'asset': 'ACME', 'side': 'sell', 'notional_eur': 100})
+    if reason == 'source_memory':
+        rt.admission.messages['trader-1'] = rt.admission.message_limit
+    else:
+        root['tick'] = 2
+        bank[2].sign(root)
+    rt.on_message(root)
+    assert root['message_id'] not in rt.state.messages
+    assert rt.admission.rejected['signed:trader-1'][reason] == 1
+    rt.admission.messages['trader-1'] = 0
+    rt.on_message(f['clock'].make(31, 'tick', '*', {'tick': 31}))
+    rt.on_message(root)
+    decision = rt.request_approval(payment(bank, parents=[root['message_id']]))
+    assert not decision.approved, 'La récupération du quota ou de l’horloge a effacé le rejet'
+    assert root['message_id'] in decision.reason
+    assert rt.request_approval(payment(bank)).approved
+    assert not rt.freeze.uncertain
+
+
+def test_overflowed_rejected_identity_cannot_be_rebound_by_another_sender(bank):
+    rt, f, keys = bank
+    limit = rt.admission.message_limit
+    rt.admission.message_limit = 1
+    for _ in range(2):
+        bad = f['trader-1'].make(0, 'order_proposal', '*', {'asset': [], 'side': 'sell'})
+        rt.on_message(bad)
+    rt.admission.message_limit = limit
+    replacement = copy.deepcopy(bad)
+    replacement['from'] = 'trader-2'
+    replacement['payload']['asset'] = 'ACME'
+    keys.sign(replacement)
+    rt.on_message(replacement)
+    assert not rt.request_approval(payment(bank, parents=[bad['message_id']])).approved
+    independent = f['trader-2'].make(0, 'order_proposal', '*', {'asset': 'ACME', 'side': 'sell'})
+    rt.on_message(independent)
+    assert rt.request_approval(payment(bank, parents=[independent['message_id']])).approved
+    assert not rt.freeze.uncertain
+
+
+def test_signed_sender_cannot_reserve_another_senders_future_identity(bank):
+    rt, f, keys = bank
+    root = f['trader-2'].make(0, 'order_proposal', '*', {'asset': 'ACME', 'side': 'sell'})
+    impostor = copy.deepcopy(root)
+    impostor['from'] = 'trader-1'
+    keys.sign(impostor)
+    rt.on_message(impostor)
+    assert root['message_id'] not in rt.state.messages
+    rt.on_message(root)
+    assert rt.request_approval(payment(bank, parents=[root['message_id']])).approved
+    assert not rt.freeze.uncertain

@@ -43,6 +43,8 @@ class Admission:
         self.provenance_roots={}
         self.rejected_provenance={s:set() for s in self.senders}
         self.opaque_producers=set()
+        self.rejected_identities={s:set() for s in self.senders}
+        self.opaque_identities=set()
         self.last_reason=None
         self.last_evidence=[]
         self.direct_services={}
@@ -69,6 +71,9 @@ class Admission:
 
     def check(self, msg, size, tick, freeze):
         sender, kind = msg['from'], msg['type']
+        # Le préfixe produit par MessageFactory lie l'espace d'identifiants au
+        # signataire : une source saturée ne peut pas changer de propriétaire.
+        if not msg['message_id'].startswith(sender+':'): return 'identity_owner'
         self.burst = {k:v for k,v in self.burst.items() if k[0]>=tick-1}
         if self.burst.get((tick,sender),0)>=128: return 'source_rate'
         if self.messages[sender]>=self.message_limit or self.bytes[sender]+size>self.byte_limit:
@@ -150,6 +155,17 @@ class Admission:
         # forgé ne peut pas empoisonner une preuve déjà admise d'un autre acteur.
         sender=msg.get('from')
         if sender not in self.senders: return
+        mid=msg.get('message_id')
+        if isinstance(mid,str) and mid.startswith(sender+':') and mid not in self.identities:
+            # Un identifiant rejeté ne peut pas devenir un parent sain par
+            # réémission. Une preuve admise avant ce rejet reste indépendante.
+            token=hashlib.sha256(mid.encode('utf-8')).digest()
+            identities=self.rejected_identities[sender]
+            if token not in identities:
+                if len(identities)>=self.message_limit:
+                    self.opaque_identities.add(sender)
+                else:
+                    identities.add(token)
         entries=msg.get('data_provenance',[])
         if not isinstance(entries,list): return
         rejected=self.rejected_provenance[sender]
@@ -163,8 +179,18 @@ class Admission:
 
     def record(self,msg,state,tick):
         mid=msg['message_id']
+        token=hashlib.sha256(mid.encode('utf-8')).digest()
+        rejected=any(token in roots for roots in self.rejected_identities.values())
+        opaque=msg['from'] in self.opaque_identities and mid not in self.identities
         self.identities[mid]=self.identity(msg)
         self.proposal_identities[mid]=self.proposal_identity(msg)
+        if rejected or opaque:
+            # Quand la mémoire de refus d'une source est pleine, les nouvelles
+            # racines de cette seule source restent inconnues, sans éviction.
+            self.unanalysed.add(mid)
+            self.last_reason='rejected_identity' if rejected else 'identity_budget'
+            self.last_evidence=[mid]
+            return False
         proposal=msg['payload'].get('proposal')
         if isinstance(proposal,dict):
             source=proposal['message_id']
@@ -205,7 +231,6 @@ class Admission:
             remaining-=1
             if remaining<0 or depth>128: return fail('proof_budget',mid)
             if mid in visiting: return fail('proof_cycle',mid)
-            if mid in self.unanalysed: return fail('unanalysed_input',mid)
             if self.gaps.get(current['from'],-1)>=tick: return fail('incomplete_source',mid)
             visiting.add(mid)
             try:
@@ -215,6 +240,9 @@ class Admission:
                     previous=state.messages.get(parent)
                     if previous is None: return fail('unknown_parent',parent)
                     if not covered(previous,depth+1): return fail(self.last_reason,mid)
+                # Remonter les parents avant le refus persistant conserve la
+                # preuve précise, même lorsqu'une opération est redemandée.
+                if mid in self.unanalysed: return fail('unanalysed_input',mid)
                 for e in current.get('data_provenance',[]):
                     if e.get('service') in self.unavailable_services:
                         return fail('unavailable_service',mid)

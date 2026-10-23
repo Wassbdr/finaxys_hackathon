@@ -158,7 +158,9 @@ class Runtime(Gate):
         if len(self.state.messages)>=20_000 or self.admitted_bytes+size>16*1024*1024:
             reason='storage_full'
         if reason:
-            self.reject_input(msg,reason,gap=msg['type'] in {'order_proposal','price_update','execution','llm_trace'})
+            # Un identifiant d'un autre signataire n'ouvre aucun trou dans
+            # l'historique propre de l'émetteur : seul ce message est rejeté.
+            self.reject_input(msg,reason,gap=reason!='identity_owner' and msg['type'] in {'order_proposal','price_update','execution','llm_trace'})
             if is_clock:
                 # La mémoire pleine n'empêche pas de suivre l'horloge publique,
                 # de conserver les baux, ni d'avertir l'humain.
