@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La Vigie · Banque Horizon</title>
+<style>
+  /* The look of the s14 recon dashboard (recon-v3-mr/web): its sky and dust, its menu, its title bar, its cards, its
+     tables and its frosted popups, in Blueprint's dark palette. */
+  :root {
+    --menu: 52px; --text: #F6F7F9; --dim: #ABB3BF; --line: rgb(255 255 255 / .12);
+    --green: #34d399; --orange: #fbbf24; --red: #f87171; --grey: #8F99A8; --blue: #4C90F0;
+    --th: #2F343C; --th-ink: #DCE0E5; --over: 255 255 255;
+  }
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; }
+  body { margin: 0; min-height: 100vh; font: 14px/1.45 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--text); background: #020304; -webkit-font-smoothing: antialiased; }
+  button, input { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
+
+  .sky { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+    background: radial-gradient(58% 36% at 105% -5%, rgba(114,64,255,.45) 0%, rgba(108,59,255,.12) 44%, transparent 72%),
+      radial-gradient(160% 115% at 82% -22%, rgba(24,42,108,.92) 0%, rgba(15,31,82,.52) 34%, rgba(9,19,50,.20) 60%, transparent 85%),
+      radial-gradient(90% 60% at 20% 30%, rgba(30,34,90,.22) 0%, transparent 70%),
+      radial-gradient(circle at 80% 8%, rgba(56,189,248,.07), transparent 28%),
+      radial-gradient(circle at 15% 36%, rgba(139,92,246,.05), transparent 22%), #020304; }
+  .sky i { position: absolute; border-radius: 50%; background: #fff; opacity: 0; animation: drift linear infinite alternate; }
+  @keyframes drift { 0% { translate: 0 0; opacity: 0; } 12%, 88% { opacity: var(--e); } 100% { translate: var(--x) var(--y); opacity: 0; } }
+
+  .menu { position: sticky; top: 0; z-index: 20; height: var(--menu); display: flex; justify-content: center; padding: 0 112px;
+    border-bottom: 1px solid rgb(255 255 255 / .1); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  .brand { position: absolute; left: 20px; top: 0; height: var(--menu); display: flex; align-items: center; font-size: 15px; font-weight: 620; letter-spacing: .02em; }
+  .tabs { position: relative; display: flex; gap: 4px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
+  .tabs a { display: flex; flex-direction: column; align-items: center; padding: 14px; font-size: 15px; white-space: nowrap; color: #ffffffa6;
+    text-decoration: none; outline: none; transition: color .3s, font-weight .3s, letter-spacing .3s; }
+  /* a tab is as wide as its name in bold, chosen or not: the menu does not move when the choice does */
+  .tabs a::after { content: attr(data-name); height: 0; overflow: hidden; visibility: hidden; font-weight: 620; letter-spacing: .02em; }
+  .tabs a:hover, .tabs a[aria-current] { color: #fff; }
+  .tabs a[aria-current] { font-weight: 620; letter-spacing: .02em; }
+  .tabs a:focus-visible { text-decoration: underline; }
+  .tabs .line { position: absolute; bottom: 0; left: 0; width: 1px; height: 2px; background: #fff; transform-origin: left; transition: transform .3s ease-out; pointer-events: none; }
+
+  /* three columns of one fixed width: a title stays put when the value under it grows (Marius, 23-10) */
+  .bar { display: grid; grid-template-columns: repeat(3, minmax(0, 18rem)); justify-content: center; column-gap: 32px; max-width: calc(100vw * 2 / 3); margin: 0 auto; align-items: start; padding: 16px 24px 12px; }
+  .bar .col { display: grid; gap: 8px; justify-items: center; font-size: 24px; font-weight: 600; letter-spacing: -.025em; }
+  .bar .name { margin-bottom: -.39em; }
+  .bar .box { display: inline-flex; align-items: center; gap: 10px; min-height: 1.65em; padding: 0 12px; border: 1px solid #383E47; border-radius: 12px; font-variant-numeric: tabular-nums; }
+  .bar .under { font-size: 13px; font-weight: 400; letter-spacing: 0; color: var(--dim); text-align: center; }
+  .bar .under b { color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .bar .under.warn { color: var(--orange); font-weight: 500; }
+  .lamp { color: var(--c); }
+  .lamp::before { content: ""; width: .42em; height: .42em; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
+  .lamp.calm { color: var(--text); } .lamp.calm::before { display: none; }
+  .s-red.lamp::before, .s-red .pastille::before { animation: beat 1.6s ease-out infinite; }
+  @keyframes beat { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 70%, transparent); } 100% { box-shadow: 0 0 0 8px transparent; } }
+  /* the simulation stopped: what stays on screen is its last state, greyed */
+  body.stale main, body.stale .bar .box, body.stale #prices { filter: grayscale(1); opacity: .5; }
+
+  main { max-width: calc(100vw * 2 / 3); margin: 0 auto; padding: 16px 24px 64px; }
+  h2 { font-size: 15px; font-weight: 600; color: rgb(255 255 255 / .88); margin: 30px 0 10px; }
+  h2:first-child { margin-top: 4px; }
+  .lead { margin: 0 0 14px; color: var(--dim); font-size: 15px; } .lead b { color: var(--text); }
+  .hint { color: var(--dim); font-size: 12.5px; font-weight: 400; margin-left: 6px; }
+  .empty { color: var(--dim); font-style: italic; margin: 0; }
+  .sample { margin-left: 8px; padding: 1px 7px; border-radius: 999px; border: 1px solid rgb(214 159 214 / .45); color: #D69FD6; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; vertical-align: 2px; }
+  .s-green { --c: var(--green); } .s-orange { --c: var(--orange); } .s-red { --c: var(--red); } .s-grey { --c: var(--grey); }
+
+  /* A block: its name, what it does and its state, as a pastille and as its border; a click opens the rest */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; }
+  .grid.three { grid-template-columns: repeat(3, 1fr); }
+  /* flex, not block: a button centres its content vertically, so a shorter text sat lower than its row */
+  .block { position: relative; display: flex; flex-direction: column; justify-content: flex-start; width: 100%; padding: 18px 20px; text-align: left; cursor: pointer; border-radius: 12px;
+    border: 1.5px solid color-mix(in srgb, var(--c) 85%, transparent); background: rgb(148 163 184 / .12); box-shadow: 0 0 24px -12px var(--c); transition: background-color .15s; }
+  .block:hover { background: rgb(148 163 184 / .2); }
+  .block:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .block h3 { margin: 0 116px 8px 0; font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
+  .block p { margin: 0; color: var(--dim); }
+  .pastille { position: absolute; top: 16px; right: 16px; display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); }
+  .pastille::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); }
+  .dlg-head .pastille { position: static; }
+
+  .graph { padding: 10px; background: rgb(148 163 184 / .08); }
+  .graph svg { display: block; width: 100%; height: auto; }
+  .edge { fill: none; stroke: rgb(255 255 255 / .14); stroke-width: 1.2; }
+  .edge.bad { stroke: color-mix(in srgb, var(--red) 75%, transparent); stroke-width: 1.6; }
+  .edge.hidden-dep { stroke: var(--orange); stroke-width: 1.6; stroke-dasharray: 5 4; }
+  .node { cursor: pointer; outline: none; }
+  .node rect { fill: #0b0d12; stroke: var(--c); stroke-width: 1.5; }
+  .node.s-red rect { fill: color-mix(in srgb, var(--red) 24%, #0b0d12); }
+  .node:hover rect, .node:focus-visible rect { stroke-width: 2.5; }
+  .node text { fill: #e2e8f0; font-size: 13px; font-weight: 500; pointer-events: none; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 8px; color: var(--dim); font-size: 12.5px; }
+  .legend i { display: inline-block; width: 22px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 6px; }
+
+  .card { background: rgb(148 163 184 / .12); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 4px; font-size: 16px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .row { display: grid; grid-template-columns: 1fr 90px 104px; gap: 10px; align-items: center; font-size: 13px; margin: 5px 0; }
+  .row .name { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-in { height: 7px; background: rgb(var(--over) / .1); border-radius: 4px; overflow: hidden; }
+  .bar-in i { display: block; height: 100%; background: var(--c); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* The cards of a bar, as the recon Summary's: a number and its name on its colour, in a grey block; grey when zero */
+  .counts { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px; border-radius: 16px; border: 1px solid rgb(246 247 249 / .2); background: rgb(246 247 249 / .1); }
+  .count { display: flex; align-items: baseline; gap: 8px; padding: 12px 16px; border-radius: 12px; border: 1px solid rgb(0 0 0 / .1); color: #1f2328; font-size: 17px; font-weight: 600; }
+  .count b { font-variant-numeric: tabular-nums; }
+  .count small { display: block; font-size: 12px; font-weight: 500; opacity: .72; letter-spacing: 0; }
+  .count .hint { color: inherit; opacity: .6; }
+  .count.big { flex-direction: column; gap: 2px; min-width: 180px; flex: 1; } .count.big b { font-size: 30px; letter-spacing: -.02em; }
+  .f-green { background: rgb(150 214 168); } .f-orange { background: rgb(238 157 93); } .f-red { background: rgb(225 113 120); }
+  .f-grey { background: rgb(196 201 208); } .f-blue { background: rgb(164 196 232); }
+  .note { color: var(--dim); margin: 10px 2px 0; }
+
+  .frame { overflow: auto; border-radius: 12px; border: 1px solid var(--line); background: rgb(37 42 49 / .82); }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; line-height: 19px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 5px 10px; text-align: left; vertical-align: middle; }
+  th { background: var(--th); color: var(--th-ink); font-weight: 600; }
+  td.num { white-space: nowrap; }
+  tbody td { border-top: 1px solid rgb(var(--over) / .06); }
+  tbody tr:nth-child(even) > td { background-image: linear-gradient(rgb(var(--over) / .04), rgb(var(--over) / .04)); }
+  tbody tr:hover > td { background-image: linear-gradient(rgb(var(--over) / .08), rgb(var(--over) / .08)); }
+  tfoot th { background: rgb(var(--over) / .06); color: inherit; }
+  th.num, td.num { text-align: right; }
+  .a-green { color: var(--green); } .a-block, .a-quarantine, .a-red { color: var(--red); } .a-slow, .a-flag, .a-advise { color: var(--orange); } .a-tune { color: #8ABBFF; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; color: var(--c, var(--dim)); background: color-mix(in srgb, var(--c, #8F99A8) 16%, transparent); }
+  .act { background: #2D72D2; color: #fff; border: 0; border-radius: 8px; padding: 5px 12px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+  .act:hover { background: #215DB0; }
+  .act.ghost { background: #383E47; color: var(--text); } .act.ghost:hover { background: #404854; }
+  input[type=number] { width: 88px; background: #1C2127; border: 1px solid #404854; border-radius: 6px; padding: 4px 6px; }
+  details summary { cursor: pointer; color: var(--dim); font-size: 12.5px; margin-top: 8px; }
+  .proposal { margin-bottom: 12px; } .proposal .why { margin: 8px 0 0; }
+  .badge { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; background: #383E47; margin-right: 6px; }
+
+  /* The details of a block: the recon's large popups, a frosted light glass over the page. As on the recon's (.light),
+     every word is in the dark ink and the pills in the light theme's Tailwind 100 / 900: coloured or grey words on the
+     glass did not read (Marius, 23-10). */
+  dialog.glass { width: min(820px, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; overflow: auto; scrollbar-width: none; border-radius: 12px;
+    border: 1px solid rgb(255 255 255 / .4); color: #1C2127; background: rgb(220 224 229 / .92);
+    backdrop-filter: blur(40px) saturate(200%) brightness(1.15); -webkit-backdrop-filter: blur(40px) saturate(200%) brightness(1.15);
+    --text: #1C2127; --dim: #1C2127; --green: #1C7A4A; --orange: #B5650F; --red: #C8333B; --grey: #5F6B7C;
+    --th: rgb(255 255 255 / .55); --th-ink: #1C2127; --over: 17 24 39; }
+  dialog.glass[open] { animation: pop .12s ease-out; }
+  @keyframes pop { from { opacity: 0; scale: .95; } }
+  dialog.glass::backdrop { background: rgb(0 0 0 / .3); }
+  dialog .chip, dialog .pastille { color: var(--ink, #1C2127); background: var(--pill, rgb(255 255 255 / .6)); }
+  dialog .s-green { --pill: #dcfce7; --ink: #14532d; } dialog .s-orange { --pill: #ffedd5; --ink: #7c2d12; }
+  dialog .s-red { --pill: #fee2e2; --ink: #7f1d1d; } dialog .s-grey { --pill: #f1f5f9; --ink: #1e293b; }
+  dialog .frame { background: rgb(255 255 255 / .35); border-color: rgb(0 0 0 / .1); }
+  dialog .act.ghost { background: rgb(0 0 0 / .08); color: #1C2127; }
+  .in { padding: 20px 22px; display: grid; gap: 12px; }
+  .in > p { margin: 0; }
+  .in h4 { margin: 6px 0 0; font-size: 13px; font-weight: 600; color: var(--dim); }
+  .dlg-head { display: flex; align-items: center; gap: 12px; padding-right: 32px; }
+  .dlg-head h3 { margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
+  .x { position: absolute; top: 10px; right: 12px; width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent; font-size: 20px; line-height: 1; cursor: pointer; color: #1C2127; }
+  .x:hover { background: rgb(0 0 0 / .08); }
+
+  .toast { position: fixed; bottom: 20px; right: 20px; z-index: 30; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line); background: rgb(37 42 49 / .92); backdrop-filter: blur(12px); }
+  @media (prefers-reduced-motion: reduce) { .sky i { animation: none; opacity: var(--e); } .tabs .line, dialog.glass[open] { transition: none; animation: none; } .lamp::before, .pastille::before { animation: none !important; } }
+  @media (max-width: 760px) { main, .bar { max-width: none; } .menu { padding: 0; justify-content: flex-start; } .brand { display: none; } .bar { grid-template-columns: 1fr; row-gap: 12px; } .bar .col { margin: 0 !important; } .grid.three { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="sky" id="sky" aria-hidden="true"></div>
+<nav class="menu" aria-label="Tabs">
+  <span class="brand">La Vigie</span>
+  <div class="tabs">
+    <a href="#agents" data-tab="agents" data-name="Agents">Agents</a>
+    <a href="#actions" data-tab="actions" data-name="Vigie actions">Vigie actions</a>
+    <a href="#metrics" data-tab="metrics" data-name="Metrics">Metrics</a>
+    <a href="#improve" data-tab="improve" data-name="Improvements">Improvements</a>
+    <span class="line" aria-hidden="true"></span>
+  </div>
+</nav>
+<header class="bar">
+  <div class="col"><span class="name">Bank</span><span class="box lamp calm" id="light">-</span><span class="under" id="conn"></span></div>
+  <div class="col"><span class="name">Tick</span><span class="box" id="tick">-</span><span class="under" id="prices"></span></div>
+  <div class="col"><span class="name">P&amp;L today</span><span class="box" id="pnl">-</span></div>
+</header>
+<main>
+  <section id="agents"></section>
+  <section id="actions" hidden></section>
+  <section id="metrics" hidden></section>
+  <section id="improve" hidden></section>
+</main>
+<dialog class="glass" id="dlg"><button type="button" class="x" aria-label="Close" onclick="dlg.close()">×</button><div class="in" id="detail"></div></dialog>
+<div class="toast" id="toast" hidden></div>
+<script src="/dashboard/dashboard.js"></script>
+</body>
+</html>

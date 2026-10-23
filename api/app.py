@@ -7,9 +7,13 @@
     POST /inject      {"command": "compromise market-feed"} ou {"scenario": "php2shell_day"}
     POST /record      {"name": "demo1"} : copie la partie en cours dans recordings/
     GET  /recordings  parties enregistrées
+    GET  /vigie       état de la Vigie (indicateurs, actions, décisions du portique)
     GET  /vigie/graph    layer 1 graph rebuilt from the bus (hidden edges, impact radius)
     GET  /vigie/metrics  layer 1 metrics (agents, system, CEO figures, baselines)
     GET  /vigie/findings latest Findings of every layer
+    GET  /improvements dernier rapport de `python -m vigie.improve`
+    GET  /dashboard   tableau de bord de la Vigie (4 onglets)
+    GET  /dashboard/{dashboard.js,dashboard-demo.json}  its script and the sample data it shows when no run is live
 
 Toutes les routes acceptent ?world=A|B en mode comparaison.
     python -m api.app
@@ -17,6 +21,7 @@ Toutes les routes acceptent ?world=A|B en mode comparaison.
 
 from __future__ import annotations
 
+import json
 import shlex
 import shutil
 import threading
@@ -24,6 +29,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from sim.config import ROOT, load_config
@@ -122,6 +128,14 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
                 raise HTTPException(400, str(err))
         return {"ok": True, "results": results}
 
+    @app.get("/vigie")
+    def vigie(world: str | None = None):
+        src = source(world)
+        if src.kind != "live":
+            raise HTTPException(409, "the Vigie state is only kept live")
+        decisions = src.client.lrange(f"{src.prefix}vigie:decisions", -200, -1)
+        return {"status": src._json("vigie:status") or {}, "decisions": [json.loads(d) for d in decisions]}
+
     def vigie_part(world, key, empty):
         src = source(world)
         if src.kind != "live":
@@ -139,6 +153,23 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
     @app.get("/vigie/findings")
     def vigie_findings(world: str | None = None):
         return vigie_part(world, "findings", [])
+
+    @app.get("/improvements")
+    def improvements():
+        path = ROOT / load_config()["runs_dir"] / "vigie-improve" / "improvements.json"
+        if not path.exists():
+            raise HTTPException(404, "no report yet: run python -m vigie.improve")
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    @app.get("/dashboard")
+    def dashboard():
+        return FileResponse(ROOT / "vigie" / "dashboard.html")
+
+    @app.get("/dashboard/{name}")
+    def dashboard_file(name: str):
+        if name not in ("dashboard.js", "dashboard-demo.json"):
+            raise HTTPException(404)
+        return FileResponse(ROOT / "vigie" / name)
 
     @app.get("/compare")
     def compare():
