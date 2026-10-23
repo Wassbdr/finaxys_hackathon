@@ -12,8 +12,9 @@
     GET  /vigie/metrics  layer 1 metrics (agents, system, CEO figures, baselines)
     GET  /vigie/findings latest Findings of every layer
     GET  /improvements dernier rapport de `python -m vigie.improve`
-    GET  /dashboard   tableau de bord de la Vigie (4 onglets)
+    GET  /dashboard   tableau de bord de la Vigie (5 onglets)
     GET  /dashboard/{dashboard.js,dashboard-demo.json}  its script and the sample data it shows when no run is live
+    GET  /dashboard/{simulation.js,dashboard-sim.json}  the Simulation tab's 3D scene and the bench replays it plays
 
 Toutes les routes acceptent ?world=A|B en mode comparaison.
     python -m api.app
@@ -167,7 +168,7 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
 
     @app.get("/dashboard/{name}")
     def dashboard_file(name: str):
-        if name not in ("dashboard.js", "dashboard-demo.json"):
+        if name not in ("dashboard.js", "dashboard-demo.json", "simulation.js", "dashboard-sim.json"):
             raise HTTPException(404)
         return FileResponse(ROOT / "vigie" / name)
 

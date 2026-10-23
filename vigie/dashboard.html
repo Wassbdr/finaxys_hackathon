@@ -54,7 +54,7 @@
   .s-red.lamp::before, .s-red .pastille::before { animation: beat 1.6s ease-out infinite; }
   @keyframes beat { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 70%, transparent); } 100% { box-shadow: 0 0 0 8px transparent; } }
   /* the simulation stopped: what stays on screen is its last state, greyed */
-  body.stale main, body.stale .bar .box, body.stale #prices { filter: grayscale(1); opacity: .5; }
+  body.stale main > :not(#simulation), body.stale .bar .box, body.stale #prices { filter: grayscale(1); opacity: .5; }
 
   main { max-width: calc(100vw * 2 / 3); margin: 0 auto; padding: 16px 24px 64px; }
   h2 { font-size: 15px; font-weight: 600; color: rgb(255 255 255 / .88); margin: 30px 0 10px; }
@@ -158,15 +158,48 @@
   .x:hover { background: rgb(0 0 0 / .08); }
 
   .toast { position: fixed; bottom: 20px; right: 20px; z-index: 30; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line); background: rgb(37 42 49 / .92); backdrop-filter: blur(12px); }
+  /* The Simulation tab: a replay of the bench as a 3D scene (simulation.js), its money and its news floating over it */
+  main:has(> #simulation:not([hidden])) { max-width: min(1680px, 100vw); }
+  .sim-top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; margin-bottom: 12px; }
+  .sim-top label { display: flex; align-items: center; gap: 8px; color: var(--dim); }
+  .sim-top select { background: #1C2127; border: 1px solid #404854; border-radius: 6px; padding: 4px 8px; }
+  .sim-seg { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 10px; background: rgb(148 163 184 / .14); }
+  .sim-seg b { padding: 0 8px 0 6px; font-weight: 600; }
+  .sim-seg button { border: 0; border-radius: 7px; padding: 5px 16px; background: transparent; color: var(--dim); font-weight: 600; cursor: pointer; }
+  .sim-seg button[aria-pressed=true] { background: #2D72D2; color: #fff; }
+  .sim-why { color: var(--dim); }
+  .sim-stage { position: relative; height: min(72vh, 760px); overflow: hidden; border-radius: 16px; border: 1px solid var(--line);
+    background: radial-gradient(70% 60% at 50% 35%, rgb(76 144 240 / .1), transparent 70%), rgb(148 163 184 / .05); }
+  .sim-stage canvas { display: block; }
+  .sim-labels { position: absolute; inset: 0; pointer-events: none; }
+  .sim-label { font-size: 12px; font-weight: 600; text-align: center; white-space: nowrap; text-shadow: 0 1px 3px #000, 0 0 8px #000; }
+  .sim-label small { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--dim); }
+  .sim-label .m-stale, .sim-label .m-slow, .sim-label .m-down { color: var(--orange); } .sim-label .m-compromised { color: var(--red); } .sim-label .m-iso { color: #22d3ee; }
+  .sim-bubble { max-width: 220px; padding: 5px 10px; border-radius: 10px; font-size: 12px; line-height: 1.3; color: #1C2127; background: rgb(255 255 255 / .92); box-shadow: 0 4px 14px rgb(0 0 0 / .35); animation: pop .15s ease-out; }
+  .sim-bubble.k-bad { background: #fee2e2; color: #7f1d1d; } .sim-bubble.k-good { background: #dcfce7; color: #14532d; } .sim-bubble.k-warn { background: #ffedd5; color: #7c2d12; }
+  .sim-money, .sim-feed { position: absolute; z-index: 1; pointer-events: none; }
+  .sim-money { top: 14px; right: 14px; display: grid; gap: 2px; padding: 10px 14px; border-radius: 12px; text-align: right; font-variant-numeric: tabular-nums; color: var(--dim); background: rgb(15 18 24 / .72); backdrop-filter: blur(8px); }
+  .sim-money b { font-size: 26px; letter-spacing: -.02em; } .sim-money .neg { color: var(--red); } .sim-money .pos { color: var(--green); }
+  .sim-feed { left: 14px; top: 14px; max-width: 44%; margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 13px; }
+  .sim-feed li { padding: 4px 10px; border-radius: 8px; color: var(--dim); background: rgb(15 18 24 / .72); }
+  .sim-feed li:not(:first-child) { opacity: .65; }
+  .sim-feed b { margin-right: 8px; color: var(--text); font-variant-numeric: tabular-nums; }
+  .sim-feed .k-bad { color: var(--red); } .sim-feed .k-good { color: var(--green); } .sim-feed .k-warn { color: var(--orange); }
+  .sim-play { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+  .sim-play input { flex: 1; accent-color: #2D72D2; }
+  .sim-play span { min-width: 100px; text-align: right; color: var(--dim); font-variant-numeric: tabular-nums; }
+  .legend i.dot { width: 10px; height: 10px; border: 0; border-radius: 50%; background: var(--c); }
   @media (prefers-reduced-motion: reduce) { .sky i { animation: none; opacity: var(--e); } .tabs .line, dialog.glass[open] { transition: none; animation: none; } .lamp::before, .pastille::before { animation: none !important; } }
   @media (max-width: 760px) { main, .bar { max-width: none; } .menu { padding: 0; justify-content: flex-start; } .brand { display: none; } .bar { grid-template-columns: 1fr; row-gap: 12px; } .bar .col { margin: 0 !important; } .grid.three { grid-template-columns: 1fr; } }
 </style>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.min.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/" } }</script>
 </head>
 <body>
 <div class="sky" id="sky" aria-hidden="true"></div>
 <nav class="menu" aria-label="Tabs">
   <span class="brand">La Vigie</span>
   <div class="tabs">
+    <a href="#simulation" data-tab="simulation" data-name="Simulation">Simulation</a>
     <a href="#agents" data-tab="agents" data-name="Agents">Agents</a>
     <a href="#actions" data-tab="actions" data-name="Vigie actions">Vigie actions</a>
     <a href="#metrics" data-tab="metrics" data-name="Metrics">Metrics</a>
@@ -184,9 +217,11 @@
   <section id="actions" hidden></section>
   <section id="metrics" hidden></section>
   <section id="improve" hidden></section>
+  <section id="simulation" hidden><p class="empty">Loading the 3D scene (three.js, from cdn.jsdelivr.net)…</p></section>
 </main>
 <dialog class="glass" id="dlg"><button type="button" class="x" aria-label="Close" onclick="dlg.close()">×</button><div class="in" id="detail"></div></dialog>
 <div class="toast" id="toast" hidden></div>
 <script src="/dashboard/dashboard.js"></script>
+<script type="module" src="/dashboard/simulation.js"></script>
 </body>
 </html>

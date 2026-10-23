@@ -57,3 +57,4 @@ compare:
 # Banc A/B de tous les scénarios et de 10 journées propres : improvements.json (clé metrics) et vigie/METRIQUES.md
 metrics:
 	HORIZON_NO_LLM=1 $(PY) -m vigie.eval
+	$(PY) -m vigie.simulation
