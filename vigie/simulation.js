@@ -16,10 +16,10 @@ if (!F) {
 const TPS = 3;
 const POS = {
   "market-feed": [-13, -7], "news-wire": [-13, -3.5], "payment-gateway": [-13, 0], "core-ledger": [-13, 3.5], "kyc-docs": [-13, 7],
-  quant: [-8, -7], "trader-1": [-6.5, -2], "trader-2": [-4, -1], "trader-3": [-1.5, 0], payment: [-4, 5.5],
+  quant: [-8, -7], "trader-1": [-7.6, -1.5], "trader-2": [-4.6, -1.5], "trader-3": [-1.6, -1.5], payment: [-4.6, 6.4],
   compliance: [3, 1], risk: [7, -4], executor: [10.5, 3], vigie: [2, -9],
 };
-const SKIN = { quant: 0xa78bfa, "trader-1": 0x60a5fa, "trader-2": 0x3b82f6, "trader-3": 0x93c5fd, payment: 0x34d399, compliance: 0xfb923c, risk: 0xf472b6, executor: 0x2dd4bf, vigie: 0xf8fafc };
+const SKIN = { quant: 0xa78bfa, trader: 0x60a5fa, payment: 0x34d399, compliance: 0xfb923c, risk: 0xf472b6, executor: 0x2dd4bf, vigie: 0xf8fafc };
 const LIGHT = { VERT: 0x34d399, ORANGE: 0xfbbf24, ROUGE: 0xf87171, QUARANTAINE: 0xf87171 };
 const LED = { normal: 0x34d399, compromised: 0xef4444, down: 0x1e293b, stale: 0xfbbf24, slow: 0xfbbf24 };
 const DOT = { read: 0x7dd3fc, hidden: 0xfbbf24, bad: 0xf87171, price: 0x67e8f9, order: 0x60a5fa, payment: 0x34d399, decision: 0xc4b5fd, brake: 0xfb923c, exec: 0x86efac, approve: 0x34d399, refuse: 0xef4444, wire: 0xfacc15, fraud: 0xef4444 };
@@ -117,37 +117,27 @@ function glasses(square) {
 }
 
 // One look per role, so the eye tells them apart: glasses for the analysts (quant, risk), something else for the rest.
-function dress(id, body) {
-  if (id === "quant") {
+function dress(role, body) {
+  if (role === "quant") {
     const board = turn(mesh(new THREE.BoxGeometry(1.15, 0.06, 1.15), INK, [0, 1.86, 0]), 0, Math.PI / 4);
     body.add(glasses(false), mesh(disc(0.44, 0.24), INK, [0, 1.74, 0]), board, stick(v(0, 1.9, 0), v(0.8, 1.9, 0), 0.018, GOLD),
       stick(v(0.8, 1.9, 0), v(0.8, 1.5, 0), 0.018, GOLD), mesh(ball, GOLD, [0.8, 1.46, 0], 0.07));
-  } else if (id === "risk") {
+  } else if (role === "risk") {
     const yellow = felt(0xfacc15);
     body.add(glasses(true), mesh(dome(0.7), yellow, [0, 1.42, 0]), mesh(disc(0.96, 0.05), yellow, [0, 1.42, 0]));
-  } else if (id.startsWith("trader-")) {
+  } else if (role === "trader") {
     body.add(turn(mesh(new THREE.OctahedronGeometry(1), RED, [0, 0.44, 0.84], [0.12, 0.21, 0.03]), 0.54), mesh(ball, RED, [0, 0.66, 0.95], 0.07));
-    if (id === "trader-1") body.add(turn(mesh(ring(0.76, 0.09), felt(0xf97316), [0, 1.5, 0]), Math.PI / 2));
-    if (id === "trader-2") {
-      const black = felt(0x1f2937);
-      body.add(mesh(dome(0.52), black, [0, 1.6, 0]), mesh(disc(0.74, 0.04), black, [0, 1.6, 0]), turn(mesh(ring(0.51, 0.035), felt(0x7c2d12), [0, 1.66, 0]), Math.PI / 2));
-    }
-    if (id === "trader-3") {
-      const bulb = mesh(ball, mat(0xf97316, { emissive: 0xf97316 }), [0.43, 2.5, 0], 0.1);
-      bulb.name = "bulb";
-      body.add(stick(v(0.22, 1.7, 0), v(0.42, 2.45, 0), 0.025, STEEL), bulb);
-    }
-  } else if (id === "compliance") {
+  } else if (role === "compliance") {
     body.add(mesh(new THREE.CylinderGeometry(0.62, 0.55, 0.32, 32), felt(0x1e3a8a), [0, 1.74, 0]), mesh(disc(0.82, 0.04, true), INK, [0, 1.6, 0]), mesh(STAR, GOLD, [0, 1.72, 0.58], 0.13));
-  } else if (id === "payment") {
+  } else if (role === "payment") {
     const shade = mat(0x22c55e, { transparent: true, opacity: 0.7, side: THREE.DoubleSide, roughness: 0.2 });
     body.add(turn(mesh(ring(0.76, 0.04), INK, [0, 1.5, 0]), Math.PI / 2), mesh(new THREE.CylinderGeometry(0.74, 1.08, 0.16, 32, 1, true, -Math.PI / 2, Math.PI), shade, [0, 1.42, 0]),
       turn(mesh(disc(0.2, 0.06), GOLD, [0.45, 0.6, 0.8]), Math.PI / 2));
-  } else if (id === "executor") {
+  } else if (role === "executor") {
     const pad = felt(0x0f172a);
     body.add(mesh(ring(1, 0.045, Math.PI), STEEL, [0, 0.95, 0]), turn(mesh(disc(0.22, 0.16), pad, [-0.98, 0.95, 0]), 0, 0, Math.PI / 2),
       turn(mesh(disc(0.22, 0.16), pad, [0.98, 0.95, 0]), 0, 0, Math.PI / 2), stick(v(-1, 0.9, 0.12), v(-0.42, 0.62, 0.86), 0.025, INK), mesh(ball, INK, [-0.4, 0.6, 0.88], 0.07));
-  } else if (id === "vigie") {
+  } else if (role === "vigie") {
     const brass = mat(0xd4a017, { metalness: 0.9, roughness: 0.3 });
     body.add(mesh(new THREE.CylinderGeometry(0.66, 0.56, 0.3, 32), WHITE, [0, 1.74, 0]), turn(mesh(ring(0.57, 0.05), felt(0x1e3a8a), [0, 1.64, 0]), Math.PI / 2),
       mesh(disc(0.8, 0.04, true), INK, [0, 1.6, 0]), mesh(STAR, GOLD, [0, 1.76, 0.62], 0.1),
@@ -166,8 +156,8 @@ function tag(html, at) {
 
 const nodes = {};
 const MOUTH = new THREE.TorusGeometry(0.16, 0.03, 8, 20, Math.PI);
-function blob(id, profile) {
-  const g = new THREE.Group(), hop = new THREE.Group(), body = new THREE.Group(), skin = mat(SKIN[id] ?? 0x94a3b8, { emissive: 0xdc2626, emissiveIntensity: 0 });
+function blob(id, profile, role = id) {
+  const g = new THREE.Group(), hop = new THREE.Group(), body = new THREE.Group(), skin = mat(SKIN[role] ?? 0x94a3b8, { emissive: 0xdc2626, emissiveIntensity: 0 });
   g.add(hop);
   hop.add(body);
   body.add(mesh(ball, skin, [0, 0.9, 0], [1, 0.9, 1]));
@@ -180,13 +170,13 @@ function blob(id, profile) {
   });
   const mouth = mesh(MOUTH, INK);
   body.add(mouth);
-  dress(id, body);
+  dress(role, body);
   const halo = turn(mesh(new THREE.RingGeometry(1.2, 1.42, 48), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }), [0, 0.03, 0]), -Math.PI / 2);
   const glass = mesh(ball, new THREE.MeshPhysicalMaterial({ color: 0xbae6fd, transparent: true, opacity: 0.22, roughness: 0, clearcoat: 1, depthWrite: false }), [0, 0.95, 0]);
   halo.castShadow = glass.castShadow = false;
   glass.scale.setScalar(0.001);
   g.add(halo, glass, tag(id === "vigie" ? "Vigie" : profile ? `${esc(id)}<small>${esc(profile)}</small>` : esc(id), [0, -0.1, 1.45]));
-  return (nodes[id] = { id, g, hop, body, skin, base: new THREE.Color(SKIN[id] ?? 0x94a3b8), eyes, mouth, halo, glass, bulb: body.getObjectByName("bulb"), top: 2.9,
+  return (nodes[id] = { id, g, hop, body, skin, base: new THREE.Color(SKIN[role] ?? 0x94a3b8), eyes, mouth, halo, glass, top: 2.9,
     phase: Math.random() * 7, blinkAt: Math.random() * 4, hopAt: -9, gulpAt: -9, shakeAt: -9, look: null, lookUntil: 0, sick: false, asleep: false, level: null });
 }
 
@@ -207,7 +197,26 @@ function server(id) {
 
 const first = Object.values(F.scenarios)[0];
 for (const s of first.services) if (POS[s]) world.add(server(s).g);
-for (const a of first.agents) if (POS[a.id]) world.add(blob(a.id, a.profile).g);
+for (const a of first.agents) if (POS[a.id]) world.add(blob(a.id, a.profile, a.role).g);
+// agents of one role stand on one pad named after the role, as the other tabs make them one block (Marius, 23-10)
+const stadium = (w, r) => new THREE.Shape().absarc(-w, 0, r, Math.PI / 2, Math.PI * 1.5).absarc(w, 0, r, -Math.PI / 2, Math.PI / 2);
+for (const [role, members] of Object.entries(Object.groupBy(first.agents.filter(a => POS[a.id]), a => a.role))) {
+  if (members.length < 2) continue;
+  const xs = members.map(a => POS[a.id][0]), w = (Math.max(...xs) - Math.min(...xs)) / 2, r = 3, c = SKIN[role] ?? 0x94a3b8;
+  const zone = new THREE.Group(), rim = stadium(w, r);
+  rim.holes.push(stadium(w, r - 0.14));
+  for (const [shape, opacity] of [[stadium(w, r), 0.16], [rim, 0.9]]) {
+    const m = turn(new THREE.Mesh(new THREE.ShapeGeometry(shape, 24), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity, depthWrite: false, toneMapped: false })), -Math.PI / 2);
+    m.position.y = 0.015;
+    m.renderOrder = 1;
+    zone.add(m);
+  }
+  const label = tag(`${esc(role)}<small>${members.length} agents</small>`, [0, 0, r - 0.85]);
+  Object.assign(label.element.style, { color: "#" + new THREE.Color(c).getHexString(), fontSize: "15px", letterSpacing: ".12em", textTransform: "uppercase" });
+  zone.add(label);
+  zone.position.set(Math.min(...xs) + w, 0, members.reduce((z, a) => z + POS[a.id][1], 0) / members.length + 1.3);
+  world.add(zone);
+}
 const tower = new THREE.Group(), lamp = mesh(ball, new THREE.MeshStandardMaterial({ color: 0x0b0d12, emissive: LIGHT.VERT, emissiveIntensity: 2 }), [0, 6.15, -1.15], 0.26);
 const beam = new THREE.PointLight(LIGHT.VERT, 6, 7);
 beam.position.copy(lamp.position);
@@ -439,7 +448,6 @@ function animateBlob(b, dt, k) {
   b.halo.material.color.setHex(LIGHT[b.level] ?? LIGHT.VERT);
   b.halo.material.opacity += ((b.level ? 0.85 : 0) - b.halo.material.opacity) * k;
   b.glass.scale.setScalar(THREE.MathUtils.lerp(b.glass.scale.x, b.level === "QUARANTAINE" ? 1.5 : 0.001, k));
-  if (b.bulb) b.bulb.material.emissiveIntensity = Math.sin(time * 6) > 0 ? 2 : 0.3;
   if (b.sick && !b.asleep && b.g.parent === world && Math.random() < dt * 2.5) {
     const m = mesh(GEO.dot, shine(DOT.bad), [b.g.position.x + (Math.random() - 0.5) * 1.2, 1.6, b.g.position.z + (Math.random() - 0.5) * 1.2], 0.6);
     world.add(m);
