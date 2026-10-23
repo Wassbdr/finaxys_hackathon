@@ -31,7 +31,7 @@ const DOT = { read: 0x7dd3fc, hidden: 0xfbbf24, bad: 0xf87171, price: 0x67e8f9, 
 const WHY = { ours: "With our Vigie: one view of every agent and service, and a gate before each execution.", theirs: "Without it: each agent checks only its own rules, nothing watches the whole bank." };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 // Camera presets, to get back to a simple view after orbiting: where the camera looks from, how far, and what it looks at.
-const VIEWS = { "3/4": { dir: [0.5, 13.2, 24.5], dist: 37 }, Top: { dir: [0, 1, 0.02], dist: 43 }, Front: { dir: [0, 0.25, 1], dist: 40 }, Agents: { dir: [0, 1.3, 1], dist: 28, on: "agents" } };
+const VIEWS = { "3/4": { dir: [0.5, 13.2, 24.5], dist: 42 }, Top: { dir: [0, 1, 0.02], dist: 49 }, Front: { dir: [0, 0.25, 1], dist: 45 }, Agents: { dir: [0, 1.3, 1], dist: 31, on: "agents" } };
 
 // What stops the replay when its setting is on: the kinds of event simulation.py writes
 const STOPS = { stopBad: ["bad", "warn"], stopGood: ["good"] };
@@ -221,10 +221,10 @@ function server(id) {
 }
 
 const first = Object.values(F.scenarios)[0];
-// more room between the blobs: each role moves away from the centre as one block, so a role's column keeps its own
-// spacing; the services stay in their column (Marius, 23-10)
-const SPREAD = 1.3;
-for (const ids of [...Object.values(Object.groupBy(first.agents.filter(a => POS[a.id]), a => a.role)).map(g => g.map(a => a.id)), ["vigie"]]) {
+// more room between things: each role moves away from the centre as one block, so a role's column keeps its own
+// spacing, and each service on its own, so their column stretches with the rest (Marius, 23-10, 24-10)
+const SPREAD = 1.5;
+for (const ids of [...Object.values(Object.groupBy(first.agents.filter(a => POS[a.id]), a => a.role)).map(g => g.map(a => a.id)), ["vigie"], ...first.services.filter(s => POS[s]).map(s => [s])]) {
   const [cx, cz] = ids.reduce(([x, z], id) => [x + POS[id][0] / ids.length, z + POS[id][1] / ids.length], [0, 0]);
   for (const id of ids) POS[id] = [POS[id][0] + cx * (SPREAD - 1), POS[id][1] + cz * (SPREAD - 1)];
 }
@@ -685,7 +685,7 @@ function spread(k) {
 const flat = document.createElement("canvas"), g2 = flat.getContext("2d");
 flat.className = "sim-2d";
 stage.append(flat);
-const MAP = { x0: -15, x1: 17, z0: -14.5, z1: 13.5 };  // the part of the floor the map shows
+const MAP = { x0: -17.5, x1: 17, z0: -14.5, z1: 13.5 };  // the part of the floor the map shows
 let s2 = 1, o2 = [0, 0];
 const to2 = (x, z) => [o2[0] + x * s2, o2[1] + z * s2];
 function fit2d(w, h) {
