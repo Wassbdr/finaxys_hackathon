@@ -32,12 +32,13 @@ const VIEWS = { "3/4": { dir: [0.5, 13.2, 24.5], dist: 32 }, Top: { dir: [0, 1, 
 // What stops the replay when its setting is on: the kinds of event simulation.py writes
 const STOPS = { stopBad: ["bad", "warn"], stopGood: ["good"] };
 // The Settings box's choices, kept by this browser as the recon keeps its own
-const set = { view: "3/4", speed: 1, world: "ours", stopBad: false, stopGood: false, focus: true, reads: true, bubbles: true, ...JSON.parse(localStorage.getItem("vigie.sim") || "{}") };
+const set = { display: "3D", view: "3/4", speed: 1, world: "ours", stopBad: false, stopGood: false, focus: true, reads: true, bubbles: true, helper: true, details: true, ...JSON.parse(localStorage.getItem("vigie.sim") || "{}") };
 const keep = () => localStorage.setItem("vigie.sim", JSON.stringify(set));
 const OFF_ON = [[false, "Off"], [true, "On"]];
 const choice = (key, options) => `<span class="choice" role="group" data-set="${key}">${options.map(([v, label, title]) =>
   `<button type="button" data-v="${esc(JSON.stringify(v))}"${title ? ` title="${esc(title)}"` : ""}>${esc(label)}</button>`).join("")}</span>`;
-const row = (name, html, title) => `<span class="opt"${title ? ` title="${esc(title)}"` : ""}><span>${name}</span>${html}</span>`;
+// a row's help is the helper's box (dashboard.js), not the browser's tooltip: name|what it is|what a click does
+const row = (name, html, title) => `<span class="opt"${title ? ` data-help="${esc(name)}|${esc(title)}|Picks one; this browser keeps it"` : ""}><span>${name}</span>${html}</span>`;
 
 // The recon dashboard's Settings box (recon-v3-mr/web, helper.tsx and map.tsx Fold): its gear and its name in the top
 // left corner, over the menu; it opens under the pointer and folds when the pointer leaves, unless pinned.
@@ -45,16 +46,19 @@ sec.innerHTML = `<div class="settings"><div class="fold">
     <span class="fold-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>Settings</span>
     <button type="button" class="fold-pin" aria-label="Keep Settings open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></button>
     <div class="fold-body"><div class="fold-in">
-      <span class="opt" title="Space plays or pauses"><span class="choice"><button type="button" id="sim-play"></button></span><input type="range" id="sim-t" min="0" step="1" aria-label="Tick"><span id="sim-tick"></span></span>
-      ${row("View", choice("view", Object.keys(VIEWS).map(k => [k, k])), "Puts the camera back on a preset view")}
+      <span class="opt" data-help="Play|Plays or pauses the replay; the slider moves it to any tick|Space plays or pauses"><span class="choice"><button type="button" id="sim-play"></button></span><input type="range" id="sim-t" min="0" step="1" aria-label="Tick"><span id="sim-tick"></span></span>
+      ${row("Display", choice("display", [["3D", "3D"], ["2D", "2D"]]), "The 3D scene, or the same replay as a flat map seen from above")}
+      ${row("View", choice("view", Object.keys(VIEWS).map(k => [k, k])), "Puts the camera back on a preset view (3D only)")}
       ${row("Speed", choice("speed", SPEEDS.map(s => [s, s + "×"])), "1× is a tick every 1.3 s")}
-      ${row("Scenario", `<select id="sim-sc" aria-label="Scenario">${Object.keys(F.scenarios).map(n => `<option value="${esc(n)}">${esc(n.replaceAll("_", " "))}</option>`).join("")}</select>`)}
-      ${row("Vigie", choice("world", Object.entries(WHY).map(([w, why]) => [w, w === "ours" ? "Ours" : "Theirs", why])))}
+      ${row("Scenario", `<select id="sim-sc" aria-label="Scenario">${Object.keys(F.scenarios).map(n => `<option value="${esc(n)}">${esc(n.replaceAll("_", " "))}</option>`).join("")}</select>`, "The scenario of the bench replayed: its film comes from make metrics")}
+      ${row("Vigie", choice("world", Object.entries(WHY).map(([w, why]) => [w, w === "ours" ? "Ours" : "Theirs", why])), `Ours: ${WHY.ours} Theirs: ${WHY.theirs}`)}
       ${row("Stop on a problem", choice("stopBad", OFF_ON), "Pauses when a service is compromised, an agent acts on compromised data, money leaves to a rerouted IBAN, the bank light turns orange or red, a CVE is published, a trader stops or the Vigie's heartbeat is lost")}
       ${row("Stop on an action", choice("stopGood", OFF_ON), "Pauses when the gate or the executor refuses, the Vigie raises a level, isolates a service or turns the bank red, compliance blocks, or a forged signature is rejected")}
       ${row("Focus on a stop", choice("focus", OFF_ON), "When the replay stops, the camera flies to whoever caused it")}
       ${row("Background reads", choice("reads", OFF_ON), "The dots of the agents' routine reads of the services; off, only their messages fly")}
       ${row("Bubbles", choice("bubbles", OFF_ON), "What each agent says, over its head")}
+      ${row("Helper", choice("helper", OFF_ON), "A box that follows the pointer: what is under it, or what happens at this tick")}
+      ${row("Details", choice("details", OFF_ON), "Whether the helper's box adds what an agent reads, its messages of this tick and its last event")}
     </div></div></div></div>
   <div class="sim-stage"><p class="sim-stop" hidden></p></div>`;
 const ui = { sc: sec.querySelector("#sim-sc"), play: sec.querySelector("#sim-play"), t: sec.querySelector("#sim-t"), tick: sec.querySelector("#sim-tick"),
@@ -216,6 +220,7 @@ for (const s of first.services) if (POS[s]) world.add(server(s).g);
 for (const a of first.agents) if (POS[a.id]) world.add(blob(a.id, a.profile, a.role).g);
 // agents of one role stand in a column on one pad named after the role, as the other tabs make them one block; its name
 // stands on its right, clear of the agents' own names (Marius, 23-10)
+const pads = [];
 const stadium = (w, r) => new THREE.Shape().absarc(-w, 0, r, Math.PI / 2, Math.PI * 1.5).absarc(w, 0, r, -Math.PI / 2, Math.PI / 2);
 for (const [role, members] of Object.entries(Object.groupBy(first.agents.filter(a => POS[a.id]), a => a.role))) {
   if (members.length < 2) continue;
@@ -234,6 +239,7 @@ for (const [role, members] of Object.entries(Object.groupBy(first.agents.filter(
   zone.position.set(x, 0, z);
   zone.rotation.y = Math.PI / 2;
   zone.userData.pick = "pad:" + role;
+  pads.push({ role, x, z, w, r, c: label.element.style.color, n: members.length });
   world.add(zone, label);
 }
 const tower = new THREE.Group(), lamp = mesh(ball, new THREE.MeshStandardMaterial({ color: 0x0b0d12, emissive: LIGHT.VERT, emissiveIntensity: 2 }), [0, 6.15, -1.15], 0.26);
@@ -260,6 +266,7 @@ for (const n of Object.values(nodes)) n.g.userData.pick = n.id;
 tower.userData.pick = "vigie";
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
 function pick(x, y) {
+  if (set.display === "2D") return pick2d(x, y);
   const r = renderer.domElement.getBoundingClientRect();
   ndc.set(((x - r.left) / r.width) * 2 - 1, 1 - ((y - r.top) / r.height) * 2);
   ray.setFromCamera(ndc, camera);
@@ -270,6 +277,46 @@ function pick(x, y) {
   }
   return null;
 }
+
+// What the helper's box (dashboard.js) says under the pointer: the agent, the service or the pad there, at the tick on
+// screen; over nothing, the tick itself: what happened at it, the trading result and the money lost to fraud so far
+const WORD = { VERT: "green", ORANGE: "orange", ROUGE: "red", QUARANTAINE: "quarantine" };
+const RING_SAYS = {
+  ROUGE: "Red ring: it acts on compromised data, or the Vigie put it on red.",
+  ORANGE: "Orange ring: it reads a compromised service, or got a message built on one.",
+  VERT: "Green ring: no problem has reached it.",
+};
+const an = word => (/^[aeiou]/.test(word) ? "an " : "a ") + word;
+const MODE_SAYS = { normal: "Works normally.", compromised: "Compromised: what it sends is false.", stale: "Stale: its data comes late.", slow: "Slow: it answers late.", down: "Down: it answers nothing." };
+window.simHelp = (x, y) => {
+  const id = pick(x, y), n = nodes[id], ours = worldName === "ours";
+  const lastOf = who => W.events.findLast(([t, , text]) => t <= tick && actor(text) === who);
+  const said = (W.msgAt[tick] ?? []).filter(m => m[1] === id || m[2] === id)
+    .map(([, a, b, kind, bad]) => `${a === id ? `Sends ${an(kind)} to ${b}` : `Gets ${an(kind)} from ${a}`}${bad ? ", built on compromised data" : ""}, at this tick.`);
+  const then = e => (e ? [`Last at tick ${e[0]}: ${e[2]}.`] : []);
+  if (id?.startsWith("pad:")) {
+    const p = pads.find(p => "pad:" + p.role === id);
+    return { name: `${p.role} pad`, what: `The ${p.n} ${p.role}s of the bank: one role, one block in the other tabs.` };
+  }
+  if (id === "vigie")
+    return { name: "Vigie", what: `Watches every agent and service, and its gate checks each execution. Bank light: ${WORD[light] ?? light}.${n.asleep ? " Its heartbeat is lost." : ""}`, details: then(lastOf("vigie")) };
+  if (n?.leds) {
+    const by = sc.reads.filter(r => r[1] === id), seen = by.filter(r => !r[3]).map(r => r[0]), hid = by.filter(r => r[3]).map(r => r[0]);
+    return { name: id, what: `A service of the bank. ${MODE_SAYS[n.mode] ?? n.mode}${n.iso ? " The Vigie isolated it: whatever it fed is refused." : ""}`,
+      details: [...(seen.length ? [`Read by ${seen.join(", ")}.`] : []), ...(hid.length ? [`Called without being declared by ${hid.join(", ")}.`] : []), ...said, ...then(lastOf(id))] };
+  }
+  if (n) {
+    const a = sc.agents.find(a => a.id === id), reads = sc.reads.filter(r => r[0] === id);
+    return { name: id, what: `${ROLES[a.role] ?? a.role}${a.profile ? ` Trades on ${a.profile}.` : ""} ${RING_SAYS[n.alert] ?? ""}${n.asleep ? " It has stopped." : ""}${ours && n.level && n.level !== "VERT" ? ` The Vigie has it on ${WORD[n.level]}.` : ""}`,
+      details: [...(reads.length ? [`Reads ${reads.map(([, s, , hidden]) => s + (hidden ? " (never declared)" : "")).join(", ")}.`] : []), ...said, ...then(lastOf(id))] };
+  }
+  const now = (W.evAt[tick] ?? []).map(e => e[2] + "."), before = W.events.findLast(e => e[0] < tick);
+  return { name: `Tick ${tick} of ${sc.ticks - 1}`,
+    what: `${ui.sc.value.replaceAll("_", " ")}, ${ours ? "with our Vigie" : "without the Vigie"}${playing ? "" : ", paused"}. Bank light: ${WORD[light] ?? light}.`,
+    click: set.display === "2D" ? "Space plays or pauses." : "Drag to turn the scene, scroll to zoom. Space plays or pauses.",
+    details: [...(now.length ? now : [`Nothing new at this tick.${before ? ` Last at tick ${before[0]}: ${before[2]}.` : ""}`]),
+      `Trading result so far: ${eur(W.pnl[tick])}.`, ...(W.fraud[tick] ? [`Lost to fraud so far: ${eur(W.fraud[tick])}.`] : [])] };
+};
 const links = new Map();
 function link(a, b, hidden) {
   const key = [a, b].sort().join("|");
@@ -443,7 +490,7 @@ function halt(e) {
 function paint() {
   for (const b of sec.querySelectorAll(".choice [data-v]")) b.setAttribute("aria-pressed", JSON.stringify(set[b.parentElement.dataset.set]) === b.dataset.v);
 }
-const apply = { view, world: w => ((worldName = w), (W = sc.worlds[w]), seek(tick)) };
+const apply = { display: flatOn, helper: on => (helper.on = on), details: on => (helper.details = on), view, world: w => ((worldName = w), (W = sc.worlds[w]), seek(tick)) };
 for (const b of sec.querySelectorAll(".choice [data-v]"))
   b.onclick = () => {
     const k = b.parentElement.dataset.set, val = JSON.parse(b.dataset.v);
@@ -503,6 +550,7 @@ new ResizeObserver(() => {
   if (!w || !h) return;
   renderer.setSize(w, h);
   labels.setSize(w, h);
+  fit2d(w, h);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   const f = Math.max(1, 1.75 / camera.aspect);
@@ -605,6 +653,166 @@ function spread(k) {
   cordon.material.uniforms.time.value = time;
 }
 
+// The 2D view: the same replay seen from above as a flat map on a canvas, drawn in place of the 3D scene, from the
+// same state (rings, zones, links, flying dots, bubbles) so the two never disagree
+const flat = document.createElement("canvas"), g2 = flat.getContext("2d");
+flat.className = "sim-2d";
+stage.append(flat);
+const MAP = { x0: -15, x1: 13.5, z0: -11.5, z1: 10.5 };  // the part of the floor the map shows
+let s2 = 1, o2 = [0, 0];
+const to2 = (x, z) => [o2[0] + x * s2, o2[1] + z * s2];
+function fit2d(w, h) {
+  const dpr = Math.min(devicePixelRatio, 2);
+  Object.assign(flat, { width: w * dpr, height: h * dpr });
+  g2.setTransform(dpr, 0, 0, dpr, 0, 0);
+  s2 = Math.min(w / (MAP.x1 - MAP.x0), h / (MAP.z1 - MAP.z0));
+  o2 = [w / 2 - ((MAP.x0 + MAP.x1) / 2) * s2, h / 2 - ((MAP.z0 + MAP.z1) / 2) * s2];
+}
+function flatOn(d) {
+  renderer.domElement.hidden = labels.domElement.hidden = d === "2D";
+  flat.hidden = d !== "2D";
+}
+flatOn(set.display);
+function pick2d(x, y) {
+  const r = flat.getBoundingClientRect(), px = x - r.left, py = y - r.top;
+  let best = null, d = 1.5 * s2;
+  for (const n of Object.values(nodes)) {
+    if (n.id === "vigie" && worldName !== "ours") continue;
+    const [nx, ny] = to2(...POS[n.id]), e = Math.hypot(px - nx, py - ny);
+    if (e < d) (best = n.id), (d = e);
+  }
+  const pad = pads.find(p => Math.abs(px - to2(p.x, 0)[0]) < p.r * s2 && Math.abs(py - to2(0, p.z)[1]) < (p.w + p.r) * s2);
+  return best ?? (pad ? "pad:" + pad.role : null);
+}
+// a material's colour as the screen shows it (getHexString turns three.js's linear colour back to sRGB), and its opacity
+const rgb = (c, a = 1) => "#" + c.getHexString() + Math.round(a * 255).toString(16).padStart(2, "0");
+const hex = h => "#" + h.toString(16).padStart(6, "0");
+const BUBBLE = { "k-bad": ["#fee2e2", "#7f1d1d"], "k-good": ["#dcfce7", "#14532d"], "k-warn": ["#ffedd5", "#7c2d12"] };
+function text2(t, x, y, size = 12, color = "#F6F7F9", weight = 600) {
+  g2.font = `${weight} ${size}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
+  g2.fillStyle = color;
+  g2.shadowColor = "#000";
+  g2.shadowBlur = 4;
+  g2.fillText(t, x, y);
+  g2.shadowBlur = 0;
+}
+function draw2d() {
+  const ours = worldName === "ours", alpha = (a = 1) => (g2.globalAlpha = a);
+  g2.clearRect(0, 0, flat.width, flat.height);
+  g2.textAlign = "center";
+  g2.beginPath();
+  g2.arc(...to2(0, -1.5), 21 * s2, 0, 7);
+  g2.fillStyle = "rgb(11 18 34 / .75)";
+  g2.fill();
+  // how far the problem spread: one red shape over every zone, as the 3D floor's cordon
+  g2.beginPath();
+  for (const n of Object.values(nodes)) if (n.zr > 0.05) { const [x, y] = to2(...POS[n.id]); g2.moveTo(x + n.zr * s2, y); g2.arc(x, y, n.zr * s2, 0, 7); }
+  g2.fillStyle = `rgb(239 68 68 / ${0.22 + 0.05 * Math.sin(time * 2)})`;
+  g2.fill();
+  for (const p of pads) {
+    const [x, y] = to2(p.x - p.r, p.z - p.w - p.r);
+    g2.beginPath();
+    g2.roundRect(x, y, 2 * p.r * s2, 2 * (p.w + p.r) * s2, p.r * s2);
+    g2.fillStyle = p.c;
+    alpha(0.16), g2.fill(), alpha(0.9);
+    g2.strokeStyle = p.c;
+    g2.lineWidth = 2;
+    g2.stroke(), alpha();
+    const [lx, ly] = to2(p.x + p.r + 1.6, p.z);
+    text2(p.role.toUpperCase(), lx, ly, 15, p.c);
+    text2(`${p.n} AGENTS`, lx, ly + 15, 10.5, "#ABB3BF", 700);
+  }
+  for (const l of links.values()) {
+    if (!l.g.visible) continue;
+    g2.beginPath();
+    g2.moveTo(...to2(l.curve.v0.x, l.curve.v0.z));
+    g2.lineTo(...to2(l.curve.v2.x, l.curve.v2.z));
+    g2.strokeStyle = rgb(l.material.color, l.material.opacity);
+    g2.lineWidth = 1.5;
+    g2.setLineDash(l.hidden ? [6, 5] : []);
+    g2.stroke();
+  }
+  g2.setLineDash([]);
+  for (const p of flying) {
+    if (!p.m.visible) continue;
+    const [x, y] = to2(p.m.position.x, p.m.position.z), shape = p.m.geometry === GEO.box ? "box" : p.m.geometry === GEO.coin ? "coin" : "dot";
+    g2.fillStyle = rgb(p.m.material.color);
+    g2.beginPath();
+    if (shape === "box") g2.rect(x - 4, y - 3, 8, 6);
+    else g2.arc(x, y, shape === "coin" ? 5.5 : 3.5, 0, 7);
+    g2.fill();
+  }
+  for (const n of Object.values(nodes)) {
+    if (n.id === "vigie" && !ours) continue;
+    const [x, y] = to2(...POS[n.id]);
+    if (n.leds) {
+      const w = 1.7 * s2, h = 1.3 * s2, led = n.mode === "down" ? "#334155" : hex(LED[n.mode] ?? LED.normal);
+      if (n.iso) {
+        g2.beginPath();
+        g2.arc(x, y, 1.55 * s2, 0, 7);
+        g2.fillStyle = "rgb(34 211 238 / .1)";
+        g2.fill();
+        g2.strokeStyle = "#22d3ee";
+        g2.lineWidth = 1.5;
+        g2.stroke();
+      }
+      g2.beginPath();
+      g2.roundRect(x - w / 2, y - h / 2, w, h, 0.18 * s2);
+      g2.fillStyle = "#1e293b";
+      g2.shadowColor = "#ef4444";
+      g2.shadowBlur = n.mode === "compromised" ? 18 : 0;
+      g2.fill();
+      g2.shadowBlur = 0;
+      g2.strokeStyle = led;
+      g2.lineWidth = 2;
+      g2.stroke();
+      for (const k of [-0.3, 0, 0.3]) (g2.fillStyle = led), g2.fillRect(x - 0.35 * s2, y + k * s2 - 1.5, 0.7 * s2, 3);
+      text2(n.id, x, y + h / 2 + 14);
+      if (n.mode !== "normal" || n.iso) text2((n.iso ? "isolated" : n.mode).toUpperCase(), x, y + h / 2 + 27, 10.5, n.iso ? "#22d3ee" : n.mode === "compromised" ? "#f87171" : "#fbbf24", 700);
+      continue;
+    }
+    const vigie = n.id === "vigie", ring = vigie ? (n.asleep ? 0x1e293b : LIGHT[light] ?? LIGHT.VERT) : RING[n.alert] ?? RING.VERT;
+    g2.beginPath();
+    g2.arc(x, y, 1.3 * s2, 0, 7);
+    g2.strokeStyle = hex(ring);
+    g2.lineWidth = 3;
+    g2.stroke();
+    g2.beginPath();
+    g2.arc(x, y, 0.95 * s2, 0, 7);
+    g2.fillStyle = rgb(n.skin.color);
+    g2.shadowColor = "#ef4444";
+    g2.shadowBlur = n.sick && !n.asleep ? 16 : 0;
+    g2.fill();
+    g2.shadowBlur = 0;
+    if (n.level === "QUARANTAINE") {
+      g2.beginPath();
+      g2.arc(x, y, 1.6 * s2, 0, 7);
+      g2.setLineDash([4, 4]);
+      g2.strokeStyle = "#22d3ee";
+      g2.lineWidth = 1.5;
+      g2.stroke();
+      g2.setLineDash([]);
+    }
+    const profile = sc.agents.find(a => a.id === n.id)?.profile;
+    text2(vigie ? "Vigie" : n.id, x, y + 1.3 * s2 + 14);
+    if (profile) text2(profile.toUpperCase(), x, y + 1.3 * s2 + 27, 10.5, "#ABB3BF", 700);
+  }
+  // what each agent says, in its bubble's colours, over it
+  for (const n of Object.values(nodes)) {
+    if (!n.bubble) continue;
+    const t = n.bubble.element.textContent, [bg, ink] = BUBBLE[n.bubble.element.classList[1]] ?? ["#ffffff", "#1C2127"];
+    const [x, y] = to2(...POS[n.id]);
+    g2.font = "500 12px Inter, -apple-system, BlinkMacSystemFont, sans-serif";
+    const w = Math.min(240, g2.measureText(t).width + 18), top = y - 1.3 * s2 - 30;
+    g2.beginPath();
+    g2.roundRect(x - w / 2, top, w, 22, 10);
+    g2.fillStyle = bg;
+    g2.fill();
+    g2.fillStyle = ink;
+    g2.fillText(t, x, top + 15, w - 14);
+  }
+}
+
 let last = performance.now();
 renderer.setAnimationLoop(now => {
   const dt = Math.min(0.05, (now - last) / 1000), k = 1 - Math.exp(-dt * 4), film = dt * SLOW * set.speed;
@@ -666,6 +874,6 @@ renderer.setAnimationLoop(now => {
     if (camera.position.distanceTo(goal.pos) < 0.05) goal = null;
   }
   controls.update();
-  renderer.render(scene, camera);
-  labels.render(scene, camera);
+  if (set.display === "2D") draw2d();
+  else renderer.render(scene, camera), labels.render(scene, camera);
 });
