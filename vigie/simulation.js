@@ -908,7 +908,9 @@ function hoverPaint() {
 // Holding Option over a drop or a service picks it up: it follows the pointer on the floor until Option is let go, a role's pad and
 // all its agents with it, its links redrawn as it goes; Layout › Save as default keeps where everything stands (Marius, 24-10)
 const ground = new THREE.Plane(v(0, 1, 0), 0), hit = new THREE.Vector3();
-let held = null, grip = [0, 0];
+let held = null, grip = [0, 0], moved = false;
+// leaving or reloading the page with moves not saved as the default asks first (Marius, 24-10)
+addEventListener("beforeunload", e => moved && (e.preventDefault(), (e.returnValue = "")));
 // its centre snaps onto the column or the row of a thing it comes within SNAP of, the nearest such thing, and a guide
 // line joins the two centres (Marius, 24-10)
 const SNAP = 0.7, guideMat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc, depthTest: false }), guides = [0, 1].map(() => new THREE.Group());
@@ -950,6 +952,7 @@ function carry(e) {
     .sort((a, b) => Math.hypot(POS[a][0] - t[0], POS[a][1] - t[1]) - Math.hypot(POS[b][0] - t[0], POS[b][1] - t[1]))[0]);
   snaps.forEach((o, axis) => o && (t[axis] = POS[o][axis]));
   const dx = t[0] - POS[held][0], dz = t[1] - POS[held][1];
+  moved ||= dx !== 0 || dz !== 0;
   for (const id of ids) {
     POS[id] = [POS[id][0] + dx, POS[id][1] + dz];
     (id === "vigie" ? tower : nodes[id].g).position.set(POS[id][0], 0, POS[id][1]);
@@ -962,6 +965,7 @@ sec.querySelector("#sim-save").onclick = async e => {
   const b = e.currentTarget, layout = Object.fromEntries(Object.entries(POS).map(([id, [x, z]]) => [id, [+x.toFixed(2), +z.toFixed(2)]]));
   const r = await fetch("/dashboard/sim-layout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(layout) }).catch(() => null);
   b.textContent = r?.ok ? "Saved" : "Not saved";
+  if (r?.ok) moved = false;
   setTimeout(() => (b.textContent = "Save as default"), 1500);
 };
 
