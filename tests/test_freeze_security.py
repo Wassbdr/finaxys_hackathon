@@ -118,7 +118,8 @@ def test_dos_runtime_handles_signed_wrong_types_and_unknown_asset():
               {'asset':'ACME','side':{}}, {'asset':'ACME','side':'sell','news_refs':None}]
     for p in payloads:
         rt.on_message(f.make(0,'order_proposal','*',p))
-    assert rt.freeze.uncertain
+    assert not rt.freeze.uncertain
+    assert rt.admission.rejected['signed:trader-1']['malformed']==len(payloads)
 
 
 def test_dos_cyclic_huge_integer_and_surrogate_inputs_are_rejected():
@@ -144,7 +145,8 @@ def test_dos_runtime_memory_admission_closes_before_growth():
     cfg=load_config(); keys=Keyring(known_senders(cfg)); rt=Runtime(cfg,keys)
     rt.admitted_bytes=16*1024*1024
     rt.on_message(MessageFactory('trader-1',keys).make(0,'order_proposal','*',{'asset':'ACME','side':'sell'}))
-    assert len(rt.state.messages)==0 and 'capacity' in rt.freeze.uncertain
+    assert len(rt.state.messages)==0 and not rt.freeze.uncertain
+    assert rt.admission.rejected['signed:trader-1']['storage_full']==1
 
 
 def test_fail_closed_write_failure_refuses_authorization(tmp_path):
@@ -200,7 +202,8 @@ def test_dos_trace_volume_is_bounded_before_quadratic_similarity():
     for _ in range(300):
         rt.on_message(factory.make(0,'llm_trace','*',{'response':{'justification':'texte'}}))
     assert len(rt.analytics.herding.events)<=64
-    assert 'capacity' in rt.freeze.uncertain
+    assert not rt.freeze.uncertain
+    assert rt.admission.rejected['signed:trader-1']['source_trace']>0
 
 
 def test_fail_closed_fresh_flag_never_overwrites_an_existing_checkpoint(tmp_path):

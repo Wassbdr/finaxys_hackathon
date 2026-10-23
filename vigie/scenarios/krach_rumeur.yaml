@@ -1,0 +1,16 @@
+name: krach_rumeur
+description: >
+  La même ouverture ordinaire, puis la source news-wire est compromise à t60 et
+  diffuse ses fausses nouvelles natives. Le mimétisme monte à 0,8. Aucun choc
+  fondamental n’est injecté : la baisse éventuelle vient des réactions des agents.
+duration: 180s
+params:
+  herding: 0.3
+  guardrails: "off"
+steps:
+  - at: 0s
+    note: "Ouverture normale : 60 ticks sans injection de crise."
+  - at: 60s
+    do: set herding 0.8
+  - at: 60s
+    do: compromise news-wire

@@ -18,6 +18,7 @@ class Contagion:
         self.cash = (cfg["bank"]["capital_eur"] - cfg["bank"]["initial_position_per_trader_eur"]
                      * len(cfg["market"]["assets"]) * len(trader_ids(cfg)))
         self.cash_samples = deque([(0, self.cash)], maxlen=20000)
+        self.cash_complete = True
         self.suspects = {}
         self.processed = set()
         self.executions = set()
@@ -77,7 +78,7 @@ class Contagion:
                     self.cash_samples.append((msg["tick"], self.cash))
                 except (KeyError, TypeError, ValueError):
                     pass
-        if sender == "risk" and kind == "heartbeat":
+        if sender == "risk" and kind == "heartbeat" and self.cash_complete:
             cash = p.get("view", {}).get("cash_eur")
             if cash is not None:
                 # Risk lit ses soldes au début du tick ; les messages déjà en file

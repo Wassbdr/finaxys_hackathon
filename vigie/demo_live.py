@@ -10,6 +10,7 @@ import subprocess
 import sys
 import threading
 import time
+import uuid
 from collections import deque
 
 import fakeredis
@@ -264,11 +265,13 @@ class Display:
             return {**self.frame,'history':list(self.history),'error':self.error,'running':self.running}
 
 
-def create_demo_app(display,sources):
+def create_demo_app(display,sources,*,allowed_origins=None):
     import asyncio
     from api.app import create_app
     from fastapi import WebSocket, WebSocketDisconnect, HTTPException
     app=create_app(sources,default_world='A')
+    from vigie.demo_security import protect_mutations
+    protect_mutations(app,allowed_origins)
 
     @app.get('/demo')
     def demo():
@@ -339,6 +342,9 @@ def measure(args):
             result={'seed':seed,'tick':frame['tick'],'banks':frame['banks'],'scenario':args.scenario,
                     'injections':runner.worlds['A'].scenario_log,'run_dir':directory.as_posix(),
                     'continuity':{name:continuity(runner.messages[name],anchor) for name in 'ABC'}}
+            from vigie.crisis_metrics import CRISES, evaluate_crisis
+            if day.get('name') in CRISES:
+                result['crisis']=evaluate_crisis(runner,frame,cfg,day,directory)
             all_results.append(result)
         finally:runner.close()
         for name in 'ABC':
@@ -352,6 +358,8 @@ def measure(args):
 def serve_demo(args):
     import uvicorn
     from api.sources import LiveSource
+    from vigie.demo_security import configured_origins, announce_access
+    origins=configured_origins(args.allowed_origin,args.port)
     display=Display();stop=threading.Event()
     directory=Path(args.out);directory.mkdir(parents=True,exist_ok=False)
     display.directory=directory
@@ -360,7 +368,8 @@ def serve_demo(args):
     broker,client,url=broker_start(directory)
     cfg['redis']['url']=url
     sources={name:LiveSource({**cfg,'redis':{**cfg['redis'],'prefix':name+':'}},client) for name in 'ABC'}
-    app=create_demo_app(display,sources)
+    app=create_demo_app(display,sources,allowed_origins=origins)
+    announce_access(app)
     def simulation():
         runner=None
         try:
@@ -415,6 +424,8 @@ class SafeReplaySource(ReplaySource):
 def replay(args):
     import uvicorn
     from api.sources import ReplaySource
+    from vigie.demo_security import configured_origins, announce_access
+    origins=configured_origins(args.allowed_origin,args.port)
     path=Path(args.recording) if args.recording else Path(json.loads(Path('runs/demo-live-latest.json').read_text())['directory'])
     frames=read_frames(path/'frames.jsonl')
     if not frames:raise ValueError('Aucun tick enregistré')
@@ -429,9 +440,11 @@ def replay(args):
             delay=started+(index+1)/args.accelerator-time.monotonic()
             if delay>0 and stop.wait(delay):break
         display.running=False
+    app=create_demo_app(display,sources,allowed_origins=origins)
+    announce_access(app)
     worker=threading.Thread(target=playback,name='demo-replay');worker.start()
     print(f'API replay : http://127.0.0.1:{args.port}/demo — {path}',flush=True)
-    try:uvicorn.run(create_demo_app(display,sources),host='127.0.0.1',port=args.port,log_level='warning',timeout_graceful_shutdown=3)
+    try:uvicorn.run(app,host='127.0.0.1',port=args.port,log_level='warning',timeout_graceful_shutdown=3)
     finally:stop.set();worker.join(timeout=3)
     return 0
 
@@ -446,6 +459,7 @@ def main(argv=None):
     p.add_argument('--redis-port',type=int)
     p.add_argument('--accelerator',type=float,default=1.2)
     p.add_argument('--recording')
+    p.add_argument('--allowed-origin',action='append',help='Origine exacte de la page du Dev 1 ; répétable, sinon VIGIE_DEMO_ORIGINS')
     args=p.parse_args(argv)
     if args.accelerator<=0:raise ValueError('Accélérateur strictement positif')
     if args.command=='broker':
@@ -455,7 +469,7 @@ def main(argv=None):
         except KeyboardInterrupt:pass
         finally:server.server_close()
         return 0
-    args.out=args.out or time.strftime('runs/vigie-demo-%Y%m%d-%H%M%S')
+    args.out=args.out or (time.strftime('runs/vigie-demo-%Y%m%d-%H%M%S')+'-'+uuid.uuid4().hex)
     if args.command=='measure':measure(args);return 0
     if args.command=='replay':return replay(args)
     return serve_demo(args)

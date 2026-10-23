@@ -25,6 +25,9 @@ def setup():
 
 def send(setup, sender, kind, payload, tick=0, parents=()):
     rt, factories, _ = setup
+    if (sender!='clock' and tick>0 and (rt.freeze.clock is None or rt.freeze.clock<tick)
+            and (kind!='alert' or rt.freeze.clock is None or tick>rt.freeze.clock+1)):
+        rt.on_message(factories['clock'].make(tick,'tick','*',{'tick':tick}))
     msg = factories[sender].make(tick, kind, "*", payload, list(parents))
     rt.on_message(msg)
     return msg
@@ -37,6 +40,9 @@ def align(setup, asset="ACME", side="sell", tick=0, news=True):
 
 
 def operation(setup, proposal, *, tick=1):
+    rt=setup[0]
+    if rt.freeze.clock is None or rt.freeze.clock<tick:
+        rt.on_message(setup[1]['clock'].make(tick,'tick','*',{'tick':tick}))
     return setup[1]["risk"].make(tick, "risk_decision", "executor", {
         "kind": "order", "approved": True, "proposal": proposal, "notional_eur": 100}, [proposal["message_id"]])
 

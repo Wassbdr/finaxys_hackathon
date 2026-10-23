@@ -15,6 +15,7 @@ from vigie.contagion import Contagion
 from vigie.analytics import Analytics
 from vigie.freeze import Freeze, load_profile
 from vigie.validation import valid_message, cost, MAX_MESSAGE_BYTES
+from vigie.admission import Admission
 
 
 class Runtime(Gate):
@@ -24,8 +25,10 @@ class Runtime(Gate):
         self.contagion = Contagion(cfg, self.state)
         self.assets = set(cfg['market']['assets'])
         self.admitted_bytes = 0
-        self.trace_ticks = deque(maxlen=64)
-        self.burst = {}
+        self.admission = Admission(cfg)
+        self.admission_clock = None
+        self.reported_internal = set()
+        self.approval_out = []
         self.checkpoint = checkpoint
         self.checkpoint_writable = checkpoint is None
         required = 'freeze_profile' not in cfg['vigie'] or cfg['vigie'].get('freeze_profile') is not None
@@ -68,46 +71,93 @@ class Runtime(Gate):
             self.freeze.degrade('checkpoint_write')
             return False
 
+    def authenticate(self, msg):
+        sender=msg.get('from') if isinstance(msg,dict) else None
+        size=cost(msg)
+        if size is None or not isinstance(msg,dict):
+            self.admission.reject(sender,'malformed')
+            return None
+        sender=msg.get('from')
+        try:
+            signed=self.keyring.verify(msg)
+        except Exception:
+            signed=False
+        if not signed:
+            self.admission.reject(sender,'signature')
+            return None
+        if not valid_message(msg,self.assets):
+            self.admission.reject(sender,'malformed',True)
+            return None
+        # La taille JSON sérialisée borne aussi le futur checkpoint, y compris
+        # les caractères de contrôle qui grossissent à l'échappement.
+        size=max(size,len(json.dumps(msg,ensure_ascii=False).encode()))
+        if size>MAX_MESSAGE_BYTES:
+            self.admission.reject(sender,'malformed',True)
+            return None
+        return size
+
+    def diagnostics(self):
+        tick=self.freeze.logical_tick()
+        out=[]
+        for bucket in sorted(self.admission.pending):
+            if self.admission.last_notice.get(bucket)==tick: continue
+            self.admission.last_notice[bucket]=tick
+            self.admission.pending.discard(bucket)
+            out.append(self.factory.make(tick,'alert','human',{
+                'kind':'vigie_input_rejected', 'source':bucket,
+                'counts':dict(self.admission.rejected[bucket]), 'scope':'source',
+                'incomplete_until_tick':self.admission.gaps.get(bucket.split(':',1)[1]),
+                'unavailable_services':sorted(self.admission.unavailable_services)}))
+        internal=self.freeze.uncertain-self.reported_internal
+        if internal:
+            self.reported_internal.update(internal)
+            out.append(self.factory.make(tick,'alert','human',{
+                'kind':'vigie_degraded','scope':'global','reasons':sorted(internal)}))
+        return out
+
+    def reject_input(self,msg,reason,*,gap=False):
+        self.admission.reject(msg['from'],reason,True)
+        if gap:
+            self.admission.gap(msg['from'],self.freeze.logical_tick(),self.freeze.window)
+            if msg['from']=='executor' and msg['type']=='execution' and msg['payload'].get('status')=='executed':
+                # Une somme partielle n'est pas une preuve de compromission.
+                self.contagion.cash_complete=False
+                self.admission.unavailable_services.add('core-ledger')
+        return []
+
     def on_message(self, msg):
-        if not isinstance(msg, dict): return []
-        if msg.get('from') == 'vigie': return []
-        if not valid_message(msg, self.assets):
-            # Un paquet non authentifiable ne peut pas geler les autres acteurs.
-            # L'opération correspondante sera refusée au portique, jamais admise.
-            try:
-                if cost(msg) is not None and self.keyring.verify(msg):
-                    self.freeze.degrade('invalid_message')
-                    self.persist_freeze()
-            except Exception:
-                pass
-            return []
-        if (self.freeze.clock is not None and msg['from'] != 'clock'
-                and msg['tick'] > self.freeze.clock + 1):
-            if self.keyring.verify(msg): self.freeze.degrade('clock_regression')
-            self.persist_freeze()
-            return []
-        clock = self.freeze.logical_tick()
-        self.trace_ticks = deque((t for t in self.trace_ticks if t > clock-30), maxlen=64)
-        self.burst = {key:value for key,value in self.burst.items() if key[0]>=clock-1}
-        key = (clock,msg['from'])
-        if (self.burst.get(key,0)>=128 or msg['type']=='llm_trace' and len(self.trace_ticks)>=64):
-            if self.keyring.verify(msg): self.freeze.degrade('capacity')
-            return []
-        if ('capacity' in self.freeze.uncertain or len(self.state.messages) >= 20_000
-                or self.admitted_bytes + cost(msg) > 16*1024*1024):
-            self.freeze.degrade('capacity')
-            # Continuer à voir l'horloge sans grossir les autres historiques.
-            if msg['type'] == 'tick' and msg['from'] == 'clock' and self.keyring.verify(msg):
+        size=self.authenticate(msg)
+        if size is None: return []
+        if msg['from']=='vigie': return []
+        if msg['message_id'] in self.state.messages: return []
+        clock=self.freeze.clock if self.freeze.clock is not None else 0
+        is_clock=msg['from']=='clock' and msg['type']=='tick'
+        if self.admission_clock!=self.freeze.clock:
+            # Deux copies internes divergent : ce n'est pas une entrée rejetée.
+            self.freeze.degrade('clock_regression')
+        if is_clock and self.freeze.clock is not None and (msg['tick']<=clock or msg['tick']>clock+64):
+            return self.reject_input(msg,'clock_input')
+        if not is_clock and (self.freeze.clock is None and msg['tick']>0 or self.freeze.clock is not None and msg['tick']>clock+1):
+            return self.reject_input(msg,'future_input')
+        reason=self.admission.check(msg,size,clock,self.freeze)
+        if len(self.state.messages)>=20_000 or self.admitted_bytes+size>16*1024*1024:
+            reason='storage_full'
+        if reason:
+            self.reject_input(msg,reason,gap=msg['type'] in {'order_proposal','price_update','execution','llm_trace'})
+            if is_clock:
+                # La mémoire pleine n'empêche pas de suivre l'horloge publique,
+                # de conserver les baux, ni d'avertir l'humain.
                 self.freeze.on_message(msg)
-                out = [self.factory.make(msg['tick'], 'heartbeat', '*', {'agent':'vigie','role':'vigie','stub':False})]
-            else:
-                out = []
-            self.persist_freeze()
-            return out
-        if not self.state.observe(msg, self.keyring): return []
-        self.admitted_bytes += cost(msg)
-        self.burst[key] = self.burst.get(key,0)+1
-        if msg['type']=='llm_trace': self.trace_ticks.append(clock)
+                self.admission_clock=self.freeze.clock
+                self.state.tick=max(self.state.tick,msg['tick'])
+                self.persist_freeze()
+                return self.diagnostics()+[self.factory.make(msg['tick'],'heartbeat','*',{
+                    'agent':'vigie','role':'vigie','stub':False})]
+            return []
+        if not self.state.observe(msg,self.keyring):
+            return self.reject_input(msg,'projection')
+        self.admitted_bytes+=size
+        self.admission.commit(msg,size,clock)
         findings = []
         try:
             self.analytics.observe(msg)
@@ -124,10 +174,12 @@ class Runtime(Gate):
                 findings.extend(layer.on_message(self.state.messages[msg['message_id']]))
             except Exception:
                 self.freeze.degrade('analysis_error')
+        if is_clock: self.admission_clock=self.freeze.clock
         self.findings.extend(findings)
         self.persist_freeze()
         out = []
-        if len(findings)>32: self.freeze.degrade('capacity')
+        if len(findings)>32:
+            self.admission.reject(msg['from'],'finding_limit',True)
         for finding in findings[:32]:
             try:
                 out.append(self.factory.make(self.state.tick, 'alert', 'human', {
@@ -138,22 +190,31 @@ class Runtime(Gate):
         if msg["from"] == "clock" and msg["type"] == "tick":
             out.append(self.factory.make(msg["tick"], "heartbeat", "*", {
                 "agent": "vigie", "role": "vigie", "stub": False}))
-        return out
+        return out+self.diagnostics()
 
     def request_approval(self, msg):
         # Le gel est une règle PROVISOIRE de couche 3, remplaçable par le Dev 1.
         # Les feux, scores et autres politiques restent de son périmètre.
         # L'authentification ci-dessous n'est pas une nouvelle règle métier.
-        try:
-            valid = valid_message(msg, self.assets) and self.keyring.verify(msg)
-        except Exception:
-            valid = False
-        if not valid:
-            return Decision(False, 'INVALID_MESSAGE_OR_SIGNATURE', 'vigie-layer3')
-        self.on_message(msg)
-        if (self.freeze.clock is not None and msg['tick'] > self.freeze.clock
-                or self.checkpoint is not None and self.freeze.clock is None):
-            self.freeze.degrade('clock_regression')
+        self.approval_out=[]
+        if self.authenticate(msg) is None:
+            return Decision(False,'INVALID_MESSAGE_OR_SIGNATURE','vigie-layer3')
+        if msg['from']!='risk' or msg['type']!='risk_decision':
+            self.reject_input(msg,'request_authority')
+            return Decision(False,'INVALID_REQUEST_AUTHORITY','vigie-layer3')
+        if (self.freeze.clock is not None and msg['tick']>self.freeze.clock):
+            self.reject_input(msg,'future_request')
+            return Decision(False,'UNANALYSED_OPERATION','vigie-layer3')
+        self.approval_out=self.on_message(msg)
+        if (msg['message_id'] not in self.state.messages or
+                self.admission.affected(msg,self.state,self.freeze.logical_tick())):
+            self.decisions.append({'tick':self.state.tick,'message_id':msg['message_id'],
+                'approved':False,'evidence':[], 'herding_frozen':False,'freeze_guard':False,
+                'unanalysed':True})
+            return Decision(False,'UNANALYSED_OPERATION','vigie-layer3')
+        if self.checkpoint is not None and self.freeze.clock is None:
+            self.reject_input(msg,'no_clock')
+            return Decision(False,'UNANALYSED_OPERATION','vigie-layer3')
         try:
             marked, evidence = self.contagion.quarantine(msg)
         except Exception:
@@ -200,21 +261,21 @@ def serve(cfg, client, *, stop=None, meta=None, layers=(), checkpoint=None, fres
                 if not isinstance(raw.get('data'), (str, bytes)) or len(raw['data']) > MAX_MESSAGE_BYTES:
                     # Sans signature vérifiable, pas de mutation de l'état.
                     # Une demande trop grande expire en refus côté BusGate.
+                    runtime.admission.reject(None,'wire_size')
                     continue
                 data = json.loads(raw['data'])
                 if raw["channel"] == prefix + "bus":
                     out = runtime.on_message(data)
                 else:
                     msg = data["message"]
-                    out = runtime.on_message(msg)
                     decision = runtime.request_approval(msg)
+                    out = runtime.approval_out
                     client.publish(prefix + "vigie.approval_responses", canonical({
                         "request_id": data["request_id"], **asdict(decision)}))
-                for message in out:
+                for message in out+runtime.diagnostics():
                     client.publish(prefix + "bus", canonical(message))
             except Exception:
-                # Les fautes authentifiées sont retenues dans Runtime. Une
-                # enveloppe externe illisible ne doit pas empoisonner son état.
+                runtime.admission.reject(None,'wire_envelope')
                 continue
     finally:
         sub.close()
