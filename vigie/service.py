@@ -4,6 +4,7 @@ import json
 import os
 
 from bus.message import Keyring, canonical
+from bus.redis_bus import next_message
 from sim.config import known_senders
 from sim.params import Params
 from vigie.core import Controller
@@ -57,7 +58,7 @@ def serve(cfg, client, stop=None, profiles=None):
     client.set(prefix + "vigie:ready", "1")
     try:
         while stop is None or not stop.is_set():
-            raw = pubsub.get_message(ignore_subscribe_messages=True, timeout=0.1)
+            raw = next_message(pubsub, 0.1, ignore_subscribe_messages=True)
             if raw is None:
                 continue
             data = None
