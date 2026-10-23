@@ -6,8 +6,10 @@ from fastapi import HTTPException
 from fastapi.responses import FileResponse
 from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field
+from starlette.concurrency import run_in_threadpool
 
 from vigie.krys import Chat, HumanActions
+from vigie.krys_mistral import Rephraser
 
 
 class Question(BaseModel):
@@ -27,9 +29,10 @@ class Confirmation(BaseModel):
     confirmation: str = Field(max_length=16)
 
 
-def attach_krys(app, knowledge, actions=None):
+def attach_krys(app, knowledge, actions=None, *, rephraser=None):
     audit = deque(maxlen=128)
     lock = threading.Lock()
+    renderer = rephraser if rephraser is not None else Rephraser.from_env()
 
     def act(method, *args):
         with lock:
@@ -43,10 +46,14 @@ def attach_krys(app, knowledge, actions=None):
             except ValueError as error:
                 raise HTTPException(409, str(error)) from error
 
-    @app.post('/demo/krys/ask')
-    def ask(body: Question):
+    def local_answer(question):
         with lock:
-            return Chat(knowledge(), audit=audit).ask(body.question)
+            return Chat(knowledge(), audit=audit).ask(question)
+
+    @app.post('/demo/krys/ask')
+    async def ask(body: Question):
+        answer = await run_in_threadpool(local_answer, body.question)
+        return await renderer.apply(answer)
 
     @app.post('/demo/krys/actions/prepare')
     def prepare(body: Preparation):

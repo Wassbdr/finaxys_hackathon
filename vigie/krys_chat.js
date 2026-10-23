@@ -22,7 +22,8 @@
     item.appendChild(paragraph);
     for (const source of citations || []) {
       const evidence = document.createElement('code');
-      evidence.textContent = String(source.message_id) + ' · tick ' + String(source.tick);
+      evidence.textContent = source.section_id ? '[' + String(source.section_id) + ']'
+        : String(source.message_id) + ' · tick ' + String(source.tick);
       item.appendChild(evidence);
       item.appendChild(document.createElement('br'));
     }
@@ -62,7 +63,8 @@
     byId('krys-question').value = '';
     try {
       const answer = await post('ask', {question});
-      show(answer.text, answer.citations);
+      const label = answer.rephrased ? 'Reformulation Mistral à partir des sources ci-dessous.\n' : '';
+      show(label + answer.text, answer.citations);
     } catch (error) { show(error.message); }
     finally { busy = false; }
   });
