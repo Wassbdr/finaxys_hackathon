@@ -1,0 +1,48 @@
+# Remote KYC, liveness and injection attacks
+
+## Key facts (6 bullets max, each with a source link and a date)
+
+- **Deepfakes are now 1 in 5 biometric fraud attempts; injection attacks +40% YoY.** Entrust (which owns Onfido) 2026 Identity Fraud Report, 18 Nov 2025: deepfake selfies +58% in 2025, built on 1B+ verifications in 195 countries. The previous edition (Nov 2024) counted one deepfake attempt every five minutes and +244% digital document forgeries. https://www.businesswire.com/news/home/20251118135338/en/Deepfakes-Social-Engineering-and-Injection-Attacks-on-the-Rise-Entrust-2026-Identity-Fraud-Report-Reveals-Surging-Attacks-and-Diversifying-Tactics and https://www.businesswire.com/news/home/20241118521944/en/Deepfake-Attacks-Strike-Every-Five-Minutes-Amid-244-Surge-in-Digital-Document-Forgeries
+- **Fewer frauds overall, but far more sophisticated ones.** Sumsub Identity Fraud Report 2025-2026, 25 Nov 2025: the fraud rate fell to 2.2% of verifications (2.6% in 2024), but "sophisticated" multi-technique fraud (synthetic identity + deepfake + device tampering) rose 180%. Deepfake attempts rose 96% in France and 94% in the UK, and 1 in 5 fraudulent attempts in Europe used an edited or forged ID. https://tools.prnewswire.com/en-us/live/20813/release/20251125EN32903 and https://financialit.net/news/fraud-detection/sophisticated-fraud-180-globally-and-uk-deepfake-attacks-double-warns-sumsub (A Sumsub-based French article gives +700% for France deepfakes from Q1 2024 to Q1 2025, which conflicts with the 96% figure: unverified.)
+- **The live attack recipe is a face swap plus a virtual camera.** In Dec 2025 MITRE ATLAS added a KYC case study from iProov's red team: real-time face-swap software fed through a virtual camera passed liveness checks and completed verification under a false identity. https://securitybrief.co.uk/story/mitre-flags-deepfake-kyc-threat-using-face-swap-tools (18 Dec 2025). The figure "+2,665% native virtual camera attacks" is attributed to iProov only by a vendor blog: unverified. https://www.duckduckgoose.ai/blog/how-deepfakes-bypass-kyc
+- **Fake ID images cost $15.** In 404 Media's 5 Feb 2024 test, an OnlyFake British passport image passed OKX's KYC. The site claimed 20,000 documents a day and offered a metadata changer. The "AI" part of that claim is disputed. https://cointelegraph.com/news/ai-generated-fake-ids-pass-crypto-exchange-kyc-onlyfake (Feb 2024). Sumsub (Nov 2025) says consumer generative AI tools (ChatGPT, Gemini) are behind about 2% of the forged documents it processes.
+- **The standards split the problem in two.** ISO/IEC 30107-3 covers presentation attacks (photo, screen, mask held in front of the camera). CEN/TS 18099:2024 covers injection attacks (the stream is replaced before it reaches the app); it was approved on 13 Oct 2024 and explicitly leaves presentation attacks to ISO 30107. https://www.evs.ee/en/cen-ts-18099-2024 . ETSI TS 119 461 v2.1.1 (Feb 2025) is the eIDAS 2 identity-proofing standard, made the reference by Implementing Regulation (EU) 2025/1566 (Jul 2025). The date it becomes mandatory varies across sources (May 2026 or Aug 2027): unverified. https://www.signicat.com/blog/etsi-119-461-v2-1-1-updates-you-need-to-know
+- **France has its own bar: the ANSSI PVID référentiel.** Example: ANSSI decision 2025-1372 certifies "PVID DOCAPOSTE" as compliant. https://cyber.gouv.fr/sites/default/files/decisions-qualifications/2025_1372_np.pdf (2025). According to the AR24/Docaposte announcement, PVID requires a human operator to give the final verdict. https://www.solutions-numeriques.com/?p=111446 . Unverified: the current PVID status of Ubble and IDnow, and the date IDnow acquired Ubble.
+
+## What is buildable in 20 h (tools, APIs, models, libraries with links, free tier or not, setup time)
+
+| Building block | What it gives | Cost | Setup |
+|---|---|---|---|
+| MediaPipe Face Landmarker (`@mediapipe/tasks-vision`, runs in the browser) https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker | 478 landmarks plus blendshapes (eyeBlink, jawOpen, head pose): enough for an active challenge ("blink twice, turn left") in plain JS. From prior knowledge, not re-checked today. | Free, Apache-2.0 | 1 to 2 h |
+| face-antispoof-onnx https://github.com/facenox/face-antispoof-onnx | Passive PAD classifier (Real or Spoof: print, screen replay). MiniFASNet from Minivision Silent-Face. INT8 ONNX of about 600 KB, 128x128 input, 98.2% on CelebA-Spoof (self-reported). Ships a Python webcam demo. Running it in the browser through onnxruntime-web should work but is not documented. | Free, Apache-2.0 | 1 to 2 h |
+| Silent-Face-Anti-Spoofing (upstream) https://github.com/minivision-ai/Silent-Face-Anti-Spoofing | The original MiniFASNetV2 + V1SE ensemble (about 4 MB, under 10 ms on CPU, according to a LocalAI commit). LocalAI's test notes that "synthetic/derived spoofs fool the model unpredictably". | Free, Apache-2.0 | 1 to 2 h |
+| Hugging Face deepfake image detectors: https://huggingface.co/prithivMLmods/Deep-Fake-Detector-v2-Model (ViT) and https://huggingface.co/prithivMLmods/deepfake-detector-model-v1 (SigLIP, about 94% on its own test split) | Per-frame real or fake score through a 5-line `transformers` pipeline. Accuracies are self-reported. Expect poor transfer to unseen face-swap tools. | Free | 30 min |
+| Browser-side injection heuristics (`navigator.mediaDevices.enumerateDevices()`, `MediaStreamTrack.getSettings()`, frame timing) | Flags devices labelled "OBS Virtual Camera" or "ManyCam", odd resolutions or frame rates, and too-perfect timing. Trivial to spoof, so it is only one signal. | Free | 2 h |
+| Screen-flash challenge (random colour sequence flashed on screen, reflection read off the face) | Cheap version of the "light challenge" idea. A virtual camera feed does not reflect the colours in real time, and a face swap adds latency. | Free | 3 to 4 h |
+| Sumsub sandbox https://docs.sumsub.com/docs/sandbox-mode | Full WebSDK flow (document + liveness), webhooks. No approval logic in the sandbox (canned results), capped at 500 applicants per 24 h. Needs the team to create its own account. | Free | 2 h |
+| Veriff, Entrust IDV (Onfido) | Veriff: 15-day free trial, then $0.80 per verification and a $49 monthly minimum (G2 listing). Onfido: free trial mentioned, terms unverified. | Trial | Half a day (signup) |
+| NFC chip reading: JMRTD (Android) https://jmrtd.org/ , NFCPassportReader (iOS, passive and active authentication, needs CSCA certs), biometric_passport_nfc (Flutter) https://pub.dev/packages/biometric_passport_nfc | Reads the signed chip photo and data group hashes: the strongest anti-forgery signal. Needs a native app, a phone and a real passport or ID card. | Free | 6 h or more, risky |
+| Attack side for the demo: Deep-Live-Cam (open-source real-time face swap) + OBS Virtual Camera | Lets the team attack its own KYC flow live, on team members' faces only. Repo and licence not re-checked today: unverified. | Free | 2 h (GPU helps) |
+
+## Project ideas (2 or 3: one-line pitch, the demo moment the jury sees, the stack, the main risk)
+
+1. **LiveGate: a layered liveness and injection check that runs in the browser.**
+   - Pitch: a drop-in selfie step for bank onboarding that fuses an active challenge, passive anti-spoofing, injection signals and a deepfake score into one explainable risk verdict. Each signal is mapped to ISO 30107-3 or CEN/TS 18099.
+   - Demo moment: a team member passes. Then, live, a printed photo, a phone replay and a Deep-Live-Cam face swap through OBS Virtual Camera are each caught, and the dashboard names the layer that caught each one.
+   - Stack: vanilla JS or Next.js + MediaPipe tasks-vision + onnxruntime-web (MiniFASNet), a small FastAPI with the HF deepfake detector, and a randomised challenge sequence (blink, turn, colour flash).
+   - Main risk: demo lighting causing false rejects, and the face swap slipping past a single layer. Fix the room lighting, record a backup video, and present it as layers rather than one detector.
+2. **KYC Red Team Bench: a test bench for a bank's identity-verification vendor (Finaxys-style consulting deliverable).**
+   - Pitch: a library of attacks (print, replay, face swap, virtual camera, SPECIMEN-stamped forged ID images) is replayed against a KYC pipeline, and the bench outputs an APCER/BPCER scorecard per attack class, ready for a compliance audit.
+   - Demo moment: a heat map shows which attack beats which layer (our open-source stack, plus the Sumsub sandbox flow).
+   - Stack: Python, the same models, a Streamlit dashboard and the Sumsub sandbox.
+   - Main risk: the vendor sandbox has no real decision logic, so only our own stack produces meaningful numbers. Forged documents must stay visibly SPECIMEN.
+3. **Privacy-first KYC: on-device checks, nothing biometric leaves the phone.**
+   - Pitch: liveness and anti-spoofing run client-side, the ID chip is read by NFC and verified by passive authentication, and only a signed verdict plus hashes go to the bank (GDPR data minimisation).
+   - Demo moment: the network tab shows zero image uploads, and the chip signature check turns green on a real ID.
+   - Stack: Flutter (biometric_passport_nfc) or Android (JMRTD) + MediaPipe + ONNX.
+   - Main risk: native NFC work is the hardest piece to finish in 20 h.
+
+## Verdict (2 or 3 lines)
+
+Build LiveGate (idea 1), with idea 3's "nothing biometric leaves the browser" as the privacy line in the pitch. Its parts are free, browser-native and wire up in about 12 h, which leaves time to rehearse the live attack.
+For a finance jury, frame it as KYC fraud cost and the eIDAS 2 (ETSI TS 119 461) and PVID compliance bar, not as model accuracy.
