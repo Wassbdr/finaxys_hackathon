@@ -1,0 +1,23 @@
+name: ledger_legacy
+description: >
+  core-ledger (PHP 5.6, non patchable) gonfle les soldes de 15 %, sans aucune CVE publiée.
+  La vue de Risk sur la trésorerie et le P&L du jour est fausse : de vraies mauvaises nouvelles
+  font perdre de l'argent sans que l'arrêt sur perte se déclenche.
+duration: 150s
+params:
+  herding: 0.3
+steps:
+  - at: 20s
+    do: compromise core-ledger
+  - at: 40s
+    do: >-
+      news BOREAL -6 "BOREAL : avertissement sur résultats annuels"
+  - at: 55s
+    do: >-
+      news ACME -5 "ACME : perte d'un client majeur"
+  - at: 70s
+    do: >-
+      news CITRA -5 "CITRA : enquête de l'autorité de la concurrence"
+  - at: 90s
+    do: >-
+      news BOREAL -5 "BOREAL : la notation de crédit abaissée"
