@@ -144,9 +144,11 @@ def play(cfg, scenario, ticks, enabled, *, capture_frames=False):
                 "blocked_operations": len(runtime.contagion.blocked),
                 "freeze_starts": sum(t["event"] == "start" for t in runtime.freeze.transitions),
                 "freeze_blocked_operations": len(runtime.freeze.blocked),
-                "freeze_transitions": runtime.freeze.transitions,
+                "freeze_transitions": list(runtime.freeze.transitions),
                 "freeze_active": copy.deepcopy(runtime.freeze.active),
-                **({"freeze_frames": runtime.freeze.frames} if capture_frames else {}),
+                "freeze_uncertain": sorted(runtime.freeze.uncertain),
+                "freeze_guard_refusals": sum(d.get('freeze_guard',False) for d in runtime.decisions),
+                **({"freeze_frames": list(runtime.freeze.frames)} if capture_frames else {}),
                 "injected_orders": len(injected_ids),
                 "injected_blocked_operations": sum(not d["approved"] and injected_labels.get(d["message_id"], False)
                     for d in runtime.decisions),

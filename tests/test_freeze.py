@@ -119,19 +119,20 @@ def test_training_rejects_held_out_seed_and_invalid_profile():
     with pytest.raises(ValueError): validate_profile(profile(freeze_ticks=0))
 
 
-def test_independent_source_from_non_aligned_trader_is_corroboration(setup):
+def test_unverified_source_label_is_not_independent_corroboration(setup):
     send(setup, "trader-3", "order_proposal", {"asset": "ACME", "side": "buy", "news_refs": [
         {"id": "new-story", "source": "independent-wire"}]})
     align(setup)
-    assert not setup[0].freeze.active
+    assert setup[0].freeze.active
 
 
 def test_active_signal_renews_tenure_then_falling_signal_expires_exactly(setup):
     align(setup)
     send(setup, "clock", "tick", {"tick": 4}, 4)
     assert setup[0].freeze.active["ACME"]["until_tick"] == 9
-    for trader in ("trader-1", "trader-2"):
-        send(setup, trader, "order_proposal", {"asset": "ACME", "side": "buy"}, 5)
+    # Un simple contre-ordre ne dissipe plus le danger ; une corroboration
+    # publique réelle fait ici retomber le seul témoin utilisé.
+    send(setup, "inject", "alert", {"kind": "market_event", "asset": "ACME", "pct": -1}, 5)
     send(setup, "clock", "tick", {"tick": 8}, 8)
     assert setup[0].freeze.active
     send(setup, "clock", "tick", {"tick": 9}, 9)
@@ -145,20 +146,16 @@ def test_unblock_command_is_a_signed_human_release(setup):
     assert not setup[0].freeze.active
 
 
-def test_persistence_is_reset_when_alignment_or_proof_falls(setup):
+def test_accumulated_danger_expires_after_a_full_window_without_witness(setup):
     setup[0].freeze.profile["persistence_ticks"] = 3
     align(setup)
-    assert not setup[0].freeze.active
     send(setup, "clock", "tick", {"tick": 1}, 1)
+    send(setup, "inject", "alert", {"kind": "market_event", "asset": "ACME", "pct": -1}, 2)
+    send(setup, "clock", "tick", {"tick": 2}, 2)
     assert not setup[0].freeze.active
-    for trader in ("trader-1", "trader-2"):
-        send(setup, trader, "order_proposal", {"asset": "ACME", "side": "buy"}, 2)
-    assert not setup[0].freeze.since
-    align(setup, tick=3)
-    send(setup, "clock", "tick", {"tick": 4}, 4)
-    assert not setup[0].freeze.active
-    send(setup, "clock", "tick", {"tick": 5}, 5)
-    assert setup[0].freeze.active
+    assert setup[0].freeze.exposure
+    send(setup, "clock", "tick", {"tick": 40}, 40)
+    assert not setup[0].freeze.exposure and not setup[0].freeze.active
 
 
 def test_no_training_run_can_use_42():

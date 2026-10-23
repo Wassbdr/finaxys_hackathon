@@ -15,7 +15,8 @@ et les ventes sont des `execution` signées : aucune vérité cachée n'est lue.
 Chaque actif est analysé séparément sur 30 ticks, au moyen de `Herding.snapshot`.
 L'indice doit être strictement supérieur à sa référence propre apprise. Le
 profil livré exige trois traders de même direction nette et vingt ticks de
-persistance du signal. Au moins un témoin est nécessaire :
+persistance du signal. Le correctif [SECURITY.md](SECURITY.md) conserve désormais les ticks
+confirmés interrompus dans une fenêtre bornée. Au moins un témoin est nécessaire :
 
 - vente exécutée, baisse observée ensuite par Quant, puis proposition de vente
   dépendant de cette mise à jour ; les quatre message_id de la séquence sont
@@ -24,7 +25,8 @@ persistance du signal. Au moins un témoin est nécessaire :
   alignés, rattachées à l'actif par `response.sentiment` ou sa mention explicite ;
 - même référence de nouvelle observée chez au moins deux traders alignés,
   provenant d'une seule source, apparue pour la première fois dans la fenêtre,
-  sans autre source pour cette référence dans les ordres du bus. Une alerte
+  sans corroboration par une autorité signée indépendante ; les libellés de source
+  déclarés par les traders ne constituent plus une telle corroboration. Une alerte
   publique signée world/inject/secu de type market_event/source_report concernant
   l'actif est aussi traitée comme corroboration et empêche ce témoin.
 
@@ -43,8 +45,8 @@ par cette règle. Le contrôle de contagion antérieur reste appliqué séparém
 
 N = 10 ticks. Le bail est renouvelé tant que le même signal persiste, puis expire
 automatiquement dix ticks après sa dernière confirmation. Un retournement ne
-change pas silencieusement le sens d'un gel existant. La cohorte d'origine ne
-s'élargit pas pendant son bail. Chaque début et chaque fin émet un
+change pas silencieusement le sens d'un gel existant. Une nouvelle cohorte ou un sens opposé n'étend le bail qu'après un signal
+confirmé ; les preuves de cette extension sont conservées. Chaque début et chaque fin émet un
 `Finding(kind='herding_freeze', layer=3, target=<actif>, evidence=[message_id...])` :
 warning/score=indice au début, info/score=0 à la fin.
 
@@ -87,4 +89,5 @@ sans gel et couche 3 avec gel. Les transitions détaillent actif/sens/traders,
 preuve, témoin, début/fin et échéance. Un gel encore actif à la fin d'un scénario
 n'a pas de fin inventée ; l'échéance restante est dans son enregistrement.
 L'absence de gel sur le run propre testé ne garantit pas une absence générale de
-faux positifs. Pas de checkpoint/reprise des baux entre redémarrages dans ce lot.
+faux positifs. Le service sauvegarde les baux ; sa reprise est désormais fermée par défaut
+tant que la continuité n'est pas établie ([SECURITY.md](SECURITY.md)).

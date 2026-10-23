@@ -97,11 +97,11 @@ def test_runtime_gate_only_blocks_marked_and_herding_hook(setup):
             from vigie.core import Finding
             return [Finding(msg["tick"], 3, "herding", "traders", "warning", [msg["message_id"]], 1.0)]
     runtime = Runtime(cfg, keys, meta=setup[2].meta, layers=[Herding()])
-    clean = factories["risk"].make(1, "risk_decision", "executor", {}, data_provenance=[{"service": "news-wire"}])
+    clean = factories["risk"].make(1, "risk_decision", "executor", {"kind": "payment"}, data_provenance=[{"service": "news-wire"}])
     assert runtime.request_approval(clean).approved
     runtime.on_message(factories["secu"].make(1, "alert", "*", {"kind": "cve_published", "cve": {
         "affects": {"language": "php", "version_lt": "8.1"}}}))
-    dirty = factories["risk"].make(1, "risk_decision", "executor", {}, data_provenance=[{"service": "market-feed"}])
+    dirty = factories["risk"].make(1, "risk_decision", "executor", {"kind": "payment"}, data_provenance=[{"service": "market-feed"}])
     assert not runtime.request_approval(dirty).approved
     assert runtime.decisions[-1]["evidence"]
     assert runtime.request_approval(clean).approved
@@ -267,7 +267,7 @@ def test_delivered_herding_is_enabled_with_common_findings(setup):
     assert all(f.score == pytest.approx(1) for f in findings)
     assert sum(m["payload"].get("kind") == "layer3_finding" for m in out) >= 2
     # Ces mesures n'inventent aucune décision de couche 2 sur un ordre sain.
-    safe = factories["risk"].make(1, "risk_decision", "executor", {})
+    safe = factories["risk"].make(1, "risk_decision", "executor", {"kind": "payment"})
     assert runtime.request_approval(safe).approved
 
 
