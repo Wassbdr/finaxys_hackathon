@@ -37,7 +37,11 @@ def test_three_worlds_same_seed_and_exact_injections(tmp_path,cfg):
         assert all(ls.tick==5 for ls in runner.worlds.values())
         assert all(not ls.cfg['llm']['enabled'] for ls in runner.worlds.values())
         assert all(not ls.cfg['chaos']['announce_compromised'] for ls in runner.worlds.values())
-        assert runner.controllers['C'].contagion.suspects['core-ledger'].tick==2
+        finding=runner.controllers['C'].contagion.suspects['core-ledger']
+        # Le rapprochement attend deux ticks pour les exécutions encore en transit.
+        assert finding.tick==4
+        heartbeat=runner.controllers['C'].state.messages[finding.evidence[0]]
+        assert heartbeat['tick']==2 and heartbeat['payload']['view']['as_of_tick']==2
         assert not runner.controllers['B'].red
         assert set(frames[-1]['banks']) == {'A','B','C'}
     finally: runner.close()

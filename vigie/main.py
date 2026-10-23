@@ -145,6 +145,12 @@ class Runtime(Gate):
             return self.reject_input(msg,'clock_input')
         if not is_clock and (self.freeze.clock is None and msg['tick']>0 or self.freeze.clock is not None and msg['tick']>clock+1):
             return self.reject_input(msg,'future_input')
+        view=msg['payload'].get('view',{}) if msg['type']=='heartbeat' else {}
+        if (msg['from']=='risk' and self.contagion.cash_complete and view.get('cash_eur') is not None
+                and 'as_of_tick' in view and self.contagion.ledger_clock<view['as_of_tick']+2
+                and len(self.contagion.pending_balances)>=self.contagion.pending_balances.maxlen):
+            # Une file de rapprochement pleine refuse cette vue, sans panne globale.
+            return self.reject_input(msg,'ledger_window_full')
         reason=self.admission.check(msg,size,clock,self.freeze)
         if len(self.state.messages)>=20_000 or self.admitted_bytes+size>16*1024*1024:
             reason='storage_full'

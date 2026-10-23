@@ -73,7 +73,8 @@ class Risk(Agent):
         gross = sum(abs(v) for v in positions.values())
         pnl_day = self.balances["pnl_day_eur"]
         self.last_view = {"var_eur": round(var, 2), "gross_eur": round(gross, 2), "pnl_day_eur": round(pnl_day, 2),
-                          "cash_eur": self.balances["cash_eur"]}
+                          "cash_eur": self.balances["cash_eur"],
+                          "as_of_tick": self.balances["as_of_tick"]}
         provenance = merge_provenance(self.quant["data_provenance"], [self.balances_prov])
         if pnl_day < -self.r["max_daily_loss_eur"] and not self.halted:
             self.halted, self.halt_reason = True, f"perte du jour {pnl_day:,.0f} €"
