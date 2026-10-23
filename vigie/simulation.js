@@ -334,7 +334,8 @@ function link(a, b, hidden) {
   const key = [a, b].sort().join("|");
   if (links.has(key) || !nodes[a] || !nodes[b]) return links.get(key);
   const material = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.16, depthWrite: false });
-  const l = { a, b, g: new THREE.Group(), curve: new THREE.QuadraticBezierCurve3(), material, hidden: !!hidden, vigie: a === "vigie" || b === "vigie", svc: nodes[a].leds ? a : nodes[b].leds ? b : null };
+  const redMat = new THREE.MeshBasicMaterial({ color: 0xf87171, transparent: true, opacity: 0.85, depthWrite: false });
+  const l = { a, b, g: new THREE.Group(), curve: new THREE.QuadraticBezierCurve3(), material, redMat, fill: 0, redFrom: null, hidden: !!hidden, vigie: a === "vigie" || b === "vigie", svc: nodes[a].leds ? a : nodes[b].leds ? b : null };
   shape(l);
   world.add(l.g);
   links.set(key, l);
@@ -349,9 +350,21 @@ function shape(l) {
   curve.needsUpdate = true;
   for (const o of g.children) o.geometry.dispose();
   g.clear();
-  if (l.hidden) for (let i = 0; i < 24; i++) g.add(stick(curve.getPoint(i / 24), curve.getPoint((i + 0.55) / 24), 0.03, l.material));
-  else g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 48, 0.035, 6), l.material));
+  const path = (material, r) => l.hidden
+    ? Array.from({ length: 24 }, (_, i) => stick(curve.getPoint(i / 24), curve.getPoint((i + 0.55) / 24), r, material))
+    : [new THREE.Mesh(new THREE.TubeGeometry(curve, 48, r, 6), material)];
+  l.red = path(l.redMat, l.hidden ? 0.04 : 0.05);
+  l.red.forEach(m => (m.renderOrder = 1));  // over the link's own colour, not blended under it
+  g.add(...path(l.material, l.hidden ? 0.03 : 0.035), ...l.red);
   g.traverse(o => (o.castShadow = false));
+  redden(l);
+}
+// the problem travelling along a link: its red reaches l.fill of the way from the end it comes from (Marius, 24-10); a
+// tube's triangles run along it 36 to a step, so a draw range shows its first part
+function redden(l) {
+  const back = l.redFrom === l.b, k = Math.round(l.fill * 48) * 36;
+  if (l.hidden) l.red.forEach((m, i) => (m.visible = (back ? 23 - i : i) < l.fill * 24));
+  else l.red[0].geometry.setDrawRange(back ? 48 * 36 - k : 0, k);
 }
 
 const GEO = { dot: new THREE.SphereGeometry(0.11, 14, 10), box: new THREE.BoxGeometry(0.3, 0.2, 0.05), coin: new THREE.CylinderGeometry(0.2, 0.2, 0.06, 22) };
@@ -445,11 +458,17 @@ function show(t) {
   }
   nodes.vigie.asleep = !st.vigie;
   light = st.light ?? "VERT";
+  // a link turns red from its red end (a compromised service, or the agent whose ring went red first) once the other
+  // end is hit too (Marius, 24-10)
+  const red = id => (nodes[id].leds ? nodes[id].mode === "compromised" : nodes[id].alert === "ROUGE");
+  const hit = id => red(id) || (!nodes[id].leds && nodes[id].alert === "ORANGE");
+  const first = id => (nodes[id].leds ? -1 : W.hit[id] ?? 1e9);
   for (const l of links.values()) {
-    const s = l.svc && nodes[l.svc], bad = s?.mode === "compromised";
+    const s = l.svc && nodes[l.svc], from = [l.a, l.b].filter(red).sort((x, y) => first(x) - first(y))[0];
     l.g.visible = !l.vigie || ours;
-    l.material.color.setHex(bad ? 0xf87171 : s?.iso ? 0x22d3ee : l.hidden ? 0xfbbf24 : 0xffffff);
-    l.material.opacity = bad || s?.iso ? 0.45 : l.hidden ? 0.7 : 0.16;
+    l.material.color.setHex(s?.iso ? 0x22d3ee : l.hidden ? 0xfbbf24 : 0xffffff);
+    l.material.opacity = s?.iso ? 0.45 : l.hidden ? 0.7 : 0.16;
+    l.redFrom = from && hit(from === l.a ? l.b : l.a) ? from : null;
   }
   hud();
 }
@@ -658,48 +677,7 @@ function animateServer(n, k) {
 // a true orange for the ring: the bank light's amber reads yellow on the dark floor
 const RING = { VERT: LIGHT.VERT, ORANGE: 0xf97316, ROUGE: 0xef4444 };
 
-// The problem spreading: a red zone on the floor swells around a service as it is compromised and an agent as its ring
-// turns red, then fades after ZONE_HOLD seconds, leaving the rings to say who is hit (Marius, 24-10); zones that overlap
-// merge into one shape (a metaball field), with a striped cordon on its edge.
-const ZONE_R = 2.8, ZONE_HOLD = 2, zonePts = Array.from({ length: 24 }, () => new THREE.Vector3());
-const cordon = turn(new THREE.Mesh(new THREE.PlaneGeometry(46, 46), new THREE.ShaderMaterial({
-  transparent: true, depthWrite: false,
-  uniforms: { pts: { value: zonePts }, n: { value: 0 }, time: { value: 0 }, color: { value: new THREE.Color(0xef4444) } },
-  vertexShader: "varying vec2 p; void main() { p = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
-  fragmentShader: `uniform vec3 pts[24]; uniform int n; uniform float time; uniform vec3 color; varying vec2 p;
-    void main() {
-      float f = 1e-6;
-      for (int i = 0; i < 24; i++) {
-        if (i >= n) break;
-        vec2 d = p - pts[i].xy;
-        float q = pts[i].z * pts[i].z / max(dot(d, d), 1e-4);
-        f += q * q;
-      }
-      float h = pow(f, -0.25), w = fwidth(h), inside = 1.0 - smoothstep(1.0 - w, 1.0 + w, h);
-      float edge = inside * smoothstep(0.9 - w, 0.9 + w, h), stripe = step(0.5, fract((p.x + p.y) * 0.8 - time * 0.5));
-      gl_FragColor = vec4(color, inside * (0.24 + 0.06 * sin(time * 2.0)) + edge * (0.3 + 0.6 * stripe));
-      #include <colorspace_fragment>
-    }`,
-})), -Math.PI / 2);
-cordon.position.y = 0.02;
-cordon.renderOrder = 1;
-world.add(cordon);
 for (const n of Object.values(nodes)) if (n.halo) n.halo.renderOrder = 2;
-
-function spread(k) {
-  let i = 0;
-  for (const n of Object.values(nodes)) {
-    const red = n.eyes ? n.alert === "ROUGE" : n.mode === "compromised";
-    if (red && !n.red) n.redAt = time;
-    n.red = red;
-    n.zr = THREE.MathUtils.lerp(n.zr ?? 0, red && time - n.redAt < ZONE_HOLD ? ZONE_R : 0, k);
-    if (n.zr < 0.05 || i === zonePts.length) continue;
-    world.worldToLocal(n.g.getWorldPosition(tmp));
-    zonePts[i++].set(tmp.x, -tmp.z, n.zr);
-  }
-  cordon.material.uniforms.n.value = i;
-  cordon.material.uniforms.time.value = time;
-}
 
 // The 2D view: the same replay seen from above as a flat map on a canvas, drawn in place of the 3D scene, from the
 // same state (rings, zones, links, flying dots, bubbles) so the two never disagree
@@ -748,11 +726,6 @@ function draw2d() {
   const ours = worldName === "ours", alpha = (a = 1) => (g2.globalAlpha = a);
   g2.clearRect(0, 0, flat.width, flat.height);
   g2.textAlign = "center";
-  // how far the problem spread: one red shape over every zone, as the 3D floor's cordon
-  g2.beginPath();
-  for (const n of Object.values(nodes)) if (n.zr > 0.05) { const [x, y] = to2(...POS[n.id]); g2.moveTo(x + n.zr * s2, y); g2.arc(x, y, n.zr * s2, 0, 7); }
-  g2.fillStyle = `rgb(239 68 68 / ${0.22 + 0.05 * Math.sin(time * 2)})`;
-  g2.fill();
   for (const p of pads) {
     const [x, y] = to2(p.x - p.r, p.z - p.w - p.r);
     g2.beginPath();
@@ -774,6 +747,14 @@ function draw2d() {
     g2.strokeStyle = rgb(l.material.color, l.material.opacity);
     g2.lineWidth = 1.5;
     g2.setLineDash(l.hidden ? [6, 5] : []);
+    g2.stroke();
+    if (!l.fill) continue;
+    const [p, q] = l.redFrom === l.b ? [l.curve.v2, l.curve.v0] : [l.curve.v0, l.curve.v2];
+    g2.beginPath();
+    g2.moveTo(...to2(p.x, p.z));
+    g2.lineTo(...to2(p.x + (q.x - p.x) * l.fill, p.z + (q.z - p.z) * l.fill));
+    g2.strokeStyle = rgb(l.redMat.color, l.redMat.opacity);
+    g2.lineWidth = 2.5;
     g2.stroke();
   }
   for (const o of held ? snaps : []) {
@@ -909,8 +890,9 @@ function hoverPaint() {
   for (const m of dim) was.push([m, m.opacity]), (m.opacity *= FADE);
   for (const [key, l] of links) {
     const m = l.material, on = key.split("|").includes(hovered);
-    was.push([m, m.opacity, m.color.getHex()]);
+    was.push([m, m.opacity, m.color.getHex()], [l.redMat, l.redMat.opacity]);
     m.opacity = on ? 0.95 : m.opacity * FADE;
+    if (!on) l.redMat.opacity *= FADE;
     if (on && m.color.getHex() === 0xffffff) m.color.set(tint);
   }
   return () => was.forEach(([m, o, c]) => ((m.opacity = o), c !== undefined && m.color.setHex(c)));
@@ -1023,7 +1005,10 @@ renderer.setAnimationLoop(now => {
     else animateServer(n, k);
     if (n.bubble && playing && time > n.bubbleUntil) n.bubble.removeFromParent(), (n.bubble = null);
   }
-  spread(k);
+  for (const l of links.values()) {
+    const f = l.redFrom ? Math.min(1, l.fill + dt / 1.2) : 0;
+    if (f !== l.fill) (l.fill = f), redden(l);
+  }
   const ts = THREE.MathUtils.lerp(tower.scale.x, worldName === "ours" ? 1 : 0.001, k);
   tower.scale.setScalar(ts);
   tower.visible = ts > 0.01;
