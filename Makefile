@@ -81,3 +81,8 @@ demo-measure:
 .PHONY: propositions
 propositions:
 	$(PY) -m vigie.propositions --run "$(RUN)"
+
+# Le plan fixe les graines et la courbe avant les mesures ; aucun seuil n’est déployé.
+.PHONY: surete-utilite
+surete-utilite:
+	HORIZON_NO_LLM=1 $(PY) -m vigie.surete_utilite
