@@ -9,8 +9,8 @@ l’API : son origine n’est pas autorisée.
 
 Exemples : « Les alertes ? », « Quel est le R0 ? », « Qui est en quarantaine ? »,
 « Pourquoi executor:42:17 ? », « Les dernières propositions ? », « Brouillon DORA ».
-Les réponses sont des modèles de phrases sans LLM, sans recherche distante,
-sans dépendance supplémentaire. Aucun appel Mistral n’est implémenté.
+Les réponses sont par défaut des modèles de phrases sans LLM, sans recherche
+distante ni dépendance supplémentaire. Une reformulation Mistral est facultative.
 
 Les questions générales (« Présente Argus », « Que se passe-t-il en cas de panne ? »)
 recherchent les mots-clés des sections de [KRYS_EXPLICATIONS.md](KRYS_EXPLICATIONS.md),
@@ -27,6 +27,60 @@ compensée par le texte général. Les demandes explicites de définition passen
 par le texte (par exemple « Définition d’un tick »). Sans correspondance suffisante,
 le chat répond « je n'ai pas de source pour répondre à cela ». Les garde-fous
 d’injection et d’exfiltration s’appliquent avant toute recherche.
+
+## Reformulation Mistral facultative
+
+Activation au lancement uniquement si **KRYS_LLM=mistral et MISTRAL_API_KEY non
+vide** sont présents. La clé n’est jamais demandée dans le navigateur. La commande
+suivante charge les secrets sur le serveur et lance la démo ; ne pas activer la
+trace shell (`set -x`) et ne pas afficher l’environnement :
+
+```sh
+set -a
+. ~/.config/secrets.env
+set +a
+KRYS_LLM=mistral make demo-live
+```
+
+Pour rester sans LLM : `KRYS_LLM= make demo-live`. Le drapeau HORIZON_NO_LLM de
+la démo continue de désactiver les modèles des agents bancaires ; KRYS_LLM ne
+concerne que la reformulation du chat. Sans les deux variables, aucun client
+Mistral n’est créé. Les tests vident ces variables et utilisent des faux clients.
+
+Le modèle est épinglé dans `krys_mistral.json` : **Mistral Small 4, version 26.03,
+identifiant API mistral-small-2603**, sans alias latest ni remplacement automatique.
+Le client appelle seulement chat/completions, sans outils, redirection, proxy
+implicite, streaming de texte à l’écran ou retry. L’attente totale est bornée à
+6 secondes ; en cas d’échec, de saturation ou de rejet, la réponse locale est
+rendue intacte. Le panneau indique une reformulation uniquement lorsqu’elle a
+passé les contrôles.
+
+Ce qui part chez Mistral : seulement le texte factuel déjà construit par Krys
+à partir d’une section approuvée ou des observations simulées du journal signé,
+et les identifiants de sources fournis. **Ni question brute, ni journal complet,
+ni prompt des agents, ni signature HMAC, ni donnée personnelle.** Les textes trop
+longs ou contenant des formats personnels (courriel, IBAN, téléphone, adresse,
+nom composé) restent locaux. Ce refus est conservateur : des noms de sociétés
+composés peuvent aussi empêcher une reformulation.
+
+Le prompt interdit d’obéir aux instructions de la question ou des données. Les
+commandes humaines, refus de sécurité et réponses sans source ne passent jamais
+par le modèle. Avant affichage, il faut au moins une citation fournie ; nombres
+absents des faits, identifiants inconnus, consignes, formats personnels et HTML
+entraînent le repli. Ces contrôles lexicaux ne prouvent pas une équivalence
+sémantique complète : les sources restent affichées pour vérification humaine.
+Aucun texte tiers ni détail d’erreur n’est journalisé.
+
+Ordre de grandeur indicatif, tarifs publics consultés le 24/10/2026 : 0,15 USD
+par million de jetons d’entrée et 0,60 USD par million en sortie. Une question
+avec 1 000 jetons d’entrée et 300 en sortie représente environ **0,00033 USD**
+(0,033 cent américain), hors taxes et conditions du compte. Ce calcul est une
+estimation, aucun appel facturé n’a été effectué pour ce lot. Le contexte est
+borné à 12 000 caractères, la sortie demandée à 768 jetons ; le nombre réel de
+jetons dépend du texte.
+Sources : [modèle et version](https://docs.mistral.ai/models/mistral-small-4-0-26-03),
+[tarifs](https://docs.mistral.ai/inference/pricing),
+[API chat](https://docs.mistral.ai/api/endpoint/chat).
 
 Pour autoriser l’opérateur local à envoyer les commandes existantes :
 

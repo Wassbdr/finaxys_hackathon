@@ -63,7 +63,8 @@
     byId('krys-question').value = '';
     try {
       const answer = await post('ask', {question});
-      show(answer.text, answer.citations);
+      const label = answer.rephrased ? 'Reformulation Mistral à partir des sources ci-dessous.\n' : '';
+      show(label + answer.text, answer.citations);
     } catch (error) { show(error.message); }
     finally { busy = false; }
   });
