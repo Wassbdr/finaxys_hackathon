@@ -77,3 +77,7 @@ demo-replay:
 	HORIZON_NO_LLM=1 $(PY) -m vigie.demo_live replay --port $(PORT) --accelerator $(SPEED) $(if $(RECORDING),--recording $(RECORDING))
 demo-measure:
 	HORIZON_NO_LLM=1 $(PY) -m vigie.demo_live measure --scenario $(DEMO_SCENARIO)
+
+.PHONY: propositions
+propositions:
+	$(PY) -m vigie.propositions --run "$(RUN)"

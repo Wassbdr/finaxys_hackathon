@@ -11,6 +11,7 @@ from bus.gate import Decision, Gate
 from bus.message import Keyring, MessageFactory, canonical
 from sim.config import known_senders, load_config, trader_ids
 from vigie.core import VigieState
+from vigie.propositions import Propositions
 from vigie.contagion import Contagion
 from vigie.analytics import Analytics
 from vigie.freeze import Freeze, load_profile
@@ -55,6 +56,8 @@ class Runtime(Gate):
         # effectivement disponibles lui sont transmises pour son estimation R0.
         self.analytics = Analytics({**cfg, "services": self.state.meta}, keyring)
         self.factory = MessageFactory("vigie", keyring, deterministic)
+        self.propositions = Propositions(keyring, self.state.meta, factory=self.factory,
+                                         max_messages=20_000, max_bytes=16*1024*1024)
         self.findings = deque(maxlen=4096)
         self.decisions = deque(maxlen=4096)
 
@@ -173,6 +176,9 @@ class Runtime(Gate):
         if not self.admission.record(msg,self.state,clock):
             self.reject_input(msg,'unanalysed_input')
             return self.diagnostics()
+        self.propositions.observe(msg)
+        if msg["from"] == "human" and msg["type"] == "human_decision" and msg["payload"].get("action") == "propositions":
+            return [self.proposition_alert()]
         findings = []
         try:
             self.analytics.observe(msg)
@@ -205,7 +211,13 @@ class Runtime(Gate):
         if msg["from"] == "clock" and msg["type"] == "tick":
             out.append(self.factory.make(msg["tick"], "heartbeat", "*", {
                 "agent": "vigie", "role": "vigie", "stub": False}))
+        for message in out:
+            self.propositions.observe(message)
         return out+self.diagnostics()
+
+    def proposition_alert(self):
+        self.findings.extend(self.propositions.findings())
+        return self.propositions.alert()
 
     def request_approval(self, msg):
         # Le gel est une règle PROVISOIRE de couche 3, remplaçable par le Dev 1.
@@ -298,8 +310,13 @@ def serve(cfg, client, *, stop=None, meta=None, layers=(), checkpoint=None, fres
                 runtime.admission.reject(None,'wire_envelope')
                 continue
     finally:
-        sub.close()
-        client.delete(prefix + "vigie:ready")
+        # La clôture émet une proposition, jamais une action de remédiation.
+        try:
+            if subscribed == channels:
+                client.publish(prefix + 'bus', canonical(runtime.proposition_alert()))
+        finally:
+            sub.close()
+            client.delete(prefix + "vigie:ready")
     return runtime
 
 
@@ -357,7 +374,12 @@ def main(argv=None):
     import hashlib
     namespace = hashlib.sha256(cfg['redis']['prefix'].encode()).hexdigest()[:16]
     path = args.freeze_state or str(Path(cfg['runs_dir']) / ('freeze-state-' + namespace + '.json'))
-    serve(cfg, connect(cfg['redis']['url']), meta=meta, checkpoint=FileCheckpoint(path),
+    import signal
+    import threading
+    stop = threading.Event()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, lambda signum, frame: stop.set())
+    serve(cfg, connect(cfg['redis']['url']), stop=stop, meta=meta, checkpoint=FileCheckpoint(path),
           fresh_checkpoint=args.fresh_freeze_state)
 
 
