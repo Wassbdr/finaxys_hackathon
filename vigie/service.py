@@ -5,8 +5,9 @@ import os
 
 from bus.message import Keyring, canonical
 from sim.config import known_senders
+from sim.params import Params
 from vigie.core import Controller
-from vigie.truth import RedisTruth
+from vigie.state import VigieState
 
 
 def serve(cfg, client, stop=None, profiles=None):
@@ -34,7 +35,10 @@ def serve(cfg, client, stop=None, profiles=None):
         if agent in controller.registry:
             controller.quarantined.add(agent)
             controller.registry[agent]["tools"] = set()
-    truth = RedisTruth(client, prefix, cfg)
+    saved_view = client.get(prefix + "vigie:view")
+    view = VigieState(
+        cfg, Params(client, prefix, cfg), json.loads(saved_view) if saved_view else None
+    )
     pubsub = client.pubsub(ignore_subscribe_messages=False)
     pubsub.subscribe(prefix + "bus", prefix + "vigie.approval_requests")
     # L'acquittement de souscription précède ready : aucune première requête perdue.
@@ -62,16 +66,23 @@ def serve(cfg, client, stop=None, profiles=None):
                 if raw["channel"] == prefix + "bus":
                     if isinstance(data, dict) and data.get("from") == "vigie":
                         continue
-                    truth.observe(data, controller.keyring)
-                    controller.observe(data, truth.read())
+                    # The controller judges each message on the view built from the ones before it.
+                    controller.observe(data, view.read())
+                    view.observe(
+                        data,
+                        controller.keyring,
+                        controller.isolated_services
+                        | controller.quarantined
+                        | set(controller.detect.suspect),
+                    )
                     if data.get("from") == "clock":
-                        state = truth.read()
-                        if state:
-                            controller.history.append(state["prices"])
+                        controller.history.append(dict(view.prices))
                         # /graph's call counters only: the network telemetry layer 1 may read.
                         controller.layer1.topology(json.loads(client.get(prefix + "graph") or "{}"))
+                    if data.get("type") in {"tick", "execution", "service_status", "payment_proposal"}:
+                        client.set(prefix + "vigie:view", json.dumps(view.checkpoint()))
                 else:
-                    decision = controller.approve(data["message"], truth.read())
+                    decision = controller.approve(data["message"], view.read())
                     if decision.approved:
                         client.sadd(
                             prefix + "vigie:approved_proposals",

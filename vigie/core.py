@@ -12,6 +12,7 @@ from bus.gate import Decision
 from bus.message import FIELDS, MessageFactory, canonical
 from sim.config import agent_ids, role_of
 from sim.ledger import historical_var
+from vigie.detect import Indicators
 from vigie.herding import Herding
 from vigie.metrics import Layer1
 from vigie.provenance import Provenance
@@ -58,8 +59,6 @@ class Controller:
         self.out = []
         self.history = deque(maxlen=cfg["risk_metrics"]["var_window_ticks"] + 1)
         self.quant = None
-        self.clock_prices = {}
-        self.last_execution_tick = -1
         self.analyzed = set()
         self.propagation = {}
         self.contagion_blocked = 0
@@ -68,7 +67,9 @@ class Controller:
         self.ledger_evidence = []
         self.claim_evidence = []
         self.auditor_enabled = False
+        self.detect = Indicators(cfg)
         self.herding = Herding(cfg)
+        self.actions = deque(maxlen=300)
         self.layer1 = Layer1(cfg)
         self.findings = deque(maxlen=200)
         permissions = {
@@ -151,6 +152,16 @@ class Controller:
             )
 
     def summary(self, agent, action, reason, layer, parents=()):
+        self.actions.append(
+            {
+                "tick": self.tick,
+                "agent": agent,
+                "action": action,
+                "reason": reason,
+                "layer": layer,
+                "suspicion": round(self.suspicion.get(agent, 0.0), 1),
+            }
+        )
         if action == "green" and agent != "human":
             self.policy.layers[agent][str(layer)] = "VERT"
             return
@@ -344,11 +355,17 @@ class Controller:
             self.causality.add(msg)
         if state:
             for sid, status in state.get("services", {}).items():
-                if status.get("mode") in {"compromised", "stale", "down"}:
+                if status.get("mode") in {"stale", "down"}:
                     self.isolate_service(sid, "UNTRUSTED_PROVENANCE", [id_])
         kind, p = msg["type"], msg["payload"]
+        self.detect.observe(msg, state)
         self.herding.observe(msg)
         self.findings.extend(f.as_dict() for f in self.herding.drain())
+        for found in self.detect.drain():
+            self.actions.append({**found, "agent": found["target"], "action": "flag", "reason": found["rule"], "layer": "metrics"})
+            self.emit("alert", "human", {"kind": "vigie_indicator", "severity": "warning", **found}, [id_])
+            if found.get("service"):
+                self.layer1.suspect(found["service"], found["rule"], [id_])
         self.layer1.observe(msg)
         self.findings.extend(f.as_dict() for f in self.layer1.drain())
         if kind == "tick" and msg["from"] == "clock":
@@ -356,8 +373,6 @@ class Controller:
             self.last_clock_tick = msg["tick"]
             self.last_clock_at = time.monotonic()
             self.detector.profiles = self.profiles
-            if state:
-                self.clock_prices = dict(state["prices"])
             for agent, orders in self.orders.items():
                 if agent not in self.quarantined and self.detector.tick(
                     agent, list(orders), self.tick
@@ -441,6 +456,20 @@ class Controller:
                         "reason": "quarantaine levée par signature humaine",
                     },
                 )
+            if p.get("action") == "unblock" and self.detect.clear(p.get("target")):
+                self.summary(p["target"], "green", "SERVICE_CLEARED", 0, [id_])
+            if p.get("action") == "set_threshold":
+                try:
+                    old = self.detect.set(p.get("rule"), p.get("value"))
+                    self.summary(
+                        "vigie",
+                        "tune",
+                        f"{p['rule']} {old} -> {self.detect.thresholds[p['rule']]}",
+                        0,
+                        [id_],
+                    )
+                except (TypeError, ValueError) as exc:
+                    self.summary("human", "block", f"THRESHOLD_REFUSED: {exc}", 0, [id_])
             self.summary("human", "green", "HUMAN_DECISION", 0, [id_])
         elif kind == "heartbeat" and msg["from"] == "risk" and state:
             view = p.get("view", {})
@@ -457,25 +486,18 @@ class Controller:
                     [id_],
                     {"claimed": cash, "expected": history[-1]},
                 )
-        elif (
-            kind == "execution"
-            and msg["from"] == "executor"
-            and p.get("status") == "executed"
-        ):
-            self.last_execution_tick = msg["tick"]
         elif kind == "price_update" and msg["from"] == "quant":
             self.quant = msg
-            if (
-                state
-                and self.last_execution_tick < msg["tick"]
-                and msg["tick"] == self.last_clock_tick
-            ):
+            if state and msg["tick"] == self.last_clock_tick:
                 for asset, estimate in p.get("assets", {}).items():
-                    anchor = self.clock_prices.get(asset)
+                    # Anchor: the price the bank last traded at, as the executor signed it;
+                    # the tolerance grows by the most the market's noise can move per tick.
+                    anchor, at = state.get("anchors", {}).get(asset, (None, None))
+                    age = msg["tick"] - at if anchor else 0
                     if (
-                        anchor
+                        1 <= age <= 5
                         and abs(float(estimate.get("price", anchor)) - anchor) / anchor
-                        > 0.02
+                        > 0.02 + 0.005 * age
                     ):
                         self.isolate_service(
                             "market-feed",
@@ -696,7 +718,8 @@ class Controller:
                 if (
                     sid not in self.isolated_services
                     and sid in self.cfg["services"]
-                    and state.get("services", {}).get(sid, {}).get("mode") == "normal"
+                    and state.get("services", {}).get(sid, {}).get("mode") not in {"stale", "down"}
+                    and not self.detect.suspect.get(sid)
                 ):
                     continue
                 self.isolate_service(sid, "UNTRUSTED_PROVENANCE", [msg["message_id"]])
@@ -734,8 +757,8 @@ class Controller:
             if (
                 not status
                 or sid in self.isolated_services
-                or status.get("mode") in {"compromised", "stale", "down"}
-                or entry.get("response_hash") in state.get("tainted_hashes", [])
+                or status.get("mode") in {"stale", "down"}
+                or self.detect.suspect_at(sid, entry.get("tick", -1))
             ):
                 if isinstance(sid, str):
                     self.isolate_service(
@@ -799,14 +822,6 @@ class Controller:
             or not 0 <= self.tick - state["tick"] <= 1
         ):
             raise Refused("STATE_UNAVAILABLE")
-        if state.get("ledger_discrepancies"):
-            self.isolate_service(
-                "core-ledger",
-                "LEDGER_CONSERVATION",
-                [msg["message_id"]],
-                {"differences": state["ledger_discrepancies"]},
-            )
-            raise Refused("LEDGER_CONSERVATION")
         pnl = state.get("pnl", {})
         loss = float(pnl["day_eur"]) + float(pnl.get("payment_fraud_eur", 0))
         if loss < -r["max_daily_loss_eur"]:
@@ -938,11 +953,8 @@ class Controller:
                 return "INCOHERENT_CONFIDENCE"
             if "faillite" in p.get("justification", "").casefold():
                 reliable = any(
-                    n.get("asset") == p["asset"]
-                    and "faillite"
-                    in (n.get("headline", "") + " " + n.get("body", "")).casefold()
-                    and n.get("source") == "Horizon Wire"
-                    for n in state.get("news", [])
+                    p["asset"] in text and "faillite" in text.casefold()
+                    for text in state.get("news", [])
                 )
                 if not reliable:
                     return "UNRELIABLE_NEWS"
@@ -1118,7 +1130,9 @@ class Controller:
                 for key, record in list(self.propagation.items())[-50:]
             },
             "auditor_llm": False,
+            "metrics": self.detect.snapshot(),
             "herding": self.herding.snapshot(),
+            "actions": list(self.actions)[-150:],
             "graph": self.layer1.graph.snapshot(),
             "layer1": self.layer1.metrics(),
             "findings": list(self.findings),

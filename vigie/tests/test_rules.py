@@ -1,13 +1,13 @@
 import copy
+import json
 import time
 
-import fakeredis
 import pytest
 
-from bus.message import MessageFactory, canonical
+from bus.message import MessageFactory
 from vigie.core import Refused
 from vigie.launch import runtime_config
-from vigie.truth import RedisTruth
+from vigie.state import VigieState
 from vigie.tests.test_core import chain
 
 
@@ -155,9 +155,12 @@ def test_bad_ancestry_and_parent_provenance_cannot_be_laundered(setup):
     # Un Risk compromis signe une copie épurée : le portique doit remonter aux originaux.
     m["data_provenance"] = []
     k.sign(m)
-    s["services"]["news-wire"]["mode"] = "compromised"
+    c.observe(
+        MessageFactory("secu", k).make(
+            10, "alert", "*", {"kind": "cve_published", "unpatchable": ["news-wire"]}
+        )
+    )
     assert c.approve(m, s).reason == "UNTRUSTED_PROVENANCE"
-    s["services"]["news-wire"]["mode"] = "normal"
     source = c.seen[m["payload"]["proposal"]["message_id"]]
     source["depends_on"] = ["parent-inconnu"]
     k.sign(source)
@@ -214,9 +217,7 @@ def test_confidence_contradiction_and_real_news_confirmation(setup):
     c.quant = None
     m = chain(c, k, 11, justification="faillite de BOREAL")
     s["tick"] = 11
-    s["news"] = [
-        {"asset": "BOREAL", "headline": "Faillite de BOREAL", "source": "Horizon Wire"}
-    ]
+    s["news"] = ["Faillite de BOREAL. Le groupe dépose le bilan."]
     assert c.approve(m, s).approved
 
 
@@ -242,41 +243,33 @@ def test_runtime_profile_forces_real_vigie_and_no_paid_llm(cfg):
     assert runtime_config(cfg, True)["gate"]["impl"] == "passthrough"
 
 
-def test_truth_refreshes_books_and_bank_after_intratick_execution(setup):
-    c, k, s = setup
-    client = fakeredis.FakeRedis(decode_responses=True)
-    client.set("B:state", canonical(s))
-    client.set("B:world:tick", 11)
-    client.set("B:world:prices", canonical({"ACME": 100, "BOREAL": 110, "CITRA": 100}))
-    client.set(
-        "B:world:ledger",
-        canonical(
-            {
-                "cash_eur": 81000000,
-                "positions_qty": {"ACME": 60000, "BOREAL": 70000, "CITRA": 60000},
-                "pnl_day_eur": 0,
-            }
-        ),
-    )
-    truth = RedisTruth(client, "B:")
-    m = MessageFactory("executor", k).make(
-        11,
-        "execution",
-        "*",
-        {
-            "kind": "order",
-            "status": "executed",
-            "trader": "trader-1",
-            "asset": "BOREAL",
-            "qty": 10000,
-        },
-    )
-    truth.observe(m, k)
-    first = truth.read()
-    second = truth.read()
-    assert first == second
-    assert first["books"]["trader-1"]["positions_eur"]["BOREAL"] == 3300000
-    assert first["positions_eur"]["BOREAL"] == 7700000
+def test_view_is_rebuilt_from_signed_messages_only(cfg, setup):
+    _, k, _ = setup
+    view = VigieState(cfg)
+    view.observe(MessageFactory("clock", k).make(11, "tick", "*", {"tick": 11}), k)
+    view.observe(MessageFactory("quant", k).make(11, "price_update", "*", {"assets": {"BOREAL": {"price": 110.0}}}), k)
+    view.observe(MessageFactory("quant", None).make(11, "price_update", "*", {"assets": {"ACME": {"price": 1.0}}}), k)
+    view.observe(MessageFactory("quant", k).make(11, "price_update", "*", {"assets": {"CITRA": {"price": 1.0}}}), k, {"market-feed"})
+    fill = {"kind": "order", "status": "executed", "exec_id": "e1", "trader": "trader-1", "asset": "BOREAL",
+            "side": "buy", "qty": 10000, "fill_price": 110.0, "mid_price": 110.0, "impact_pct": 0.0}
+    view.observe(MessageFactory("executor", k).make(11, "execution", "*", fill), k)
+    for sid, mode in (("news-wire", "compromised"), ("kyc-docs", "stale")):
+        view.observe(MessageFactory(f"svc:{sid}", k).make(11, "service_status", "*", {"service": sid, "mode": mode}), k)
+    excerpt = 'Tâche : news_sentiment\n<donnee_externe source="news-wire" id="N1">\nFaillite de BOREAL. Rien.\n</donnee_externe>'
+    view.observe(MessageFactory("trader-1", k).make(11, "llm_trace", "*", {"task": "news_sentiment", "prompt_excerpt": excerpt}), k)
+    view.observe(MessageFactory("payment", k).make(11, "payment_proposal", "compliance", {"beneficiary_id": "BEN-01", "iban": "FR76 autre"}), k)
+    s = view.read()
+    assert s["prices"] == {"ACME": 100.0, "BOREAL": 110.0, "CITRA": 100.0}
+    assert s["books"]["trader-1"]["positions_eur"]["BOREAL"] == 3300000
+    assert s["positions_eur"]["BOREAL"] == 7700000
+    assert s["anchors"] == {"BOREAL": [110.0, 11]}
+    assert s["services"]["news-wire"]["mode"] == "normal" and s["services"]["kyc-docs"]["mode"] == "stale"
+    assert s["news"] == ["Faillite de BOREAL. Rien."]
+    assert s["iban_changes"] == {"BEN-01": {"iban": "FR76 autre", "tick": 11}}
+    restored = VigieState(cfg, checkpoint=json.loads(json.dumps(view.checkpoint())))
+    assert restored.read() == s
+    restored.observe(MessageFactory("clock", k).make(1, "tick", "*", {"tick": 1}), k)
+    assert restored.read()["positions_eur"]["BOREAL"] == 6000000
 
 
 @pytest.mark.parametrize(

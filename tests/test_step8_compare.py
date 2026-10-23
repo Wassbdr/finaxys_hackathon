@@ -42,9 +42,9 @@ def test_inject_applies_to_both_on_the_same_tick(runner, cfg):
     run_command(target, ["kill-vigie"])
     r.step()
     assert client.llen(QUEUE) == 0
-    for name in ("A", "B"):
-        timeline = r.worlds[name].world.observer.service_timeline
-        assert timeline[-1]["tick"] == 10 and timeline[-1]["mode"] == "compromised"
+    gateways = [r.worlds[name].cores["payment-gateway"] for name in ("A", "B")]
+    assert {g.mode() for g in gateways} == {"compromised"}
+    assert gateways[0].mode_since() == gateways[1].mode_since()
     for _ in range(60):
         r.step()
     sa, sb = json.loads(client.get("A:state")), json.loads(client.get("B:state"))

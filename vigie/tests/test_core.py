@@ -137,7 +137,7 @@ def test_layer_two_recomputes_on_truth_not_risk_view(setup, change, reason):
     assert c.approve(m, s).reason == reason
 
 
-@pytest.mark.parametrize("mode", ["compromised", "stale", "down"])
+@pytest.mark.parametrize("mode", ["stale", "down"])
 def test_layer_four_blocks_transitive_provenance(setup, mode):
     c, k, s = setup
     prov = [
@@ -155,22 +155,42 @@ def test_layer_four_blocks_transitive_provenance(setup, mode):
     assert c.contagion_blocked == 1
 
 
-def test_tainted_history_remains_blocked_after_service_restored(setup):
+def test_simulator_compromise_flag_is_not_read_but_a_cve_is(setup):
     c, k, s = setup
-    m = chain(
-        c,
-        k,
-        provenance=[
-            {
-                "service": "news-wire",
-                "version": "1.8.4",
-                "response_hash": "old-bad",
-                "tick": 8,
-            }
-        ],
+    prov = [
+        {"service": "news-wire", "version": "1.8.4", "response_hash": "x", "tick": 10}
+    ]
+    m = chain(c, k, provenance=prov)
+    s["services"]["news-wire"]["mode"] = "compromised"
+    s["tainted_hashes"] = ["x"]
+    assert c.approve(m, s).approved
+    c.observe(
+        MessageFactory("secu", k).make(
+            10, "alert", "*", {"kind": "cve_published", "unpatchable": ["news-wire"]}
+        )
     )
-    s["tainted_hashes"] = ["old-bad"]
+    m = chain(c, k, tick=11, provenance=[{**prov[0], "tick": 11}])
     assert c.approve(m, s).reason == "UNTRUSTED_PROVENANCE"
+
+
+def test_suspect_service_stays_refused_until_a_human_clears_it(setup):
+    c, k, s = setup
+    c.observe(
+        MessageFactory("secu", k).make(
+            9, "alert", "*", {"kind": "cve_published", "unpatchable": ["news-wire"]}
+        )
+    )
+    prov = [
+        {"service": "news-wire", "version": "1.8.4", "response_hash": "x", "tick": 10}
+    ]
+    assert c.approve(chain(c, k, provenance=prov), s).reason == "UNTRUSTED_PROVENANCE"
+    c.observe(
+        MessageFactory("human", k).make(
+            10, "human_decision", "*", {"action": "unblock", "target": "news-wire"}
+        )
+    )
+    m = chain(c, k, tick=11, provenance=[{**prov[0], "tick": 11}])
+    assert c.approve(m, s).approved
 
 
 def test_missing_or_forged_ancestry_and_replay_are_rejected(setup):

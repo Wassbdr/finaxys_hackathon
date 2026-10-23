@@ -53,6 +53,7 @@ chaos:
   attacker_iban: "FR76 9999 0000 0000 6666 6666 666"
   core_ledger_inflation: 1.15
   kyc_trap_beneficiary: BEN-07
+  announce_compromised: false    # true: service_status shows "compromised" on the bus (an attacker would not)
 
 agents:
   quant:

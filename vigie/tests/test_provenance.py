@@ -1,3 +1,4 @@
+from bus.message import MessageFactory
 from vigie.provenance import Provenance
 from vigie.tests.test_core import chain
 from vigie.tests.test_rules import payment_chain
@@ -44,7 +45,11 @@ def test_contaminated_victim_keeps_zero_suspicion(setup):
             }
         ],
     )
-    s["services"]["news-wire"]["mode"] = "compromised"
+    c.observe(
+        MessageFactory("secu", k).make(
+            9, "alert", "*", {"kind": "cve_published", "unpatchable": ["news-wire"]}
+        )
+    )
     assert not c.approve(m, s).approved
     assert c.suspicion["trader-1"] == 0 and not c.quarantined
 
@@ -74,6 +79,7 @@ def test_independent_anchor_overrides_a_service_claiming_normal(setup):
     from bus.message import MessageFactory
 
     c, k, s = setup
+    s["anchors"] = {"BOREAL": [100.0, 9]}  # the bank traded BOREAL at 100 one tick ago
     c.observe(MessageFactory("clock", k).make(10, "tick", "*", {"tick": 10}), s)
     c.observe(
         MessageFactory("quant", k).make(
