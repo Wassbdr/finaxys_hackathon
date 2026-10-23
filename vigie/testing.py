@@ -10,6 +10,8 @@ def deny_network(event, args):
 
 if __name__ == "__main__":
     os.environ["HORIZON_NO_LLM"] = "1"
+    os.environ.pop('KRYS_LLM', None)
+    os.environ.pop('MISTRAL_API_KEY', None)
     sys.addaudithook(deny_network)
     import pytest
     raise SystemExit(pytest.main(["tests", *sys.argv[1:]]))

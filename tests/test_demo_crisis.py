@@ -85,7 +85,13 @@ def test_crisis_attribution_and_freeze_effect_are_measured_after_run(tmp_path,cf
             assert len(c['freeze_starts'])==(0 if seed==42 else 2)
         else:
             assert c['freeze_tainted_refusals']>0 and c['freeze_clean_refusals']==0
-            assert result['freeze_effect']['effect']=='aide'
-            assert result['freeze_effect']['delta_pnl_eur']>0
+            # La quarantaine d'injection modifie l'ablation : en graine 43,
+            # moins de ventes contaminées ne signifie plus un meilleur P&L.
+            if seed==43:
+                assert result['freeze_effect']['effect']=='nuit'
+                assert result['freeze_effect']['delta_pnl_eur']==pytest.approx(-4300.81,abs=.01)
+            else:
+                assert result['freeze_effect']['effect']=='aide'
+                assert result['freeze_effect']['delta_pnl_eur']>0
             assert c['crisis']['sell_executions']<result['freeze_effect']['C_without_freeze_analysis']['crisis']['sell_executions']
     finally:runner.close()

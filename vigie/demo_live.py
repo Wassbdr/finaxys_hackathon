@@ -109,7 +109,7 @@ class MeteredGate:
 
 
 class DemoRunner:
-    def __init__(self,cfg,day,directory,*,client=None,remote=False):
+    def __init__(self,cfg,day,directory,*,client=None,remote=False,krys=False):
         self.cfg=copy.deepcopy(cfg);self.day=day;self.directory=Path(directory)
         self.directory.mkdir(parents=True,exist_ok=True)
         self.client=client if client is not None else fakeredis.FakeRedis(decode_responses=True)
@@ -117,7 +117,7 @@ class DemoRunner:
         self.decisions={n:[] for n in 'ABC'}
         self.messages={n:[] for n in 'ABC'};self.notes={n:deque(maxlen=6) for n in 'ABC'}
         self.first_detection={n:None for n in 'ABC'};self.first_block={n:None for n in 'ABC'}
-        self.remote=remote;self.tick=0;self.closed=False
+        self.remote=remote;self.krys=krys;self.tick=0;self.closed=False
         self.duration=parse_at(day.get('duration','180s'),Clock.from_config(cfg))
         self.events=scenario_steps(day,Clock.from_config(cfg))
         self.frames=(self.directory/'frames.jsonl').open('w')
@@ -143,7 +143,7 @@ class DemoRunner:
                     else:
                         gate=Classique(wcfg,ls.keyring) if name=='B' else Runtime(wcfg,ls.keyring,meta=meta)
                         self.controllers[name]=gate
-                        ls.bus.tap(self._observe(name,ls,gate))
+                        ls.bus.tap(self._observe(name,ls,gate,krys=krys))
                     ls.gate=ls.world.gate=ls.world.executor.gate=MeteredGate(gate,ls,self.decisions[name])
                 else:
                     ls.bus.tap(lambda msg:self.client.publish('A:bus',canonical(msg)))
@@ -152,6 +152,11 @@ class DemoRunner:
             (self.directory/'manifest.json').write_text(json.dumps({
                 'scenario':day,'seed':cfg['seed'],'variants':{'A':'sans Vigie','B':'Vigie classique','C':'couche 3 + gel'},
                 'remote_controllers':remote,'clock':cfg['clock']},ensure_ascii=False,indent=2)+'\n')
+            # Seules les décisions humaines signées entrent depuis l'API locale.
+            self.human_sub=self.client.pubsub(ignore_subscribe_messages=True)
+            self.human_sub.subscribe('C:bus')
+            self.human_sub.get_message(timeout=0)
+            self.human_seen=set()
         except BaseException:
             self.close();raise
 
@@ -164,8 +169,10 @@ class DemoRunner:
         self.client.delete(name+':demo:ready')
         log=(self.directory/name/'controller.log').open('w')
         try:
-            proc=subprocess.Popen([sys.executable,'-m','vigie.demo_controller','--config',str(cpath),
-                                   '--meta',str(mpath),'--variant',name],stdout=log,stderr=subprocess.STDOUT)
+            command=[sys.executable,'-m','vigie.demo_controller','--config',str(cpath),
+                     '--meta',str(mpath),'--variant',name]
+            if self.krys:command.append('--krys-status')
+            proc=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT)
         finally: log.close()
         self.processes.append(proc)
         deadline=time.monotonic()+15
@@ -176,10 +183,14 @@ class DemoRunner:
         raise TimeoutError(f'Démarrage du contrôleur {name} dépassé')
 
     @staticmethod
-    def _observe(name,ls,gate):
+    def _observe(name,ls,gate,*,krys=False):
         def observe(msg):
             if msg['from']!='vigie':
                 for out in gate.on_message(msg):ls.publish(out)
+                if (krys and isinstance(gate,Runtime) and ls.keyring.verify(msg)
+                        and msg['from'] in {'clock','human'} and msg['type'] in {'tick','human_decision'}):
+                    from vigie.krys_public import public_status
+                    ls.publish(public_status(gate))
         return observe
 
     def _record_message(self,name,msg):
@@ -227,6 +238,19 @@ class DemoRunner:
                 'last_decisions':self.decisions[name][-3:]}
 
     def step(self):
+        from vigie.validation import valid_message
+        for _ in range(4096):
+            raw=self.human_sub.get_message(timeout=0)
+            if raw is None:break
+            try:
+                if not isinstance(raw.get('data'),(str,bytes)) or len(raw['data'])>512_000:continue
+                msg=json.loads(raw['data'])
+                if (valid_message(msg) and msg['from']=='human' and msg['type']=='human_decision'
+                        and self.worlds['C'].keyring.verify(msg) and msg['message_id'] not in self.human_seen
+                        and 0<=self.tick-msg['tick']<=2):
+                    self.human_seen.add(msg['message_id'])
+                    self.worlds['C'].publish(msg)
+            except (KeyError,TypeError,ValueError):pass
         frame={'schema_version':1,'tick':self.tick,'seed':self.cfg['seed'],'banks':{},'events':[
             ' '.join(args) for t,args in self.events if t==self.tick],'complete':False,'replay':False}
         for name,ls in self.worlds.items():
@@ -239,6 +263,7 @@ class DemoRunner:
     def close(self):
         if self.closed:return
         self.closed=True
+        if hasattr(self,'human_sub'):self.human_sub.close()
         for ls in self.worlds.values():ls.close()
         for transport in self.remotes.values():transport.close()
         for proc in self.processes:
@@ -265,13 +290,28 @@ class Display:
             return {**self.frame,'history':list(self.history),'error':self.error,'running':self.running}
 
 
-def create_demo_app(display,sources,*,allowed_origins=None):
+def create_demo_app(display,sources,*,allowed_origins=None,krys_knowledge=None,human_actions=None):
     import asyncio
     from api.app import create_app
     from fastapi import WebSocket, WebSocketDisconnect, HTTPException
     app=create_app(sources,default_world='A')
     from vigie.demo_security import protect_mutations
     protect_mutations(app,allowed_origins)
+    from vigie.krys import Knowledge
+    from vigie.krys_api import attach_krys
+    if krys_knowledge is None:
+        from bus.message import Keyring
+        from sim.config import known_senders
+        keys=Keyring(known_senders(load_config()))
+        def krys_knowledge():
+            # Le tick de lecture borne le replay ; aucun chiffre des banques
+            # affichées ni aucune source /state n'entre dans la connaissance.
+            with display.lock:
+                directory=display.directory
+                tick=display.frame.get('tick',-1)
+            if directory is None:return Knowledge(keys.verify)
+            return Knowledge.journal(Path(directory)/'C'/'journal.jsonl',keys.verify,until_tick=tick)
+    attach_krys(app,krys_knowledge,human_actions)
 
     @app.get('/demo')
     def demo():
@@ -368,12 +408,25 @@ def serve_demo(args):
     broker,client,url=broker_start(directory)
     cfg['redis']['url']=url
     sources={name:LiveSource({**cfg,'redis':{**cfg['redis'],'prefix':name+':'}},client) for name in 'ABC'}
-    app=create_demo_app(display,sources,allowed_origins=origins)
+    from bus.message import Keyring, MessageFactory
+    from sim.config import known_senders
+    from vigie.krys import Knowledge, HumanActions
+    keys=Keyring(known_senders(cfg))
+    def krys_knowledge():
+        with display.lock:tick=display.frame.get('tick',-1)
+        return Knowledge.journal(directory/'C'/'journal.jsonl',keys.verify,until_tick=tick)
+    actions=None
+    if args.human_commands:
+        def publish_human(message):
+            if not display.running:raise ValueError('Simulation terminée ; action refusée.')
+            client.publish('C:bus',canonical(message))
+        actions=HumanActions(Knowledge(keys.verify),MessageFactory('human',Keyring(['human']),deterministic=False),publish_human)
+    app=create_demo_app(display,sources,allowed_origins=origins,krys_knowledge=krys_knowledge,human_actions=actions)
     announce_access(app)
     def simulation():
         runner=None
         try:
-            runner=DemoRunner(cfg,day,directory,client=client,remote=True)
+            runner=DemoRunner(cfg,day,directory,client=client,remote=True,krys=True)
             Path('runs').mkdir(exist_ok=True)
             Path('runs/demo-live-latest.json').write_text(canonical({'directory':directory.as_posix()}))
             period=Clock.from_config(cfg).period
@@ -459,6 +512,7 @@ def main(argv=None):
     p.add_argument('--redis-port',type=int)
     p.add_argument('--accelerator',type=float,default=1.2)
     p.add_argument('--recording')
+    p.add_argument('--human-commands',action='store_true',help='Autoriser explicitement les commandes humaines signées dans le direct ; replay toujours en lecture seule')
     p.add_argument('--allowed-origin',action='append',help='Origine exacte de la page du Dev 1 ; répétable, sinon VIGIE_DEMO_ORIGINS')
     args=p.parse_args(argv)
     if args.accelerator<=0:raise ValueError('Accélérateur strictement positif')

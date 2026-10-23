@@ -67,6 +67,7 @@ def valid_message(msg, assets=None):
         view=p.get('view',{})
         if not isinstance(view,dict): return False
         if 'cash_eur' in view and type(view['cash_eur']) not in (int,float): return False
+        if 'as_of_tick' in view and (type(view['as_of_tick']) is not int or not 0<=view['as_of_tick']<=msg['tick']+1): return False
     if kind=='alert':
         cve=p.get('cve',{})
         if not isinstance(cve,dict) or not isinstance(cve.get('affects',{}),dict): return False

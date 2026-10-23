@@ -11,6 +11,7 @@ from bus.gate import Decision, Gate
 from bus.message import Keyring, MessageFactory, canonical
 from sim.config import known_senders, load_config, trader_ids
 from vigie.core import VigieState
+from vigie.propositions import Propositions
 from vigie.contagion import Contagion
 from vigie.analytics import Analytics
 from vigie.freeze import Freeze, load_profile
@@ -55,6 +56,8 @@ class Runtime(Gate):
         # effectivement disponibles lui sont transmises pour son estimation R0.
         self.analytics = Analytics({**cfg, "services": self.state.meta}, keyring)
         self.factory = MessageFactory("vigie", keyring, deterministic)
+        self.propositions = Propositions(keyring, self.state.meta, factory=self.factory,
+                                         max_messages=20_000, max_bytes=16*1024*1024)
         self.findings = deque(maxlen=4096)
         self.decisions = deque(maxlen=4096)
 
@@ -86,12 +89,14 @@ class Runtime(Gate):
             self.admission.reject(sender,'signature')
             return None
         if not valid_message(msg,self.assets):
+            self.admission.reject_provenance(msg,self.freeze.logical_tick())
             self.admission.reject(sender,'malformed',True)
             return None
         # La taille JSON sérialisée borne aussi le futur checkpoint, y compris
         # les caractères de contrôle qui grossissent à l'échappement.
         size=max(size,len(json.dumps(msg,ensure_ascii=False).encode()))
         if size>MAX_MESSAGE_BYTES:
+            self.admission.reject_provenance(msg,self.freeze.logical_tick())
             self.admission.reject(sender,'malformed',True)
             return None
         return size
@@ -117,6 +122,7 @@ class Runtime(Gate):
 
     def reject_input(self,msg,reason,*,gap=False):
         self.admission.reject(msg['from'],reason,True)
+        self.admission.reject_provenance(msg,self.freeze.logical_tick())
         if gap:
             self.admission.gap(msg['from'],self.freeze.logical_tick(),self.freeze.window)
             if msg['from']=='executor' and msg['type']=='execution' and msg['payload'].get('status')=='executed':
@@ -129,7 +135,10 @@ class Runtime(Gate):
         size=self.authenticate(msg)
         if size is None: return []
         if msg['from']=='vigie': return []
-        if msg['message_id'] in self.state.messages: return []
+        if msg['message_id'] in self.state.messages:
+            if not self.admission.same_message(msg):
+                return self.reject_input(msg,'identity_conflict')
+            return []
         clock=self.freeze.clock if self.freeze.clock is not None else 0
         is_clock=msg['from']=='clock' and msg['type']=='tick'
         if self.admission_clock!=self.freeze.clock:
@@ -139,11 +148,19 @@ class Runtime(Gate):
             return self.reject_input(msg,'clock_input')
         if not is_clock and (self.freeze.clock is None and msg['tick']>0 or self.freeze.clock is not None and msg['tick']>clock+1):
             return self.reject_input(msg,'future_input')
+        view=msg['payload'].get('view',{}) if msg['type']=='heartbeat' else {}
+        if (msg['from']=='risk' and self.contagion.cash_complete and view.get('cash_eur') is not None
+                and 'as_of_tick' in view and self.contagion.ledger_clock<view['as_of_tick']+2
+                and len(self.contagion.pending_balances)>=self.contagion.pending_balances.maxlen):
+            # Une file de rapprochement pleine refuse cette vue, sans panne globale.
+            return self.reject_input(msg,'ledger_window_full')
         reason=self.admission.check(msg,size,clock,self.freeze)
         if len(self.state.messages)>=20_000 or self.admitted_bytes+size>16*1024*1024:
             reason='storage_full'
         if reason:
-            self.reject_input(msg,reason,gap=msg['type'] in {'order_proposal','price_update','execution','llm_trace'})
+            # Un identifiant d'un autre signataire n'ouvre aucun trou dans
+            # l'historique propre de l'émetteur : seul ce message est rejeté.
+            self.reject_input(msg,reason,gap=reason!='identity_owner' and msg['type'] in {'order_proposal','price_update','execution','llm_trace'})
             if is_clock:
                 # La mémoire pleine n'empêche pas de suivre l'horloge publique,
                 # de conserver les baux, ni d'avertir l'humain.
@@ -158,6 +175,12 @@ class Runtime(Gate):
             return self.reject_input(msg,'projection')
         self.admitted_bytes+=size
         self.admission.commit(msg,size,clock)
+        if not self.admission.record(msg,self.state,clock):
+            self.reject_input(msg,'unanalysed_input')
+            return self.diagnostics()
+        self.propositions.observe(msg)
+        if msg["from"] == "human" and msg["type"] == "human_decision" and msg["payload"].get("action") == "propositions":
+            return [self.proposition_alert()]
         findings = []
         try:
             self.analytics.observe(msg)
@@ -190,7 +213,13 @@ class Runtime(Gate):
         if msg["from"] == "clock" and msg["type"] == "tick":
             out.append(self.factory.make(msg["tick"], "heartbeat", "*", {
                 "agent": "vigie", "role": "vigie", "stub": False}))
+        for message in out:
+            self.propositions.observe(message)
         return out+self.diagnostics()
+
+    def proposition_alert(self):
+        self.findings.extend(self.propositions.findings())
+        return self.propositions.alert()
 
     def request_approval(self, msg):
         # Le gel est une règle PROVISOIRE de couche 3, remplaçable par le Dev 1.
@@ -205,13 +234,18 @@ class Runtime(Gate):
         if (self.freeze.clock is not None and msg['tick']>self.freeze.clock):
             self.reject_input(msg,'future_request')
             return Decision(False,'UNANALYSED_OPERATION','vigie-layer3')
+        if msg['message_id'] in self.state.messages and not self.admission.same_message(msg):
+            self.reject_input(msg,'identity_conflict')
+            return Decision(False,canonical({'kind':'identity_conflict','evidence':[msg['message_id']]}),'vigie-layer3')
         self.approval_out=self.on_message(msg)
         if (msg['message_id'] not in self.state.messages or
                 self.admission.affected(msg,self.state,self.freeze.logical_tick())):
+            evidence=list(dict.fromkeys([msg['message_id'],*self.admission.last_evidence]))[:64]
             self.decisions.append({'tick':self.state.tick,'message_id':msg['message_id'],
-                'approved':False,'evidence':[], 'herding_frozen':False,'freeze_guard':False,
+                'approved':False,'evidence':evidence, 'herding_frozen':False,'freeze_guard':False,
                 'unanalysed':True})
-            return Decision(False,'UNANALYSED_OPERATION','vigie-layer3')
+            return Decision(False,canonical({'kind':'unanalysed_operation','reason':self.admission.last_reason,
+                'evidence':evidence}),'vigie-layer3')
         if self.checkpoint is not None and self.freeze.clock is None:
             self.reject_input(msg,'no_clock')
             return Decision(False,'UNANALYSED_OPERATION','vigie-layer3')
@@ -278,8 +312,13 @@ def serve(cfg, client, *, stop=None, meta=None, layers=(), checkpoint=None, fres
                 runtime.admission.reject(None,'wire_envelope')
                 continue
     finally:
-        sub.close()
-        client.delete(prefix + "vigie:ready")
+        # La clôture émet une proposition, jamais une action de remédiation.
+        try:
+            if subscribed == channels:
+                client.publish(prefix + 'bus', canonical(runtime.proposition_alert()))
+        finally:
+            sub.close()
+            client.delete(prefix + "vigie:ready")
     return runtime
 
 
@@ -337,7 +376,12 @@ def main(argv=None):
     import hashlib
     namespace = hashlib.sha256(cfg['redis']['prefix'].encode()).hexdigest()[:16]
     path = args.freeze_state or str(Path(cfg['runs_dir']) / ('freeze-state-' + namespace + '.json'))
-    serve(cfg, connect(cfg['redis']['url']), meta=meta, checkpoint=FileCheckpoint(path),
+    import signal
+    import threading
+    stop = threading.Event()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, lambda signum, frame: stop.set())
+    serve(cfg, connect(cfg['redis']['url']), stop=stop, meta=meta, checkpoint=FileCheckpoint(path),
           fresh_checkpoint=args.fresh_freeze_state)
 
 

@@ -77,3 +77,27 @@ demo-replay:
 	HORIZON_NO_LLM=1 $(PY) -m vigie.demo_live replay --port $(PORT) --accelerator $(SPEED) $(if $(RECORDING),--recording $(RECORDING))
 demo-measure:
 	HORIZON_NO_LLM=1 $(PY) -m vigie.demo_live measure --scenario $(DEMO_SCENARIO)
+
+.PHONY: propositions
+propositions:
+	$(PY) -m vigie.propositions --run "$(RUN)"
+
+# Le plan fixe les graines et la courbe avant les mesures ; aucun seuil n’est déployé.
+.PHONY: surete-utilite
+surete-utilite:
+	HORIZON_NO_LLM=1 $(PY) -m vigie.surete_utilite
+
+# Comparateur facultatif E, hors tableau principal et hors démo.
+.PHONY: invariant compare-invariant
+invariant:
+	$(PY) -m vigie.invariant_guard --launch
+compare-invariant:
+	$(PY) -m vigie.invariant_compare --out $(RUN)
+
+.PHONY: cout-panne
+cout-panne:
+	HORIZON_NO_LLM=1 $(PY) -m vigie.panne
+
+.PHONY: verify-cout-panne
+verify-cout-panne:
+	HORIZON_NO_LLM=1 $(PY) -m vigie.panne_verify $(RUN)

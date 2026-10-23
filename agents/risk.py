@@ -39,6 +39,11 @@ class Risk(Agent):
             self.balances = None
             return False
         self.balances, self.balances_prov, self.balances_tick = result.data, result.provenance, self.tick
+        # Le portique exige un témoin public antérieur : une décision ne doit
+        # pas certifier elle-même les nouvelles données qu'elle veut utiliser.
+        self.emit('heartbeat', '*', {'agent':self.id, 'role':self.role,
+            'view':{'cash_eur':self.balances['cash_eur'], 'as_of_tick':self.balances['as_of_tick']}},
+            provenance=[self.balances_prov])
         return True
 
     def positions_eur(self, extra: dict[str, float] | None = None) -> dict[str, float]:
@@ -68,7 +73,8 @@ class Risk(Agent):
         gross = sum(abs(v) for v in positions.values())
         pnl_day = self.balances["pnl_day_eur"]
         self.last_view = {"var_eur": round(var, 2), "gross_eur": round(gross, 2), "pnl_day_eur": round(pnl_day, 2),
-                          "cash_eur": self.balances["cash_eur"]}
+                          "cash_eur": self.balances["cash_eur"],
+                          "as_of_tick": self.balances["as_of_tick"]}
         provenance = merge_provenance(self.quant["data_provenance"], [self.balances_prov])
         if pnl_day < -self.r["max_daily_loss_eur"] and not self.halted:
             self.halted, self.halt_reason = True, f"perte du jour {pnl_day:,.0f} €"

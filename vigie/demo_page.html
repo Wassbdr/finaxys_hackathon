@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Argus — trois banques, une journée</title>
+<style>
+/* Page autonome de la démo : aucun chargement extérieur, lisible au vidéoprojecteur.
+   Le panneau Krys possède un circuit de commandes humaines explicite. */
+:root {
+  --bg: #f4f6f9; --surface: #ffffff; --fg: #121a26; --muted: #5a6677; --line: #d5dbe4;
+  --a: #7a8494; --b: #b5651d; --c: #1f5fae;
+  --vert: #1b7f46; --orange: #c46a00; --rouge: #c0281f;
+  --sans: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --mono: "Cascadia Mono", "Consolas", "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0e131a; --surface: #161d27; --fg: #e6ebf2; --muted: #9aa6b6; --line: #29323e;
+          --a: #9aa3b1; --b: #e0904a; --c: #6aa8f0; --vert: #4cc282; --orange: #f0a04b; --rouge: #f0756c; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.45 var(--sans); }
+main { max-width: 1500px; margin: 0 auto; padding: 18px 20px 28px; display: grid; gap: 16px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 22px; }
+h1 { font-size: clamp(1.5rem, 2.6vw, 2.2rem); margin: 0; letter-spacing: -.01em; }
+.meta { color: var(--muted); font-family: var(--mono); font-size: .95rem; }
+.conn { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.conn input { font: .9rem var(--mono); padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--fg); width: 15rem; }
+button { font: 600 .9rem var(--sans); padding: 7px 12px; border-radius: 4px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--c); outline-offset: 2px; }
+.status { font: .85rem var(--mono); color: var(--muted); }
+.banner { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px 16px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.tick { font: 700 1.6rem var(--mono); font-variant-numeric: tabular-nums; min-width: 9ch; }
+.progress { flex: 1 1 240px; height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; }
+.progress > div { height: 100%; width: 0; background: var(--c); transition: width .3s; }
+.event { flex: 1 1 100%; font-size: 1.05rem; min-height: 1.5em; }
+.event b { color: var(--rouge); }
+.banks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 980px) { .banks { grid-template-columns: 1fr; } }
+.bank { background: var(--surface); border: 1px solid var(--line); border-top: 6px solid var(--k); border-radius: 6px; padding: 14px 16px; display: grid; gap: 10px; min-width: 0; }
+.bank h2 { margin: 0; font-size: 1.25rem; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.light { font: 700 .9rem var(--mono); padding: 4px 10px; border-radius: 999px; color: #fff; background: var(--muted); }
+.light.VERT { background: var(--vert); } .light.ORANGE { background: var(--orange); } .light.ROUGE { background: var(--rouge); }
+.big { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.num b { display: block; font: 700 clamp(1.4rem, 2.4vw, 2.1rem)/1.15 var(--mono); font-variant-numeric: tabular-nums; }
+.num span { color: var(--muted); font-size: .9rem; }
+.num.stolen b { color: var(--rouge); } .num.stolen.zero b { color: var(--vert); }
+.small { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; border-top: 1px solid var(--line); padding-top: 8px; }
+.small div { font-size: .85rem; color: var(--muted); }
+.small b { display: block; font: 600 1.15rem var(--mono); color: var(--fg); font-variant-numeric: tabular-nums; }
+.feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 13em; overflow-y: auto; }
+.feed li { font-size: .9rem; border-left: 3px solid var(--k); padding: 2px 8px; overflow-wrap: anywhere; }
+.feed li small { color: var(--muted); font-family: var(--mono); }
+.feed .none { color: var(--muted); border-left-color: var(--line); }
+.chart { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px 16px; }
+.chart h3 { margin: 0 0 6px; font-size: 1rem; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: .9rem; color: var(--muted); }
+.legend i { display: inline-block; width: 18px; height: 4px; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
+canvas { width: 100%; height: 260px; display: block; }
+.note { color: var(--muted); font-size: .85rem; }
+.final { background: var(--surface); border: 2px solid var(--c); border-radius: 6px; padding: 14px 18px; font-size: 1.15rem; }
+.final[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { .progress > div { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Argus — trois banques, une journée</h1>
+    <span class="meta" id="meta">graine — · direct</span>
+    <div class="conn">
+      <label for="url" class="status">Serveur</label>
+      <input id="url" value="ws://127.0.0.1:8010" spellcheck="false">
+      <button id="connect" type="button">Se connecter</button>
+      <button id="replay" type="button" title="Rejoue l'animation depuis le début, à partir des ticks déjà reçus">Rejouer</button>
+      <span class="status" id="status">déconnecté</span>
+    </div>
+  </header>
+
+  <section class="banner" aria-live="polite">
+    <div class="tick" id="tick">tick —</div>
+    <div class="progress" aria-hidden="true"><div id="bar"></div></div>
+    <div class="event" id="event">En attente du premier tick…</div>
+  </section>
+
+  <section class="banks" id="banks"></section>
+
+  <section class="chart">
+    <h3>Résultat réel de chaque banque (P&amp;L net de fraude, en M€)</h3>
+    <div class="legend"><span><i style="background:var(--a)"></i>Sans Vigie</span><span><i style="background:var(--b)"></i>Vigie classique</span><span><i style="background:var(--c)"></i>Couche 3 + gel</span></div>
+    <canvas id="chart" aria-label="Courbes du résultat des trois banques"></canvas>
+  </section>
+
+  <section class="final" id="final" hidden></section>
+
+  <section class="chart" aria-labelledby="krys-heading">
+    <h2 id="krys-heading">Demandez à Krys</h2>
+    <p>Réponses sourcées sur la couche 3 et le texte de référence. Reformulation Mistral facultative, désactivée par défaut.
+      Les chiffres du simulateur affichés au-dessus ne sont pas des sources du chat.</p>
+    <label for="krys-token">Jeton de lancement de la démo (conservé uniquement dans cette page)</label>
+    <input id="krys-token" type="password" autocomplete="off" spellcheck="false">
+    <form id="krys-question-form">
+      <label for="krys-question">Question : alertes, R0, gels, propositions, pourquoi message_id…</label>
+      <input id="krys-question" maxlength="1000" required autocomplete="off" style="width:100%">
+      <button type="submit">Demander à Krys</button>
+    </form>
+    <ol id="krys-log" role="log" aria-live="polite" aria-label="Réponses et preuves de Krys" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:24rem;overflow:auto"></ol>
+    <details>
+      <summary>Commandes humaines — autorisation distincte, confirmation en deux temps</summary>
+      <p>Lecture seule par défaut. Un message dans le chat ne confirme rien.
+        La sortie de quarantaine d’agent n’est pas implémentée.</p>
+      <form id="krys-action-form">
+        <label for="krys-action">Action</label>
+        <select id="krys-action"><option value="unfreeze">Lever un gel</option><option value="resume">Reprendre après un rouge</option></select>
+        <label for="krys-target">Actif gelé ou * pour la reprise</label>
+        <input id="krys-target" maxlength="128" required autocomplete="off">
+        <button type="submit">Préparer le récapitulatif</button>
+      </form>
+      <p id="krys-recap" aria-live="polite"></p>
+      <button id="krys-confirm" type="button" disabled>Confirmer</button>
+    </details>
+  </section>
+
+  <p class="note">Même journée, même graine, mêmes attaques pour les trois banques. Les pertes réelles ne servent qu'à afficher et noter :
+  aucune Vigie ne les lit. « Bloquées » compte les refus explicites du portique ; une banque en rouge ne propose plus d'opérations,
+  ce n'est donc pas « aucune protection ». Un feu VERT ne veut pas dire qu'aucune opération n'est bloquée.</p>
+</main>
+
+<script>
+"use strict";
+// Ordre et couleurs fixes : la comparaison se lit de gauche à droite, du pire au mieux attendu.
+const BANKS = [["A", "--a"], ["B", "--b"], ["C", "--c"]];
+const TOTAL_TICKS = 180;
+const LIGHTS = new Set(["VERT", "ORANGE", "ROUGE"]);
+const packets = new Map();   // tick -> paquet complet ; sert au replay local sans reconnecter
+let ws = null, animTimer = null, lastShown = -1, seed = null, isReplay = false;
+
+const $ = (id) => document.getElementById(id);
+const euro = (v) => v == null ? "—" : (Math.abs(v) >= 1e6 ? (v / 1e6).toLocaleString("fr-FR", {maximumFractionDigits: 2}) + " M€"
+  : Math.round(v).toLocaleString("fr-FR") + " €");
+const n = (v) => v == null ? "—" : String(v);
+
+function buildBanks() {
+  $("banks").innerHTML = BANKS.map(([k, color]) => `
+    <article class="bank" id="bank-${k}" style="--k:var(${color})">
+      <h2><span id="label-${k}">${k}</span><span class="light" id="light-${k}">—</span></h2>
+      <div class="big">
+        <div class="num"><b id="loss-${k}">—</b><span>pertes</span></div>
+        <div class="num stolen" id="stolenbox-${k}"><b id="fraud-${k}">—</b><span>euros volés</span></div>
+      </div>
+      <div class="small">
+        <div><b id="exec-${k}">—</b>exécutées</div>
+        <div><b id="gate-${k}">—</b>bloquées au portique</div>
+        <div><b id="paused-${k}">—</b>agents en pause</div>
+        <div><b id="det-${k}">—</b>premier constat (tick)</div>
+        <div><b id="contam-${k}">—</b>exécutions contaminées</div>
+        <div><b id="after-${k}">—</b>exécutées après constat</div>
+      </div>
+      <ul class="feed" id="feed-${k}"><li class="none">Aucun constat pour l'instant.</li></ul>
+    </article>`).join("");
+}
+
+function eventText(events) {
+  if (!events || !events.length) return null;
+  return events.map((e) => typeof e === "string" ? e : (e.note || e.text || e.do || e.command || JSON.stringify(e))).join(" · ");
+}
+
+function render(p) {
+  $("tick").textContent = `tick ${p.tick}`;
+  $("bar").style.width = `${Math.max(0, Math.min(100, (p.tick + 1) / TOTAL_TICKS * 100))}%`;
+  const ev = eventText(p.events);
+  if (ev) $("event").innerHTML = `<b>t${p.tick}</b> — ${escapeHtml(ev)}`;
+  if (p.seed != null) seed = p.seed;
+  $("meta").textContent = `graine ${seed ?? "—"} · ${p.replay || isReplay ? "replay" : "direct"}`;
+  for (const [k] of BANKS) {
+    const b = (p.banks || {})[k]; if (!b) continue;
+    $(`label-${k}`).textContent = b.label || k;
+    // Le feu vient du réseau : seules les trois valeurs connues deviennent une classe CSS.
+    const light = $(`light-${k}`); light.textContent = b.light || "—";
+    light.className = `light ${LIGHTS.has(b.light) ? b.light : ""}`;
+    $(`loss-${k}`).textContent = euro(b.loss_eur);
+    $(`fraud-${k}`).textContent = euro(b.fraud_eur);
+    $(`stolenbox-${k}`).classList.toggle("zero", !b.fraud_eur);
+    $(`exec-${k}`).textContent = n(b.executed);
+    $(`gate-${k}`).textContent = n(b.gate_blocked);
+    $(`paused-${k}`).textContent = n(Array.isArray(b.paused_agents) ? b.paused_agents.length : b.paused_agents);
+    $(`det-${k}`).textContent = n(b.detection_tick);
+    $(`contam-${k}`).textContent = n(b.contaminated_executions);
+    $(`after-${k}`).textContent = n(b.executed_after_detection);
+    const f = b.findings || [];
+    $(`feed-${k}`).innerHTML = f.length ? f.slice().reverse().map((x) =>
+      `<li><small>t${escapeHtml(x.tick)}</small> ${escapeHtml(x.text || "")}${Array.isArray(x.proof) && x.proof.length ? ` <small>preuve ${escapeHtml(x.proof.slice(0, 2).join(", "))}</small>` : ""}</li>`).join("")
+      : `<li class="none">${k === "A" ? "Pas de Vigie : rien n'est surveillé." : "Aucun constat pour l'instant."}</li>`;
+  }
+  drawChart(p.tick);
+  if (p.complete) showFinal(p);
+}
+
+function showFinal(p) {
+  const b = p.banks || {};
+  // Tout ce qui vient du flux est échappé avant d'entrer dans le HTML de la synthèse.
+  const s = (k) => b[k] ? escapeHtml(`${euro(b[k].fraud_eur)} volés, ${euro(b[k].loss_eur)} de pertes, feu ${b[k].light}`) : "—";
+  const el = $("final");
+  el.innerHTML = `<b>Fin de journée.</b> Sans Vigie : ${s("A")}. Vigie classique : ${s("B")}. Couche 3 : ${s("C")}.`;
+  el.hidden = false;
+}
+
+function drawChart(uptoTick) {
+  const cv = $("chart"), dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth, h = cv.clientHeight;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const ctx = cv.getContext("2d"); ctx.scale(dpr, dpr);
+  const css = getComputedStyle(document.documentElement);
+  const ticks = [...packets.keys()].filter((t) => t <= uptoTick).sort((x, y) => x - y);
+  ctx.clearRect(0, 0, w, h);
+  if (!ticks.length) return;
+  let lo = 0, hi = 0;
+  for (const t of ticks) for (const [k] of BANKS) { const v = packets.get(t).banks?.[k]?.pnl_eur; if (v != null) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }
+  const pad = {l: 64, r: 12, t: 10, b: 24};
+  const span = (hi - lo) || 1, x = (t) => pad.l + (w - pad.l - pad.r) * t / (TOTAL_TICKS - 1);
+  const y = (v) => pad.t + (h - pad.t - pad.b) * (hi - v) / span;
+  ctx.strokeStyle = css.getPropertyValue("--line"); ctx.fillStyle = css.getPropertyValue("--muted");
+  ctx.font = "12px " + css.getPropertyValue("--mono"); ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const v = lo + span * i / 4, yy = y(v);
+    ctx.beginPath(); ctx.moveTo(pad.l, yy); ctx.lineTo(w - pad.r, yy); ctx.stroke();
+    ctx.fillText((v / 1e6).toFixed(1) + " M€", 4, yy + 4);
+  }
+  ctx.fillText("tick 0", pad.l, h - 6); ctx.fillText(`tick ${TOTAL_TICKS - 1}`, w - pad.r - 60, h - 6);
+  for (const [k, color] of BANKS) {
+    ctx.strokeStyle = css.getPropertyValue(color); ctx.lineWidth = 3; ctx.beginPath();
+    let started = false;
+    for (const t of ticks) { const v = packets.get(t).banks?.[k]?.pnl_eur; if (v == null) continue;
+      if (!started) { ctx.moveTo(x(t), y(v)); started = true; } else ctx.lineTo(x(t), y(v)); }
+    ctx.stroke();
+  }
+}
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c])); }
+
+function connect() {
+  stopAnimation(); if (ws) { try { ws.close(); } catch (e) {} }
+  const base = $("url").value.trim().replace(/\/$/, "");
+  const since = packets.size ? Math.max(...packets.keys()) : -1;
+  $("status").textContent = "connexion…";
+  try { ws = new WebSocket(`${base}/demo/stream?since_tick=${since}`); }
+  catch (e) { $("status").textContent = "adresse invalide"; return; }
+  ws.onopen = () => { $("status").textContent = "connecté"; };
+  ws.onmessage = (m) => {
+    let p; try { p = JSON.parse(m.data); } catch (e) { return; }
+    if (p.error) { $("status").textContent = `erreur serveur : ${p.error}`; return; }
+    if (typeof p.tick !== "number" || p.tick < 0) return;
+    // Un nouveau run repart du tick 0 : on vide l'historique pour ne pas mélanger deux journées.
+    if (p.tick === 0 && lastShown > 0) { packets.clear(); lastShown = -1; $("final").hidden = true; }
+    packets.set(p.tick, p); isReplay = !!p.replay;
+    if (p.tick >= lastShown) { lastShown = p.tick; render(p); }
+  };
+  ws.onclose = () => { $("status").textContent = "déconnecté — vérifier le tunnel, puis Se connecter"; };
+  ws.onerror = () => { $("status").textContent = "connexion impossible (tunnel ouvert ? démo lancée ?)"; };
+}
+
+function stopAnimation() { if (animTimer) { clearInterval(animTimer); animTimer = null; } }
+
+function replayLocal() {
+  // Rejoue ce qui a déjà été reçu, à la cadence du direct (1,2 tick/s), sans relancer la simulation.
+  const ticks = [...packets.keys()].sort((a, b) => a - b);
+  if (!ticks.length) { $("status").textContent = "rien à rejouer : se connecter d'abord"; return; }
+  stopAnimation(); $("final").hidden = true; let i = 0; lastShown = -1;
+  animTimer = setInterval(() => {
+    if (i >= ticks.length) { stopAnimation(); return; }
+    const p = packets.get(ticks[i++]); lastShown = p.tick; render(p);
+  }, 1000 / 1.2);
+}
+
+buildBanks();
+$("connect").addEventListener("click", connect);
+$("replay").addEventListener("click", replayLocal);
+window.addEventListener("resize", () => drawChart(lastShown));
+connect();
+</script>
+<script src="/demo/krys.js"></script>
+</body>
+</html>

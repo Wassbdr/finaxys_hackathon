@@ -85,7 +85,7 @@ def schedule_evaluation(ls, scenario):
     return duration, injected
 
 
-def play(cfg, scenario, ticks, enabled, *, capture_frames=False):
+def play(cfg, scenario, ticks, enabled, *, capture_frames=False, capture_actions=False):
     cfg = couche3_config(cfg)
     # L'injection du portique reste locale à l'évaluation ; le moteur de l'équipe
     # et son comportement par défaut ne sont pas modifiés.
@@ -147,6 +147,8 @@ def play(cfg, scenario, ticks, enabled, *, capture_frames=False):
                 "freeze_transitions": list(runtime.freeze.transitions),
                 "freeze_active": copy.deepcopy(runtime.freeze.active),
                 "freeze_uncertain": sorted(runtime.freeze.uncertain),
+                "unanalysed_operations": sum(d.get("unanalysed",False) for d in runtime.decisions),
+                "input_rejections": {source:dict(counts) for source,counts in runtime.admission.rejected.items()},
                 "freeze_guard_refusals": sum(d.get('freeze_guard',False) for d in runtime.decisions),
                 **({"freeze_frames": list(runtime.freeze.frames)} if capture_frames else {}),
                 "injected_orders": len(injected_ids),
@@ -158,7 +160,17 @@ def play(cfg, scenario, ticks, enabled, *, capture_frames=False):
                 "metrics": runtime.contagion.metrics(),
                 "herding": runtime.analytics.snapshot()["herding"],
                 "contagion_r0": runtime.analytics.snapshot()["contagion"],
-                "herding_findings": [asdict(f) for f in runtime.analytics.herding.findings(runtime.state.tick)]}
+                "herding_findings": [asdict(f) for f in runtime.analytics.herding.findings(runtime.state.tick)],
+                **({"payment_actions": {
+                    "executed": [{"message_id": id_, "tick": m["tick"],
+                        "beneficiary_id": m["payload"].get("beneficiary_id"), "amount_eur": m["payload"].get("amount_eur")}
+                        for id_, m in messages.items() if m["type"] == "execution" and m["from"] == "executor"
+                        and m["payload"].get("kind") == "payment" and m["payload"].get("status") == "executed"
+                        and ls.keyring.verify(m)],
+                    "gate": [{**d, "amount_eur": messages[d["message_id"]]["payload"].get("notional_eur")}
+                        for d in runtime.decisions if d["message_id"] in messages
+                        and messages[d["message_id"]]["payload"].get("kind") == "payment"]}}
+                   if capture_actions else {})}
     finally:
         ls.close()
 
