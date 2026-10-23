@@ -19,6 +19,18 @@ def test_price_jump_marks_the_feed_suspect_from_that_tick(cfg):
     assert ind.suspect_at("market-feed", 30) and not ind.suspect_at("market-feed", 29)
 
 
+def test_the_banks_own_fill_is_not_a_feed_jump(cfg):
+    ind = Indicators(cfg)
+    price = 100.0
+    for tick in range(30):
+        price *= 1.001 if tick % 2 else 0.999
+        ind.observe(msg(tick, "quant", "price_update", {"assets": {"ACME": {"price": price}}}))
+    fill = {"kind": "order", "status": "executed", "asset": "ACME", "side": "buy", "mid_price": price, "impact_pct": 1.5}
+    ind.observe(msg(30, "executor", "execution", fill))
+    ind.observe(msg(31, "quant", "price_update", {"assets": {"ACME": {"price": price * 1.015}}}))
+    assert not ind.drain()
+
+
 def test_risk_cash_far_from_the_book_marks_core_ledger(cfg):
     ind = Indicators(cfg)
     ind.observe(msg(5, "clock", "tick", {}), {"cash_eur": 100_000_000})

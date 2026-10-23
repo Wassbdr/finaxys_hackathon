@@ -56,10 +56,10 @@ class VigieState:
         elif kind == "execution" and sender == "executor" and p.get("status") == "executed":
             self.cash_history = [e for e in self.cash_history if e[0] >= self.tick - 2] + [[msg["tick"], self.shadow.cash]]
             self.shadow.apply(msg)
-            if p["kind"] == "order":
+            if p["kind"] == "order" and "mid_price" in p:
                 # The fill is the market's own price: the impact it leaves is in the signed payload.
                 side = 1 if p["side"] == "buy" else -1
-                after = float(p["mid_price"]) * (1 + side * float(p["impact_pct"]) / 100)
+                after = float(p["mid_price"]) * (1 + side * float(p.get("impact_pct", 0)) / 100)
                 self.prices[p["asset"]] = after
                 self.anchors[p["asset"]] = [after, msg["tick"]]
         elif kind == "service_status" and sender == f"svc:{p.get('service')}":

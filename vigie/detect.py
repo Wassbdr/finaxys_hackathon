@@ -88,6 +88,10 @@ class Indicators:
             self.record_cash.append(view["cash_eur"])
         elif kind == "price_update" and sender == "quant":
             self.drift(p.get("assets", {}))
+        elif kind == "execution" and sender == "executor" and p.get("status") == "executed" and "mid_price" in p:
+            # The bank's own fill moves the price by its signed impact: the next return starts after it.
+            side = 1 if p.get("side") == "buy" else -1
+            self.prices[p["asset"]] = float(p["mid_price"]) * (1 + side * float(p.get("impact_pct", 0)) / 100)
         elif kind == "alert" and sender == "secu" and p.get("kind") == "cve_published":
             for service in p.get("unpatchable", []):
                 self.alert("cve_unpatchable", service, 1, f"{service} is exposed to a published CVE and cannot be patched", service)
