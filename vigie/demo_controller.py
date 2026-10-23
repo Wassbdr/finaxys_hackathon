@@ -15,10 +15,11 @@ from vigie.main import Runtime
 
 
 class Bridge:
-    def __init__(self,cfg,client,variant,*,meta):
+    def __init__(self,cfg,client,variant,*,meta,krys=False):
         self.client=client
         self.prefix=cfg['redis']['prefix']
         self.keys=Keyring(known_senders(cfg))
+        self.krys=krys
         self.controller=(Classique(cfg,self.keys) if variant=='B' else Runtime(cfg,self.keys,meta=meta))
 
     def handle(self,raw):
@@ -39,6 +40,11 @@ class Bridge:
                 if isinstance(self.controller,Classique): out+=self.controller.flush()
                 ack=None
             else: return
+            if (self.krys and isinstance(self.controller,Runtime) and channel==self.prefix+'bus'
+                    and self.keys.verify(data) and data.get('from') in {'clock','human'}
+                    and data.get('type') in {'tick','human_decision'}):
+                from vigie.krys_public import public_status
+                out.append(public_status(self.controller))
             for msg in out:
                 self.client.publish(self.prefix+'bus',canonical(msg))
             if decision is not None:
@@ -56,13 +62,14 @@ def main():
     p.add_argument('--config',required=True)
     p.add_argument('--meta',required=True)
     p.add_argument('--variant',choices=['B','C'],required=True)
+    p.add_argument('--krys-status',action='store_true')
     args=p.parse_args()
     cfg=json.loads(Path(args.config).read_text())
     # Le fichier contient exactement les réponses core.meta(), sans état du monde.
     meta=json.loads(Path(args.meta).read_text())
     from bus.redis_bus import connect
     client=connect(cfg['redis']['url'],wait_s=10)
-    bridge=Bridge(cfg,client,args.variant,meta=meta)
+    bridge=Bridge(cfg,client,args.variant,meta=meta,krys=args.krys_status)
     prefix=cfg['redis']['prefix']
     sub=client.pubsub(ignore_subscribe_messages=False)
     channels={prefix+'bus',prefix+'vigie.approval_requests'}
