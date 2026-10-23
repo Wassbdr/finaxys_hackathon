@@ -103,6 +103,7 @@ canvas { width: 100%; height: 260px; display: block; }
 // Ordre et couleurs fixes : la comparaison se lit de gauche à droite, du pire au mieux attendu.
 const BANKS = [["A", "--a"], ["B", "--b"], ["C", "--c"]];
 const TOTAL_TICKS = 180;
+const LIGHTS = new Set(["VERT", "ORANGE", "ROUGE"]);
 const packets = new Map();   // tick -> paquet complet ; sert au replay local sans reconnecter
 let ws = null, animTimer = null, lastShown = -1, seed = null, isReplay = false;
 
@@ -146,7 +147,9 @@ function render(p) {
   for (const [k] of BANKS) {
     const b = (p.banks || {})[k]; if (!b) continue;
     $(`label-${k}`).textContent = b.label || k;
-    const light = $(`light-${k}`); light.textContent = b.light || "—"; light.className = `light ${b.light || ""}`;
+    // Le feu vient du réseau : seules les trois valeurs connues deviennent une classe CSS.
+    const light = $(`light-${k}`); light.textContent = b.light || "—";
+    light.className = `light ${LIGHTS.has(b.light) ? b.light : ""}`;
     $(`loss-${k}`).textContent = euro(b.loss_eur);
     $(`fraud-${k}`).textContent = euro(b.fraud_eur);
     $(`stolenbox-${k}`).classList.toggle("zero", !b.fraud_eur);
@@ -158,7 +161,7 @@ function render(p) {
     $(`after-${k}`).textContent = n(b.executed_after_detection);
     const f = b.findings || [];
     $(`feed-${k}`).innerHTML = f.length ? f.slice().reverse().map((x) =>
-      `<li><small>t${x.tick}</small> ${escapeHtml(x.text || "")}${x.proof && x.proof.length ? ` <small>preuve ${escapeHtml(x.proof.slice(0, 2).join(", "))}</small>` : ""}</li>`).join("")
+      `<li><small>t${escapeHtml(x.tick)}</small> ${escapeHtml(x.text || "")}${Array.isArray(x.proof) && x.proof.length ? ` <small>preuve ${escapeHtml(x.proof.slice(0, 2).join(", "))}</small>` : ""}</li>`).join("")
       : `<li class="none">${k === "A" ? "Pas de Vigie : rien n'est surveillé." : "Aucun constat pour l'instant."}</li>`;
   }
   drawChart(p.tick);
@@ -167,7 +170,8 @@ function render(p) {
 
 function showFinal(p) {
   const b = p.banks || {};
-  const s = (k) => b[k] ? `${euro(b[k].fraud_eur)} volés, ${euro(b[k].loss_eur)} de pertes, feu ${b[k].light}` : "—";
+  // Tout ce qui vient du flux est échappé avant d'entrer dans le HTML de la synthèse.
+  const s = (k) => b[k] ? escapeHtml(`${euro(b[k].fraud_eur)} volés, ${euro(b[k].loss_eur)} de pertes, feu ${b[k].light}`) : "—";
   const el = $("final");
   el.innerHTML = `<b>Fin de journée.</b> Sans Vigie : ${s("A")}. Vigie classique : ${s("B")}. Couche 3 : ${s("C")}.`;
   el.hidden = false;
