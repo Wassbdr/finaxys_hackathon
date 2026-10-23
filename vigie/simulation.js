@@ -390,7 +390,8 @@ function redden(l) {
 const GEO = { dot: new THREE.SphereGeometry(0.11, 14, 10), box: new THREE.BoxGeometry(0.3, 0.2, 0.05), coin: new THREE.CylinderGeometry(0.2, 0.2, 0.06, 22) };
 const glow = {};
 const shine = c => (glow[c] ??= new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.9, roughness: 0.4 }));
-let flying = [], fx = [], sc, W, worldName = set.world, tick = 0, acc = 0, playing = true, light = "VERT", time = 0;
+// the replay waits on Play (or P) when the tab opens, and a new scenario keeps the play or pause it had (Marius, 24-10)
+let flying = [], fx = [], sc, W, worldName = set.world, tick = 0, acc = 0, playing = false, light = "VERT", time = 0;
 
 // a message to or from an agent of a pad rides the pad's link when the pad stands for it
 const team = id => pads.find(p => p.ids.includes(id))?.id;
@@ -603,7 +604,6 @@ function load(n) {
   for (const [a, b, hidden] of edges.values()) link(a, b, hidden);
   W = sc.worlds[worldName];
   ui.t.max = sc.ticks - 1;
-  playing = true;
   seek(0);
 }
 
