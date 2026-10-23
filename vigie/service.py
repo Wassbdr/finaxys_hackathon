@@ -68,6 +68,8 @@ def serve(cfg, client, stop=None, profiles=None):
                         state = truth.read()
                         if state:
                             controller.history.append(state["prices"])
+                        # /graph's call counters only: the network telemetry layer 1 may read.
+                        controller.layer1.topology(json.loads(client.get(prefix + "graph") or "{}"))
                 else:
                     decision = controller.approve(data["message"], truth.read())
                     if decision.approved:

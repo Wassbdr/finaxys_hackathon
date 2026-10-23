@@ -7,6 +7,9 @@
     POST /inject      {"command": "compromise market-feed"} ou {"scenario": "php2shell_day"}
     POST /record      {"name": "demo1"} : copie la partie en cours dans recordings/
     GET  /recordings  parties enregistrées
+    GET  /vigie/graph    layer 1 graph rebuilt from the bus (hidden edges, impact radius)
+    GET  /vigie/metrics  layer 1 metrics (agents, system, CEO figures, baselines)
+    GET  /vigie/findings latest Findings of every layer
 
 Toutes les routes acceptent ?world=A|B en mode comparaison.
     python -m api.app
@@ -118,6 +121,24 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
             except (ValueError, KeyError) as err:
                 raise HTTPException(400, str(err))
         return {"ok": True, "results": results}
+
+    def vigie_part(world, key, empty):
+        src = source(world)
+        if src.kind != "live":
+            raise HTTPException(409, "the Vigie state is only kept live")
+        return (src._json("vigie:status") or {}).get(key, empty)
+
+    @app.get("/vigie/graph")
+    def vigie_graph(world: str | None = None):
+        return vigie_part(world, "graph", {})
+
+    @app.get("/vigie/metrics")
+    def vigie_metrics(world: str | None = None):
+        return vigie_part(world, "layer1", {})
+
+    @app.get("/vigie/findings")
+    def vigie_findings(world: str | None = None):
+        return vigie_part(world, "findings", [])
 
     @app.get("/compare")
     def compare():

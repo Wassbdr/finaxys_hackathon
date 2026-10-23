@@ -13,6 +13,7 @@ from bus.message import FIELDS, MessageFactory, canonical
 from sim.config import agent_ids, role_of
 from sim.ledger import historical_var
 from vigie.herding import Herding
+from vigie.metrics import Layer1
 from vigie.provenance import Provenance
 from vigie.policy import Policy
 from vigie.statistics import Behavior, structuring
@@ -68,6 +69,8 @@ class Controller:
         self.claim_evidence = []
         self.auditor_enabled = False
         self.herding = Herding(cfg)
+        self.layer1 = Layer1(cfg)
+        self.findings = deque(maxlen=200)
         permissions = {
             "quant": {"price_update"},
             "trader": {"order_proposal"},
@@ -345,6 +348,9 @@ class Controller:
                     self.isolate_service(sid, "UNTRUSTED_PROVENANCE", [id_])
         kind, p = msg["type"], msg["payload"]
         self.herding.observe(msg)
+        self.findings.extend(f.as_dict() for f in self.herding.drain())
+        self.layer1.observe(msg)
+        self.findings.extend(f.as_dict() for f in self.layer1.drain())
         if kind == "tick" and msg["from"] == "clock":
             self.advance(msg["tick"])
             self.last_clock_tick = msg["tick"]
@@ -1113,4 +1119,7 @@ class Controller:
             },
             "auditor_llm": False,
             "herding": self.herding.snapshot(),
+            "graph": self.layer1.graph.snapshot(),
+            "layer1": self.layer1.metrics(),
+            "findings": list(self.findings),
         }
