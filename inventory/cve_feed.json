@@ -1,0 +1,15 @@
+{
+  "source": "Flux CVE fictif de Banque Horizon (simulation, aucune vulnérabilité réelle)",
+  "cves": [
+    {
+      "id": "CVE-2026-PHP2SHELL",
+      "name": "PHP2Shell",
+      "fictional": true,
+      "severity": "critical",
+      "cvss": 9.8,
+      "affects": {"language": "php", "version_lt": "8.1"},
+      "description": "Vulnérabilité FICTIVE permettant à un attaquant de prendre la main sur un service PHP < 8.1. Dans la simulation, son effet est uniquement l'altération des données renvoyées par le service (mode compromised).",
+      "remediation": "Mettre à jour PHP en 8.1 ou plus. Services non patchables : isoler, surveiller, réduire la confiance des consommateurs."
+    }
+  ]
+}

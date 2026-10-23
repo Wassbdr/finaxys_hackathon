@@ -1,0 +1,10 @@
+name: faux_agent
+description: >
+  Un message signé par une clé inconnue se fait passer pour Risk (ordre d'achat de 20 M€ approuvé),
+  puis un agent inexistant (trader-9) propose un ordre. Les signatures HMAC doivent les arrêter.
+duration: 60s
+steps:
+  - at: 10s
+    do: fake-agent --as risk
+  - at: 20s
+    do: fake-agent --as trader-9

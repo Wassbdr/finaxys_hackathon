@@ -1,0 +1,14 @@
+name: derive_marche
+description: >
+  Seul market-feed est compromis : sa dérive empoisonne les cours transmis au Quant.
+  Aucune CVE ni compromission du ledger ou des paiements. Le détecteur doit prouver
+  sa suspicion sur le bus ; les virements indépendants peuvent continuer.
+duration: 180s
+params:
+  herding: 0.3
+  guardrails: "off"
+steps:
+  - at: 0s
+    note: "Ouverture : ledger et paiements sains ; aucune CVE annoncée."
+  - at: 40s
+    do: compromise market-feed
