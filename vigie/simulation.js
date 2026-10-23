@@ -756,8 +756,8 @@ function draw2d() {
     // a fresh state per node, not just globalAlpha: WebKit stops applying a globalAlpha below 1 after text2's shadowed text
     g2.restore();
     g2.save();
-    g2.globalAlpha = hovered && n.id !== hovered ? FADE : 1;
-    const [x, y] = to2(...POS[n.id]);
+    g2.globalAlpha = hovered && n.id !== hovered && !near.has(n.id) ? FADE : 1;
+    const [x, y] = to2(...POS[n.id]), ink = near.has(n.id) ? tint : undefined;
     if (n.leds) {
       const w = 1.7 * s2, h = 1.3 * s2, led = n.mode === "down" ? "#334155" : hex(LED[n.mode] ?? LED.normal);
       if (n.iso) {
@@ -780,7 +780,7 @@ function draw2d() {
       g2.lineWidth = 2;
       g2.stroke();
       for (const k of [-0.3, 0, 0.3]) (g2.fillStyle = led), g2.fillRect(x - 0.35 * s2, y + k * s2 - 1.5, 0.7 * s2, 3);
-      text2(n.id, x, y + h / 2 + 14);
+      text2(n.id, x, y + h / 2 + 14, 12, ink);
       if (n.mode !== "normal" || n.iso) text2((n.iso ? "isolated" : n.mode).toUpperCase(), x, y + h / 2 + 27, 10.5, n.iso ? "#22d3ee" : n.mode === "compromised" ? "#f87171" : "#fbbf24", 700);
       continue;
     }
@@ -807,7 +807,7 @@ function draw2d() {
       g2.setLineDash([]);
     }
     const profile = sc.agents.find(a => a.id === n.id)?.profile;
-    text2(vigie ? "Vigie" : n.id, x, y + 1.3 * s2 + 14);
+    text2(vigie ? "Vigie" : n.id, x, y + 1.3 * s2 + 14, 12, ink);
     if (profile) text2(profile.toUpperCase(), x, y + 1.3 * s2 + 27, 10.5, "#ABB3BF", 700);
   }
   g2.restore();
@@ -830,22 +830,27 @@ function draw2d() {
 // Hovering a blob or a service fades the others and lights its links (Marius, 23-10). The opacities are changed
 // for the frame's drawing only and put back after it, so show() and the animations keep their own.
 const FADE = 0.4;
-let hovered = null, dim = new Set();
+let hovered = null, dim = new Set(), near = new Set(), tint = "";
 stage.addEventListener("pointermove", e => hover(pick(e.clientX, e.clientY)));
 stage.addEventListener("pointerleave", () => hover(null));
 function hover(id) {
   id = nodes[id] ? id : null;
   if (id === hovered) return;
   hovered = id;
+  // the nodes linked to it stay lit, and their names and its white links take its colour (Marius, 23-10); the Vigie's
+  // white and a service's grey would not show, so they lend a sky blue
+  near = new Set(id ? [...links].filter(([key, l]) => l.g.visible && key.split("|").includes(id)).flatMap(([key]) => key.split("|")) : []);
+  near.delete(id);
+  tint = id && nodes[id].base && id !== "vigie" ? "#" + nodes[id].base.getHexString() : "#7dd3fc";
   // a material one node shares with anything else (INK, GOLD, the tower's STEEL) gets a copy of its own, so it fades alone
   const of = new Map(Object.values(nodes).map(n => [n.g, n])), owner = o => (of.has(o) || !o.parent ? o : owner(o.parent));
   const users = new Map();
   scene.traverse(o => o.material && users.set(o.material, (users.get(o.material) ?? new Set()).add(owner(o))));
   dim = new Set();
   for (const n of Object.values(nodes)) {
-    const fade = !!id && n.id !== id, copy = new Map();
+    const fade = !!id && n.id !== id && !near.has(n.id), copy = new Map();
     n.g.traverse(o => {
-      if (o.isCSS2DObject) o.element.style.opacity = fade ? FADE : "";
+      if (o.isCSS2DObject) (o.element.style.opacity = fade ? FADE : ""), (o.element.style.color = near.has(n.id) ? tint : "");
       if (!o.material) return;
       if (users.get(o.material).size > 1) o.material = copy.get(o.material) ?? copy.set(o.material, o.material.clone()).get(o.material);
       const m = o.material, solid = !(m.userData.transparent ??= m.transparent);
@@ -858,8 +863,13 @@ function hoverPaint() {
   if (!hovered) return () => {};
   const was = [];
   for (const m of dim) was.push([m, m.opacity]), (m.opacity *= FADE);
-  for (const [key, l] of links) was.push([l.material, l.material.opacity]), (l.material.opacity = key.split("|").includes(hovered) ? 0.95 : l.material.opacity * FADE);
-  return () => was.forEach(([m, o]) => (m.opacity = o));
+  for (const [key, l] of links) {
+    const m = l.material, on = key.split("|").includes(hovered);
+    was.push([m, m.opacity, m.color.getHex()]);
+    m.opacity = on ? 0.95 : m.opacity * FADE;
+    if (on && m.color.getHex() === 0xffffff) m.color.set(tint);
+  }
+  return () => was.forEach(([m, o, c]) => ((m.opacity = o), c !== undefined && m.color.setHex(c)));
 }
 
 let last = performance.now();
