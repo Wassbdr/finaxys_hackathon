@@ -225,17 +225,21 @@
 <div class="sky" id="sky" aria-hidden="true"></div>
 <nav class="menu" aria-label="Tabs">
   <div class="tabs">
-    <a href="#simulation" data-tab="simulation" data-name="Simulation">Simulation</a>
-    <a href="#agents" data-tab="agents" data-name="Agents">Agents</a>
-    <a href="#actions" data-tab="actions" data-name="Vigie actions">Vigie actions</a>
-    <a href="#metrics" data-tab="metrics" data-name="Metrics">Metrics</a>
-    <a href="#improve" data-tab="improve" data-name="Improvements">Improvements</a>
+    <a href="#summary" data-tab="summary" data-name="Summary" data-help="Summary|What waits for a human now: the problems only a human clears, and the good news only a human applies">Summary</a>
+    <a href="#simulation" data-tab="simulation" data-name="Simulation" data-help="Simulation|A replay of the bench without and with the Vigie, in 3D or 2D">Simulation</a>
+    <a href="#agents" data-tab="agents" data-name="Agents" data-help="Agents|Each agent's state and who feeds whom">Agents</a>
+    <a href="#actions" data-tab="actions" data-name="Vigie actions" data-help="Vigie actions|What the Vigie did: the gate's refusals, its incidents and every decision on an agent">Vigie actions</a>
+    <a href="#guardrails" data-tab="guardrails" data-name="Guardrails" data-help="Guardrails|Every limit in force, each agent's and the Vigie's, with how much of it is used now">Guardrails</a>
+    <a href="#metrics" data-tab="metrics" data-name="Metrics" data-help="Metrics|The live indicators and the bench's figures without and with the Vigie">Metrics</a>
+    <a href="#improve" data-tab="improve" data-name="Improvements" data-help="Improvements|The thresholds in force and what the replays propose to change">Improvements</a>
     <span class="line" aria-hidden="true"></span>
   </div>
   <div class="bank"><span id="conn"></span>Bank<span class="box lamp calm" id="light">-</span></div>
 </nav>
 <main>
   <section id="agents"></section>
+  <section id="summary" hidden></section>
+  <section id="guardrails" hidden></section>
   <section id="actions" hidden></section>
   <section id="metrics" hidden></section>
   <section id="improve" hidden></section>

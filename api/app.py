@@ -12,7 +12,8 @@
     GET  /vigie/metrics  layer 1 metrics (agents, system, CEO figures, baselines)
     GET  /vigie/findings latest Findings of every layer
     GET  /improvements dernier rapport de `python -m vigie.improve`
-    GET  /dashboard   tableau de bord de la Vigie (5 onglets)
+    GET  /guardrails  the limits of each agent and the Vigie's settings, from config.yaml
+    GET  /dashboard   tableau de bord de la Vigie (7 onglets)
     GET  /dashboard/{dashboard.js,dashboard-demo.json}  its script and the sample data it shows when no run is live
     GET  /dashboard/{simulation.js,dashboard-sim.json}  the Simulation tab's 3D scene and the bench replays it plays
 
@@ -161,6 +162,13 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
         if not path.exists():
             raise HTTPException(404, "no report yet: run python -m vigie.improve")
         return json.loads(path.read_text(encoding="utf-8"))
+
+    @app.get("/guardrails")
+    def guardrails():
+        """The limits each agent enforces and the Vigie's settings, as config.yaml sets them."""
+        cfg = load_config()
+        return {"agents": cfg["agents"], "vigie": cfg["vigie"], "gate": cfg["gate"],
+                "llm": {"enabled": cfg["llm"]["enabled"], "guardrails": cfg["llm"]["guardrails"]}}
 
     @app.get("/dashboard")
     def dashboard():

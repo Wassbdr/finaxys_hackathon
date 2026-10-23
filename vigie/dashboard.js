@@ -38,7 +38,7 @@ const block = (kind, id, [c, word], text, title = id) => `<button type="button" 
 const head = (title, [c, word]) => `<div class="dlg-head s-${c}"><h3>${esc(title)}</h3>${pastille(word)}</div>`;
 const order = id => ORDER.indexOf(id.split("-")[0]) * 10 + (+id.split("-")[1] || 0);
 
-let DEMO = null, S = {}, V = {status: {}, decisions: []}, G = {nodes: []}, I = null;
+let DEMO = null, S = {}, V = {status: {}, decisions: []}, G = {nodes: []}, I = null, GR = null;
 let live = false, stale = false, moved = 0, showApprovals = false, detail = null, D = null;
 
 // --- data -------------------------------------------------------------------------------------------------------
@@ -67,6 +67,7 @@ async function poll() {
 }
 async function pollGraph() { const g = await getJson("/graph"); if (g) G = g; }
 async function pollImprovements() { I = await getJson("/improvements"); }
+async function pollGuardrails() { GR = await getJson("/guardrails"); }
 
 // --- shared readings ----------------------------------------------------------------------------------------------
 
@@ -115,7 +116,7 @@ function put(id, html) { if (drawn[id] !== html) { drawn[id] = html; $(id).inner
 function render() {
   if (!DEMO) return;
   compose();
-  renderBar(); renderAgents(); renderActions(); renderMetrics(); renderImprove(); renderDetail();
+  renderBar(); renderSummary(); renderAgents(); renderActions(); renderGuardrails(); renderMetrics(); renderImprove(); renderDetail();
 }
 
 function renderBar() {
@@ -373,6 +374,77 @@ function renderImprove() {
   put("improve", html);
 }
 
+/** What waits for a human: the problems only a human clears, and the replays' good news only a human applies (Marius, 23-10). */
+function renderSummary() {
+  const st = D.st, bad = [], good = [];
+  const ask = (list, text, command, label, ghost) => list.push(`<tr><td>${text}</td><td class="num">${command ? `<button class="act${ghost ? " ghost" : ""}" onclick="${command.startsWith("#") ? `location.hash='${command}'` : `human('${esc(command)}')`}">${label}</button>` : ""}</td></tr>`);
+  if (bankLight() === "ROUGE") ask(bad, "The bank is on red: every agent is paused.", "human resume", "Resume");
+  const risk = D.S.agents?.risk?.status;
+  if (risk?.halted) ask(bad, `Risk halted trading (${esc(risk.halt_reason)}): only a human starts it again.`, "human resume_trading", "Resume trading");
+  for (const a of st.quarantined || []) ask(bad, `${esc(a)} is quarantined: its key is revoked and its tools cut.`, `human unblock ${a}`, "Lift quarantine");
+  for (const [s, f] of Object.entries(suspects())) ask(bad, `${esc(s)} is suspect since tick ${esc(f.since_tick)}: every action it fed is refused.`, `human unblock ${s}`, "Trust it again", true);
+  for (const [who, why] of Object.entries(D.S.agents?.compliance?.status?.blocked || {})) ask(bad, `Compliance blocked ${esc(who)} (${esc(why)}): only a human unblocks it.`, `human unblock ${who}`, "Unblock", true);
+  const lost = agentIds().filter(id => D.S.agents[id].vigie_lost);
+  if (lost.length) ask(bad, `${esc(lost.join(", "))} lost the Vigie's heartbeat and went orange by themselves: check that the Vigie runs.`);
+  const props = D.I.proposals || [], th = st.metrics?.thresholds || {}, open = props.filter(p => p.kind !== "threshold");
+  if (open.length) ask(bad, `The replays found ${open.length} gap${open.length === 1 ? "" : "s"} or rule${open.length === 1 ? "" : "s"} to revisit: ${esc(open.map(p => p.target).join(", "))}.`, "#improve", "Read them", true);
+  for (const p of props.filter(p => p.kind === "threshold" && p.proven && th[p.target] !== p.proposed)) ask(good, `The replays agree: ${esc(p.why)}`, p.apply, `Apply ${p.current} → ${p.proposed}`);
+  const n = (k, word) => `<b>${k}</b> ${word}${k === 1 ? "" : "s"}`;
+  let html = `<p class="lead">${n(bad.length, "problem")} and ${n(good.length, "piece")} of good news wait for you${live && !stale ? "" : ": no simulation running, so no decision can be sent"}</p>`;
+  html += `<h2>Problems only a human clears</h2>` + (bad.length ? table(`<th>what</th><th class="num">your decision</th>`, bad) : `<p class="empty">none</p>`);
+  html += `<h2>Good news only a human applies</h2>` + (good.length ? table(`<th>what</th><th class="num">your decision</th>`, good) : `<p class="empty">none</p>`);
+  put("summary", html);
+}
+
+/** Every guardrail in force: each agent's limits as config.yaml sets them with how much of each is used now, the Vigie's, the LLM's. */
+const THRESHOLDS = {price_drift_z: "Price move in one tick that raises an alert, in standard deviations", reconciliation_gap_pct: "Gap between Risk's cash and the book of record that raises an alert, %",
+  herding_share: "Share of the traders on one side of one asset within 3 ticks that raises an alert", breach_horizon_ticks: "Warns when a limit will break within, ticks"};
+function renderGuardrails() {
+  if (!GR) return put("guardrails", `<p class="empty">The API does not serve /guardrails: restart it (python -m api.app).</p>`);
+  const {trader: t, compliance: c, risk: r, payment: pay, quant: q} = GR.agents, L = D.S.limits || {}, p = D.S.params || {};
+  const scale = D.S.agents?.risk?.status?.trader_scale ?? 1, blocked = Object.keys(D.S.agents?.compliance?.status?.blocked || {});
+  const used = v => v == null ? "" : `<span class="${v >= 100 ? "a-red" : v >= 80 ? "a-slow" : ""}">${Math.round(v)}%</span>`;
+  const each = key => Object.entries(L.traders || {}).map(([id, x]) => `${esc(id)} ${used(x[key])}`).join(" · ");
+  const on = x => chip(x ? "green" : "grey", x ? "on" : "off");
+  const rows = list => table(`<th>who</th><th>guardrail</th><th class="num">set to</th><th class="num">now</th>`,
+    list.map(([who, what, value, now = ""], i) => `<tr><td>${i && list[i - 1][0] === who ? "" : esc(who)}</td><td>${what}</td><td class="num">${value}</td><td class="num">${now}</td></tr>`));
+  let html = `<p class="lead">Each agent checks its own limits; the Vigie checks the agents. Values from config.yaml, use from the live bank${sample("all")}</p>`;
+  html += `<h2>The bank's agents<span class="hint">an agent on orange has its order and payment limits × ${GR.vigie.orange_amount_factor}</span></h2>` + rows([
+    ["trader", "Largest order", eur(t.max_order_eur), scale < 1 ? `× ${scale}: VaR is over ${pct(r.var_warning_ratio)} of its limit` : ""],
+    ["trader", "Position in one asset", eur(t.max_position_eur), each("max_position_pct")],
+    ["trader", "Loss in a day, then it stops until the next day", eur(t.max_daily_loss_eur), each("daily_loss_pct")],
+    ["trader", "Confidence under which it does not trade", t.min_confidence],
+    ["trader", "Wait between two orders on one asset", `${t.cooldown_ticks} ticks`],
+    ["compliance", "Assets no order may touch (restricted list)", esc((p.restricted_list ?? c.restricted_list).join(", ")) || "none"],
+    ["compliance", "An order built on confidential news (insider information)", "refused"],
+    ["compliance", "Small orders in a row (split orders)", `${c.structuring_max_orders} under ${eur(c.small_order_eur)} in ${c.structuring_window_ticks} ticks`],
+    ["compliance", "Selling back what one bought (wash trade)", `within ${c.wash_window_ticks} ticks`],
+    ["compliance", "Cancelled orders (spoofing)", `over ${c.spoofing_max_cancels} in ${c.spoofing_window_ticks} ticks`],
+    ["compliance", "Payments: the beneficiary's KYC file is reviewed, these countries are high risk; a block is lifted only by a human", esc(c.high_risk_countries.join(", ")), blocked.length ? `${blocked.length} blocked` : ""],
+    ["risk", "Gross exposure", eur(r.max_exposure_eur), used(L.bank?.exposure_pct)],
+    ["risk", `VaR 99% one day; over ${pct(r.var_warning_ratio)} the traders' limits go × ${r.var_warning_scale}`, eur(r.max_var_eur), used(L.bank?.var_pct)],
+    ["risk", "Loss in a day, then trading halts until a human resumes it", eur(r.max_daily_loss_eur), used(L.bank?.daily_loss_pct)],
+    ["risk", "Cash floor", eur(r.min_cash_eur), L.bank?.liquidity_floor_pct != null ? `${used(L.bank.liquidity_floor_pct)} of the cash` : ""],
+    ["payment", "One transfer", eur(pay.max_transfer_eur)],
+    ["payment", "Transfers in a day", eur(pay.max_daily_eur), used(L.payments?.daily_pct)],
+    ["payment", "No payment to an account whose IBAN changed within", `${pay.iban_change_lock_ticks} ticks`],
+    ["quant", "Market data older than this is not priced", `${q.max_data_age_ticks} ticks`],
+    ["quant", `A one-tick jump over this drops its confidence to ${q.low_confidence}, under the traders' ${t.min_confidence}`, `${q.jump_threshold_pct}%`],
+  ]);
+  html += `<h2>The Vigie<span class="hint">a change of threshold is signed by a human, in Improvements</span></h2>` + rows([
+    ["Vigie", "Watches every message and approves every order and payment", on(D.S.vigie?.enabled ?? GR.vigie.enabled)],
+    ["gate", `An order or payment it has not approved within this wait is ${GR.gate.default_on_timeout === "reject" ? "refused" : "approved"}`, `${GR.gate.timeout_s} s`, esc(D.S.vigie?.gate ?? "")],
+    ["agents", "An agent that hears no Vigie heartbeat for this long goes orange by itself", `${GR.vigie.heartbeat_timeout_ticks} ticks`, agentIds().filter(id => D.S.agents[id].vigie_lost).length ? `${agentIds().filter(id => D.S.agents[id].vigie_lost).length} lost it` : ""],
+    ...Object.entries(D.st.metrics?.thresholds || {}).map(([k, v]) => ["thresholds", esc(THRESHOLDS[k] || k), v]),
+    ["LLM auditor", "Reads the agents' reasoning; can raise suspicion, never approve", on(D.st.auditor_llm)],
+  ]);
+  html += `<h2>The LLM agents</h2>` + rows([
+    ["LLM", "Agents that reason with an LLM (config llm.enabled)", on(GR.llm.enabled)],
+    ["LLM", "Prompt guardrails: instruction phrases are cut from outside text and a system reminder is added", on((p.guardrails ?? GR.llm.guardrails) === "on")],
+  ]);
+  put("guardrails", html);
+}
+
 // --- the details popup --------------------------------------------------------------------------------------------
 
 const dlg = $("dlg");
@@ -524,7 +596,7 @@ function describe(el, x, y) {
 
 (async () => {
   DEMO = await getJson("/dashboard/dashboard-demo.json");
-  await Promise.all([pollGraph(), pollImprovements()]);
+  await Promise.all([pollGraph(), pollImprovements(), pollGuardrails()]);
   await poll();
   setInterval(poll, 1000);
   setInterval(pollGraph, 5000);
