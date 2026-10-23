@@ -15,12 +15,14 @@ if (!F) {
 
 // The film is timed at 3 ticks/s; 1× plays it 4 times slower, flights included (Marius found 3 ticks/s far too fast).
 const TPS = 3, SPEEDS = [0.25, 0.5, 1, 2, 4], SLOW = 0.25;
-// Placed so the links cross as few others as they can (22 crossings against 43, most of them the traders' own fans,
-// which no layout avoids): each service by the agents that use it, the Vigie by the executor, its only link (Marius, 23-10)
+// Things of one kind stand together first (the five services in one column, the traders on their pad), and only then
+// are the links placed to cross as few others as they can: 15 crossings as drawn, against 43 at first, most of them the
+// traders' fans to their six shared neighbours. Searched offline, with no node hidden behind the tower in the 3/4 view
+// (Marius, 23-10)
 const POS = {
-  "market-feed": [-13, -9], "news-wire": [2, -10], "payment-gateway": [7.5, -6], "core-ledger": [-13, 5], "kyc-docs": [-5, 8.5],
-  quant: [-6.5, -7], "trader-1": [-2.5, -8.5], "trader-2": [-2.5, -4], "trader-3": [-2.5, 0.5], payment: [8, 7],
-  compliance: [-7.5, 3.5], risk: [-10, 0], executor: [2, 3.5], vigie: [6, 3],
+  "market-feed": [-1.3, -8], "news-wire": [-1.3, -4.5], "payment-gateway": [-1.3, -1], "kyc-docs": [-1.3, 2.5], "core-ledger": [-1.3, 6],
+  quant: [6, -7.92], "trader-1": [2.08, -7.96], "trader-2": [2.08, -3.46], "trader-3": [2.08, 1.04], payment: [-4.23, 2.38],
+  compliance: [5.08, 5], risk: [8.69, 7.23], executor: [-10.15, 2.15], vigie: [-7, 5.69],
 };
 const SKIN = { quant: 0xa78bfa, trader: 0x60a5fa, payment: 0x34d399, compliance: 0xfb923c, risk: 0xf472b6, executor: 0x2dd4bf, vigie: 0xf8fafc };
 const LIGHT = { VERT: 0x34d399, ORANGE: 0xfbbf24, ROUGE: 0xf87171, QUARANTAINE: 0xf87171 };
