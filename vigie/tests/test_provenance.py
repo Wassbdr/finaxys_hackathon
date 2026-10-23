@@ -47,7 +47,7 @@ def test_contaminated_victim_keeps_zero_suspicion(setup):
     )
     c.observe(
         MessageFactory("secu", k).make(
-            9, "alert", "*", {"kind": "cve_published", "unpatchable": ["news-wire"]}
+            9, "alert", "*", {"kind": "cve_published", "cve": {}, "unpatchable": ["news-wire"]}
         )
     )
     assert not c.approve(m, s).approved
@@ -115,9 +115,14 @@ def test_payment_can_use_transitive_signed_compliance_proof(setup):
         depends_on=list(m["depends_on"]),
     )
     c.observe(parent)
-    m["depends_on"] = [parent["message_id"]]
-    k.sign(m)
-    assert c.approve(m, s).approved
+    # Une nouvelle route signée porte une identité nouvelle : modifier un
+    # identifiant déjà analysé violerait le cache immuable de la couche 3.
+    factory = MessageFactory('risk', k)
+    factory.nonce = 'transport:'
+    routed = factory.make(m['tick'], m['type'], m['to'], m['payload'],
+                          [parent['message_id']], m['data_provenance'])
+    c.observe(routed)
+    assert c.approve(routed, s).approved
 
 
 def test_human_release_does_not_launder_previously_poisoned_messages():

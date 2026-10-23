@@ -56,5 +56,41 @@ compare:
 
 # Banc A/B de tous les scénarios et de 10 journées propres : improvements.json (clé metrics) et vigie/METRIQUES.md
 metrics:
-	HORIZON_NO_LLM=1 $(PY) -m vigie.eval
+	HORIZON_NO_LLM=1 $(PY) -m vigie.eval_metrics
 	$(PY) -m vigie.simulation
+
+compare-sim:
+	$(PY) -m sim.compare
+
+.PHONY: couche3 eval-couche3
+couche3:
+	$(PY) -m vigie.main launch $(if $(NO_LLM),--no-llm)
+
+eval-couche3:
+	HORIZON_NO_LLM=1 $(PY) -m vigie.eval
+
+# Les trois banques partagent une seule horloge ; le scénario reste surchargeable.
+DEMO_SCENARIO = $(if $(filter command line environment,$(origin SCENARIO)),$(SCENARIO),vigie/scenarios/jour_noir.yaml)
+PORT ?= 8010
+SPEED ?= 1.2
+SEED ?= 42
+.PHONY: classique compare-classique demo-live demo-replay demo-measure
+classique:
+	$(PY) -m vigie.classique --launch
+compare-classique:
+	$(PY) -m vigie.classique_eval
+demo-live:
+	HORIZON_NO_LLM=1 $(PY) -m vigie.demo_live live --scenario $(DEMO_SCENARIO) --seed $(SEED) --port $(PORT) --accelerator $(SPEED)
+demo-replay:
+	HORIZON_NO_LLM=1 $(PY) -m vigie.demo_live replay --port $(PORT) --accelerator $(SPEED) $(if $(RECORDING),--recording $(RECORDING))
+demo-measure:
+	HORIZON_NO_LLM=1 $(PY) -m vigie.demo_live measure --scenario $(DEMO_SCENARIO)
+
+.PHONY: compare-sim propositions
+propositions:
+	$(PY) -m vigie.propositions --run "$(RUN)"
+
+# Le plan fixe les graines et la courbe avant les mesures ; aucun seuil n’est déployé.
+.PHONY: surete-utilite
+surete-utilite:
+	HORIZON_NO_LLM=1 $(PY) -m vigie.surete_utilite

@@ -43,8 +43,9 @@ def version_tuple(v: str) -> tuple[int, ...]:
 
 
 class World:
-    def __init__(self, cfg: dict, store, keyring, gate, exec_services, deterministic: bool = True, run_dir: Path | None = None):
+    def __init__(self, cfg: dict, store, keyring, gate, exec_services, deterministic: bool = True, run_dir: Path | None = None, public_publish=None):
         self.cfg = cfg
+        self.public_publish = public_publish
         self.store = store
         self.prefix = cfg["redis"]["prefix"]
         self.keyring = keyring
@@ -141,6 +142,18 @@ class World:
     def end_tick(self, tick: int) -> dict:
         self.ledger.end_tick(tick)
         self.publish_ledger()
+        if self.cfg['vigie'].get('public_network_calls') and self.public_publish:
+            # L'observabilité des appels devient un événement public explicite.
+            # Aucun prix réel, mode, marquage ni nœud du graphe oracle n'en sort.
+            edges = []
+            agents = {*agent_ids(self.cfg), 'executor'}
+            for sid in self.cfg['services']:
+                for caller, count in sorted(self.store.hgetall(self.k(f'svc:{sid}:calls')).items()):
+                    if caller in agents:
+                        edges.append({'source': caller, 'target': sid, 'kind': 'data',
+                                      'transitive': False, 'calls': int(count)})
+            self.public_publish(self.world_factory.make(tick, 'heartbeat', '*', {
+                'agent': 'world', 'role': 'world', 'kind': 'network_calls', 'edges': edges}))
         state, graph = self.state(), self.graph()
         self.store.set(self.k("state"), canonical(state))
         self.store.set(self.k("graph"), canonical(graph))
@@ -319,7 +332,7 @@ def main(argv=None) -> None:
     bus = RedisBus(client, cfg["redis"]["prefix"])
     keyring = Keyring(known_senders(cfg))
     gate = make_gate(cfg, client)
-    world = World(cfg, client, keyring, gate, HttpServiceClient(cfg, "executor"), deterministic=False, run_dir=prepare_run_dir(cfg))
+    world = World(cfg, client, keyring, gate, HttpServiceClient(cfg, "executor"), deterministic=False, run_dir=prepare_run_dir(cfg), public_publish=bus.publish)
     lock = threading.Lock()
 
     def listen() -> None:

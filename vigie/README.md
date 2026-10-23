@@ -1,136 +1,107 @@
-# Vigie — branchement de l'équipe
+# Vigie commune — proposition de fusion
 
-Un processus Python indépendant, branché exclusivement sur Redis. Les agents,
-services, exécuteur, API et journal sont ceux du dépôt de l'équipe. Argent et
-données sont simulés. Aucun appel LLM, aucun service payant, aucun dashboard ajouté.
+Sources : Dev 1 `801cd70`, Dev 2 `94e7aa7`. Le mode intégré conserve les décisions,
+les feux et le tableau de bord de Marius ; les constats de couche 3 les alimentent.
+La proposition attend la relecture de Marius et Édouard.
 
-Dans le venv du dépôt (Python 3.11 ou plus) :
+## Dev 1 — Marius : métriques, politique et tableau de bord
 
-```sh
-make test
-make compare
-make run
-```
+`control.Controller` conserve le contrôleur, ses règles, son registre, sa politique,
+son auditeur et son statut de tableau de bord. L'import historique
+`from vigie.core import Controller, Refused` reste valide. `metrics/`, `graph.py`,
+`detect.py`, `policy.py`, `provenance.py`, `shadow.py` et les interfaces du tableau
+de bord sont conservés. `state.VigieState` adapte le grand livre fantôme au contrat
+commun `core.VigieState`, avec ses méthodes `read` et `checkpoint`.
 
-`make run` / `make procfile` génèrent `runs/vigie-config.yaml` avec
-`gate.impl: bus`, `gate.default_on_timeout: reject`, `vigie.stub: false` et
-`llm.enabled: false`. Ils apprennent d'abord le profil habituel sur 300 ticks de
-référence sans attaque, même graine, et enregistrent le journal et les profils
-sous `runs/vigie-reference-*`. Le Procfile généré et le Procfile statique utilisent
-ce profil effectif ; générer celui-ci avec `make procfile` avant honcho.
-Les valeurs stub de `config.yaml` restent le profil des tests historiques de
-l'équipe et du lockstep historique. Lancer la démonstration avec les cibles Make
-ci-dessus ; `python -m sim.launch` ne branche pas cette Vigie.
+`control_marius.Controller` conserve aussi la version Dev 1 non couplée pour
+comparaison et arbitrage ; le service intégré utilise exclusivement `control.Controller`.
+La différence de reprise après `human unblock` doit être validée par les auteurs :
+le Dev 1 peut libérer les nouvelles données d'un service, tandis que la quarantaine
+persistante Dev 2 les refuse encore. L'intégration garde ce refus prudent ; elle
+n'invente pas une politique de libération ou de score.
 
-Les chemins générés sont relatifs lorsque `runs_dir` est relatif, sans chemin OVH.
-Le comparatif n'utilise que TCP sur `127.0.0.1` et un broker Redis compatible
-embarqué, sur un port libre ; il n'affecte pas le broker de la démonstration.
-Les tests interdisent aussi les sockets par un hook d'audit Python. Les tests LLM
-existants utilisent leurs doubles fournis par l'équipe, sans appel extérieur.
+Les `Finding` des couches 1 et 3 sont transmis au même consommateur de politique.
+Les poids, témoins et feux restent ceux du Dev 1 ; aucun nouveau poids n'est déduit
+implicitement du score d'un détecteur. L'autorisation finale passe par ses règles
+puis par les contraintes ciblées de la couche 3. La règle de gel reste provisoire,
+comme dans la livraison Dev 2, en attendant sa politique définitive.
 
-## Les quatre couches
+`herding_marius.py` conserve intégralement le calcul historique. Le champ de statut
+`herding` reste celui du tableau de bord existant ; `herding_couche3` expose le
+calcul Dev 2 séparément. L'ancien appel `Herding(cfg)` est compatible ; le
+constructeur par liste de traders de `herding.py` utilise le calcul Dev 2.
 
-1. Identité/intégrité : HMAC de chaque message, schéma fermé, émetteur connu,
-   types/outils et destinataires autorisés, empreinte de configuration et du
-   fichier de l'agent. Une clé révoquée est refusée au portique. L'empreinte déclarée
-   est optionnelle dans le contrat de l'équipe ; le contrôle de fichier local
-   ne prétend pas attester la mémoire d'un processus compromis.
-2. Règles fixes : deux visas signés (Compliance et Risk), proposition originale
-   retrouvée dans le trafic, anti-rejeu, montants, positions, exposition globale,
-   VaR historique recalculée, liquidité, perte, KYC et changement d'IBAN.
-   La Vigie reconstruit un grand livre fantôme depuis la configuration initiale et
-   les seules exécutions signées. Elle confronte les soldes déclarés à cet invariant,
-   isole le ledger menteur et utilise ses propres quantités/cash avec les prix
-   réels comme ancre. Ni le solde de core-ledger ni la vue de Risk ne font foi.
-   En cas d'état absent/périmé ou de bail périmé, le portique refuse.
-3. Comportement : D3-A mesure les tranches entre 0,9 et 1 fois la limite, et
-   leur cumul sur vingt ticks, au-delà du maximum de référence. D3-B applique
-   le z robuste MAD (plancher obligatoire) et un CUSUM plafonné, calibrés sur
-   300 ticks propres. La suspicion a une demi-vie de trente ticks ; orange à 20,
-   retour sous 10. La quarantaine exige au moins 50 et deux familles distinctes
-   en trente ticks. Sans référence mature, le comportement ne peut mettre en
-   quarantaine pendant les cinquante premiers ticks. Le ralentissement est un
-   feu orange adressé au seul agent, avec plafond divisé par deux et cadence
-   d'une approbation par cinq ticks au portique.
-4. Cohérence : remontée transitive des `depends_on` et union des provenances
-   originales. Un parent inconnu, un service compromis/figé/indisponible, une
-   mauvaise version ou une réponse historiquement contaminée bloque l'action.
-   Une confiance contredisant Quant ou une faillite non corroborée ajoute un
-   témoin de cohérence ; la quarantaine exige aussi le seuil et une autre famille.
-   Un paiement exige un visa Compliance signé, favorable, lié à la même proposition
-   et au même client (`beneficiary_id` dans le contrat de l'équipe), dans ses
-   dépendances transitives. Les news injectées indiquent source et fiabilité ;
-   une affirmation de l'agent ne fait pas preuve.
+[Documentation Dev 1 d'origine](README_DEV1.md), conservée pour retrouver les contrats historiques.
 
-La Vigie observe aussi les propositions refusées avant le portique. Elle publie
-des notifications signées vers `human` aux changements de niveau, regroupées
-par racine causale. Le compteur brut → incidents → notifications est exporté.
-Une donnée contaminée bloque l'action et isole sa source ; elle ne pénalise
-jamais le score de l'agent trompé. Une signature invalide bloque son message et
-notifie l'humain ; son émetteur déclaré n'est pas une attribution prouvée. Une
-empreinte modifiée sous une identité vérifiée déclenche la quarantaine immédiate.
-Elle renouvelle son heartbeat
-et son `light_change` signé avec `expires_at_tick` à chaque tick. Rouge reste
-verrouillé jusqu'à `human_decision` signé `human` avec `action: resume`.
-Quarantaine révoque la clé au portique et les outils du registre, et adresse un
-rouge au seul agent. `human_decision` signé avec `action: unblock` et l'identifiant
-de l'agent restaure ses permissions. Rouge/quarantaine et l'anti-rejeu sont
-conservés dans Redis lors d'un redémarrage de la Vigie.
+## Dev 2 — Édouard : contamination et mimétisme
 
-Le monde fourni livre aussi les feux ciblés à son exécuteur, sans filtrer `to`.
-Après un feu ciblé, la Vigie réaffirme donc le feu global **à l'exécuteur seul**.
-Le Trader concerné garde son feu ciblé et les autres poursuivent ; un vrai rouge
-global reste rouge. Un test emploie le véritable World de l'équipe pour cette règle.
+Le contrat canonique est `core.Finding(tick, layer, kind, target, severity, evidence,
+score)` et `core.VigieState`. `finding.Finding` réexporte exactement cette classe.
+L'extension de présentation `detail` du Dev 1 reste accessible et apparaît dans
+`as_dict()` ; les sept champs dataclass et leur sérialisation restent inchangés.
 
-Le statut détaillé est dans `{prefix}vigie:status` (registre sans clés, suspicion,
-quarantaines, profils et propagation), les décisions dans
-`{prefix}vigie:decisions`. Les alertes signées arrivent dans le journal et le flux
-existants ; `/graph` reste celui de l'équipe.
+`contagion.py`, `herding.py`, `analytics.py`, `injection.py`, `freeze.py`,
+`admission.py`, `validation.py`, les propositions humaines et les essais du Dev 2
+sont conservés. `main.Runtime` reste disponible comme portique de couche 3 seule.
+Le contrôleur intégré partage sa fabrique de messages signés avec cette couche,
+qui fournit ses constats, ses preuves et ses refus ciblés. Une réponse d'injection
+suspecte n'isole pas toutes les réponses saines du même service.
 
-## Démonstrations pour le jury
+[Documentation Dev 2 d'origine](README_COUCHE3.md), [gel provisoire](FREEZE.md),
+[admission](FAILOPEN.md), [rapprochement différé](MULTIPROCESS.md).
+
+## Commandes et évaluations séparées
 
 ```sh
-make compare
-make compare SCENARIO=vigie/scenarios/trader_corrompu_49m.yaml
-make compare SCENARIO=scenarios/vigie_debranchee.yaml
+make test                  # essais de tests/ ET vigie/tests/, réseau et LLM interdits
+make run                   # contrôleur intégré, profil propre, agents sans LLM
+make couche3 NO_LLM=1       # couche 3 seule, portique minimal conservé
+make demo-measure          # jour_noir, trois banques historiques, graines 42 et 43
+make eval-couche3           # cinq cas Dev 2, graine 42 par défaut
+make metrics               # banc Dev 1 conservé dans vigie.eval_metrics
+make compare               # comparatif Dev 1, broker local dédié
+make compare-sim           # ancien comparatif sim.compare
+make propositions RUN=... # propositions humaines hors ligne
+make surete-utilite        # plan Dev 2 de 640 runs, à remesurer sur cette fusion
 ```
 
-Chaque comparaison termine après la durée du YAML. Même graine et même scénario
-pour A sans Vigie et B avec une Vigie réellement séparée. Résultats chiffrés,
-journaux signés A/B, profil appris et log du processus sont sauvegardés dans un
-nouveau dossier `runs/vigie-compare-*`. `TICKS=20` permet un court essai.
+L’ancien CLI `python -m vigie.eval --scenarios ...` reste routé vers le banc Dev 1 ;
+le singulier `--scenario` et le défaut sans argument restent ceux de couche 3.
 
-`avoided_loss_eur` est le P&L trading + fraude de B moins celui de A, sans compter
-les virements légitimes comme pertes. `avoided_fraud_eur` isole la fraude ; il ne
-faut pas additionner ces deux métriques. Une Vigie peut coûter de l'opportunité :
-un écart négatif reste affiché. Le scénario des 4,9 M€ démontre l'isolement,
-pas une promesse de gain. Son extension YAML `vigie_orders` est lue par
-`vigie.scenario` dans le comparatif ; le lanceur historique `sim.inject scenario`
-ne sait pas injecter cette extension.
+Le film de Marius et la démo à trois banques sont tous deux conservés. La colonne C
+de cette démo reste la couche 3 seule ; elle ne mesure pas le contrôleur intégré.
+Les modules `compare`, `improve`, `eval`, `eval_metrics`, `surete_utilite` et
+`simulation` peuvent noter ou montrer la vérité terrain hors du contrôleur. Les
+rapports `METRIQUES.md` et `SURETE_UTILITE.md` restent historiques.
 
-Pour débrancher en direct pendant `make run`, utiliser la commande existante :
+Les deux formats du scénario trader sont gardés côte à côte :
+`trader_corrompu_49m.yaml` pour le banc couche 3, et
+`trader_corrompu_49m_marius.yaml` pour le banc historique Dev 1. Le comparatif Dev 1
+peut également lire le format canonique explicite `corrupt-order`. Le choix d'un
+scénario commun pour la présentation finale reste à valider avec les deux auteurs.
 
-```sh
-.venv/bin/python -m sim.inject kill-vigie
-```
+## Bus signé, métadonnées et redémarrage
 
-Elle utilise `{prefix}agent:vigie:pid`, enregistré par le vrai processus. Les
-autres processus restent vivants et passent seuls à l'orange après le délai
-existant de cinq ticks ; BusGate refuse sur expiration, sans remplacer le mort
-par un stub. Le comparatif du scénario de déconnexion tue aussi le vrai PID.
+Le service intégré lit uniquement le bus et ses propres checkpoints. Il ne lit
+plus `params`, `graph`, `state`, les modes internes ou les étiquettes de simulation.
+Les modifications opérateur sont publiées par l'injecteur sous forme d'alertes
+signées. Les compteurs réseau sont publiés par World sous forme de heartbeats
+signés `network_calls`, activés par les profils intégrés. Leur projection ne
+contient que source, cible, type de lien, caractère transitif et nombre d'appels.
+Le calcul historique `Graph.topology` reste disponible sur ces données publiques.
 
-## Frontière du contrat fourni
+Les `/meta` sont récupérés au lancement ; leur publication signée par un service
+peut aussi alimenter la couche 3. Une vue Risk avec `as_of_tick` passe par le
+rapprochement différé avant le contrôle de conservation du Dev 1 ; les anciens
+heartbeats conservent leur contrôle historique. Une vue honnête retardée ne
+provoque donc pas un rouge de conservation.
 
-Les messages du bus et les visas sont signés. La réponse de `BusGate` fournie par
-l'équipe est un JSON Redis sans vérification HMAC côté exécuteur : le broker
-local fait donc partie de la frontière de confiance. Ce module ne transforme
-pas ce contrat en transport authentifié contre un attaquant ayant accès en
-écriture à Redis. Il ne modifie pas les fichiers de l'équipe pour le faire.
-Le bail est vérifié par le portique ; les agents de l'équipe appliquent leur
-délai de heartbeat et ne lisent pas eux-mêmes `expires_at_tick`.
+`vigie.launch` crée un checkpoint de gel neuf dans le dossier du profil de
+référence et passe explicitement `--fresh-freeze-state`. Rejouer ce Procfile sur
+un checkpoint existant refuse de l'écraser. Pour reprendre un fichier, le service
+accepte `--freeze-state CHEMIN` sans ce drapeau ; la règle prudente de la couche 3
+sur la couverture perdue au redémarrage est conservée. Les appels de test à
+`Controller` ou `serve` peuvent injecter leur checkpoint comme dans `main.Runtime`.
 
-L'auditeur LLM est désactivé et ne fait aucun appel API. La fonction d'avis
-éventuelle ne peut qu'augmenter une suspicion et refuse le même modèle que celui
-des agents ; elle ne donne aucun pouvoir d'exécution.
-
-Contrat de données pour l’autre équipe : voir [DASHBOARD.md](DASHBOARD.md). Aucun écran ni route de leur API n’est modifié.
+`HORIZON_NO_LLM=1` désactive aussi l'auditeur Mistral, même si une clé est présente.
+Les backends factices injectés dans les essais restent utilisables.

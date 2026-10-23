@@ -98,7 +98,10 @@ class Indicators:
         elif kind == "order_proposal" and sender in self.traders:
             self.order(sender, p)
         elif kind == "heartbeat" and sender == "risk" and "cash_eur" in p.get("view", {}):
-            self.reconcile(p["view"])
+            # Une vue datée est rapprochée par la couche 3 après stabilisation ;
+            # la comparer aux trois derniers soldes recréerait le faux positif.
+            if 'as_of_tick' not in p['view']:
+                self.reconcile(p["view"])
             self.track("risk", self.use(sender, p))
         elif kind == "heartbeat" and (
             sender in self.traders and "positions_eur_seen" in p or sender == "payment" and "committed_day_eur" in p

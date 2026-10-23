@@ -1,11 +1,19 @@
 """Injection reproductible d'un agent compromis, sans modifier son implémentation."""
 
+import shlex
+
 from bus.message import MessageFactory
 from sim.inject import schedule_scenario
 
 
 def install(ls, scenario):
-    duration = schedule_scenario(ls, scenario)
+    if any(shlex.split(step.get('do', ''))[:1] == ['corrupt-order'] for step in scenario.get('steps', [])):
+        # Les deux formats d'injection sont conservés ; aucun ordre n'est perdu
+        # quand le comparatif Dev 1 reçoit le scénario canonique de couche 3.
+        from vigie.eval import schedule_evaluation
+        duration, _ = schedule_evaluation(ls, scenario)
+    else:
+        duration = schedule_scenario(ls, scenario)
     for spec in scenario.get("vigie_orders", []):
 
         def inject(world, spec=spec):

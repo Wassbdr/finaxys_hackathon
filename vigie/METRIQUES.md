@@ -1,3 +1,5 @@
+> Rapport historique Dev 1, antérieur à la proposition de fusion. Les chiffres sont conservés ; ils doivent être remesurés avec le contrôleur intégré avant publication comme résultats de cette branche. `make metrics` utilise désormais `vigie.eval_metrics`.
+
 # Métriques de la Vigie
 
 Généré par `make metrics` (`python -m vigie.eval`) le 23/10/2026 à 20:59. Preuves : `runs/vigie-improve/20261023-205546`

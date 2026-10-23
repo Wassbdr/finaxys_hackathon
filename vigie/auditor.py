@@ -46,7 +46,9 @@ class Auditor:
         key = os.environ.get("MISTRAL_API_KEY")
         self.c, self.every, self.model = controller, every, model
         self.ask = ask or (lambda text: mistral(text, key, model))
-        self.c.auditor_enabled = bool(ask or key)
+        # Un backend injecté reste utilisable en essai ; la présence d'une clé
+        # ne doit jamais contourner la demande explicite de mode sans LLM.
+        self.c.auditor_enabled = bool(ask or (key and os.environ.get('HORIZON_NO_LLM') != '1'))
         self.last_tick, self.last_alert = None, None
         self.busy = False
         self.pending = deque()

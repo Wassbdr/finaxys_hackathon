@@ -54,6 +54,8 @@ def test_limit_use_comes_from_what_agents_publish(cfg):
 
 def test_human_tunes_a_threshold_and_a_bad_one_is_refused(setup):
     c, k, _ = setup
+    # La commande humaine porte le tick de l'horloge réellement publiée.
+    c.observe(MessageFactory('clock', k).make(1, 'tick', '*', {'tick': 1}))
     human = MessageFactory("human", k)
     c.observe(human.make(1, "human_decision", "*", {"action": "set_threshold", "rule": "price_drift_z", "value": 6}))
     assert c.detect.thresholds["price_drift_z"] == 6

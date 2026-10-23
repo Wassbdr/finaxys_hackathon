@@ -91,6 +91,7 @@ def test_ceo_figures_and_an_untraced_execution(cfg, setup):
 
 def test_status_carries_layer1_and_stays_json(setup):
     c, k, state = setup
+    c.observe(MessageFactory('clock', k).make(10, 'tick', '*', {'tick': 10}))
     for m in chain(k, tick=10):
         c.observe(m, state)
     status = c.status()

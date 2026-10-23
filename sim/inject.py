@@ -223,6 +223,13 @@ def run_command(target, args: list[str]) -> str:
             target.set_param("restricted_list", [v for v in value.split(",") if v and v != "-"])
         else:
             raise ValueError(f"paramètre inconnu : {name}")
+        # La Vigie ne lit pas le store des paramètres : l'opérateur publie
+        # explicitement le changement sur le même bus signé que ses décisions.
+        published_name = 'restricted_list' if name == 'restricted' else name
+        published_value = x if name == 'herding' else (
+            [v for v in value.split(',') if v and v != '-'] if name == 'restricted' else value)
+        target.publish(_msg(target, 'alert', '*', {'kind': 'parameter_changed',
+                       'name': published_name, 'value': published_value}))
         return f"{name} = {value}"
 
     if cmd == "light":

@@ -73,6 +73,7 @@ def test_shadow_checkpoint_roundtrip(cfg):
 def test_lying_ledger_is_isolated_without_sanctioning_risk(setup):
     c, keys, state = setup
     state["shadow_cash_history"] = [82000000.0]
+    c.observe(MessageFactory('clock', keys).make(10, 'tick', '*', {'tick': 10}))
     msg = MessageFactory("risk", keys).make(
         10, "heartbeat", "*", {"view": {"cash_eur": 94000000.0}}
     )

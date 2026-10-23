@@ -157,7 +157,7 @@ def test_bad_ancestry_and_parent_provenance_cannot_be_laundered(setup):
     k.sign(m)
     c.observe(
         MessageFactory("secu", k).make(
-            10, "alert", "*", {"kind": "cve_published", "unpatchable": ["news-wire"]}
+            10, "alert", "*", {"kind": "cve_published", "cve": {}, "unpatchable": ["news-wire"]}
         )
     )
     assert c.approve(m, s).reason == "UNTRUSTED_PROVENANCE"
@@ -205,7 +205,7 @@ def test_confidence_contradiction_and_real_news_confirmation(setup):
     low = MessageFactory("quant", k)
     low.nonce = "low:"
     low_message = low.make(
-        10, "price_update", "*", {"assets": {"BOREAL": {"confidence": 0.1}}}
+        10, "price_update", "*", {"assets": {"BOREAL": {"price": 100, "confidence": 0.1}}}
     )
     c.observe(low_message)
     source = c.seen[m["payload"]["proposal"]["message_id"]]
@@ -324,6 +324,7 @@ def test_configuration_file_change_quarantines_only_its_agent(setup, tmp_path):
     path.write_text("configuration modifiée")
     c.registry["trader-1"]["file"] = path
     c.registry["trader-1"]["file_hash"] = "empreinte antérieure"
+    c.observe(MessageFactory('clock', k).make(10, 'tick', '*', {'tick': 10}))
     c.observe(MessageFactory("trader-1", k).make(10, "heartbeat", "*", {}))
     assert c.quarantined == {"trader-1"}
     assert c.registry["trader-2"]["tools"]

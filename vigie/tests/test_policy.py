@@ -63,6 +63,8 @@ def test_cold_start_cannot_quarantine_from_behavior(setup):
     assert c.quarantined == {"trader-1"}
     c.advance(600)
     assert "trader-1" in c.quarantined
+    # Avancer l'objet de politique seul ne publie pas de temps sur le bus.
+    c.observe(MessageFactory('clock', k).make(600, 'tick', '*', {'tick': 600}))
     c.observe(
         MessageFactory("human", k).make(
             600, "human_decision", "*", {"action": "unblock", "target": "trader-1"}

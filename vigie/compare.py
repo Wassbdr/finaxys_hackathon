@@ -70,7 +70,7 @@ class ProtectedWorld:
         cfg["redis"].update(url=url, prefix="B:")
         # Le constructeur lockstep historique ne transmet pas son client à BusGate.
         cfg["gate"]["impl"] = "stub"
-        cfg["vigie"].update(enabled=True, stub=False)
+        cfg["vigie"].update(enabled=True, stub=False, public_network_calls=True)
         self.ls = Lockstep(cfg, store=client, no_llm=True, run_dir=directory)
         self.client = client
         self.gate = TimedGate(client, "B:", 0.2, "reject")
@@ -90,6 +90,8 @@ class ProtectedWorld:
                 "B:",
                 "--profiles",
                 str(profiles),
+                "--freeze-state", str(directory / "freeze-state.json"),
+                "--fresh-freeze-state",
             ],
             env={**os.environ, "HORIZON_NO_LLM": "1"},
             stdout=self.log,
@@ -97,6 +99,12 @@ class ProtectedWorld:
         )
         self.last = None
         until(lambda: client.get("B:vigie:ready"))
+        # Le banc local publie le même /meta public que les services HTTP ;
+        # le contrôleur ne reçoit ni objet World ni état de service interne.
+        for sid, core in self.ls.cores.items():
+            factory = self.ls._svc_factories[sid]
+            client.publish('B:bus', canonical(factory.make(0, 'service_status', '*',
+                           {'service': sid, 'mode': 'normal', 'meta': core.meta()})))
         self.ls.bus.tap(self.forward)
 
     def forward(self, msg):

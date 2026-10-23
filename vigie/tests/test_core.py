@@ -166,7 +166,7 @@ def test_simulator_compromise_flag_is_not_read_but_a_cve_is(setup):
     assert c.approve(m, s).approved
     c.observe(
         MessageFactory("secu", k).make(
-            10, "alert", "*", {"kind": "cve_published", "unpatchable": ["news-wire"]}
+            10, "alert", "*", {"kind": "cve_published", "cve": {}, "unpatchable": ["news-wire"]}
         )
     )
     m = chain(c, k, tick=11, provenance=[{**prov[0], "tick": 11}])
@@ -175,9 +175,11 @@ def test_simulator_compromise_flag_is_not_read_but_a_cve_is(setup):
 
 def test_suspect_service_stays_refused_until_a_human_clears_it(setup):
     c, k, s = setup
+    # La source de temps doit précéder une alerte au tick neuf.
+    c.observe(MessageFactory('clock', k).make(9, 'tick', '*', {'tick': 9}))
     c.observe(
         MessageFactory("secu", k).make(
-            9, "alert", "*", {"kind": "cve_published", "unpatchable": ["news-wire"]}
+            9, "alert", "*", {"kind": "cve_published", "cve": {}, "unpatchable": ["news-wire"]}
         )
     )
     prov = [

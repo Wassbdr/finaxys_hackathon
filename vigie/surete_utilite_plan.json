@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "base": "f03a2ad794d349909de15857c03bb8f689366f09",
+  "seeds": [
+    41,
+    42,
+    43,
+    59,
+    61,
+    67,
+    71,
+    73,
+    79,
+    83
+  ],
+  "margins": [
+    -0.2,
+    -0.1,
+    0.0,
+    0.05,
+    0.1,
+    0.2
+  ],
+  "scenarios": {
+    "php2shell_day": "scenarios/php2shell_day.yaml",
+    "ledger_legacy": "scenarios/ledger_legacy.yaml",
+    "rumeur_mimetisme": "scenarios/rumeur_mimetisme.yaml",
+    "jour_noir": "vigie/scenarios/jour_noir.yaml",
+    "derive_marche": "vigie/scenarios/derive_marche.yaml",
+    "krach_reel": "vigie/scenarios/krach_reel.yaml",
+    "krach_rumeur": "vigie/scenarios/krach_rumeur.yaml",
+    "propre": null
+  },
+  "clean_duration_ticks": 180,
+  "varied_parameter": "freeze_profile.margin",
+  "baseline_margin": 0.0,
+  "preregistered_at_utc": "2026-10-23T19:49:44.895691+00:00",
+  "profile_sha256": "7c426758ef24ad268390e7f8ecaed73238a88198dc4e7d0a5b3f67316d6e6b67",
+  "classic_sha256": "030af26e9812e5a977bed261b3e16101713da7c8d0314439695e625ec693a599",
+  "scenario_sha256": {
+    "php2shell_day": "65a55e59199da55004fe4bd576b8cb4faf81763930da2a816a70e70f7794df77",
+    "ledger_legacy": "9ae1e513f66eb200dd65dfedf0e49e4c27d80987d9a6b3bd8d8af6e87cc550a7",
+    "rumeur_mimetisme": "9dac26e3ed03e0cfd1c86b3c3a4afe7f168d8d1f84b10b9f811042e04c631b31",
+    "jour_noir": "a37d422075a2d9bd7dd7957c7f188979d72082cc6e28cfd01c93ea89743a19e5",
+    "derive_marche": "75be9129c6bb70428a700cc34d40be691d96c5286cdab22533aaf908ab757cc2",
+    "krach_reel": "e49fdfdbfc38af73723b3d139fa6d6787698659b951a9764b888cd371e5cc71d",
+    "krach_rumeur": "4baef9318c1605f0cf165423dded662406763483d7665a56baa8c245a989816b"
+  }
+}

@@ -1,1 +1,1 @@
-"""Vigie Banque Horizon : contrôle du bus de l'équipe, sans moteur bancaire parallèle."""
+"""Vigie commune : métriques et politique Dev 1, contamination et mimétisme Dev 2."""

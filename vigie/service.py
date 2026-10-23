@@ -6,16 +6,17 @@ import os
 from bus.message import Keyring, canonical
 from bus.redis_bus import next_message
 from sim.config import known_senders
-from sim.params import Params
 from vigie.auditor import Auditor
 from vigie.core import Controller
 from vigie.state import VigieState
+from vigie.validation import MAX_MESSAGE_BYTES
 
 
-def serve(cfg, client, stop=None, profiles=None):
+def serve(cfg, client, stop=None, profiles=None, *, meta=None, checkpoint=None, fresh_checkpoint=False):
     prefix = cfg["redis"]["prefix"]
     controller = Controller(
-        cfg, Keyring(known_senders(cfg)), profiles, deterministic=False
+        cfg, Keyring(known_senders(cfg)), profiles, deterministic=False,
+        meta=meta, checkpoint=checkpoint, fresh_checkpoint=fresh_checkpoint
     )
     previous = json.loads(client.get(prefix + "vigie:status") or "{}")
     controller.light = previous.get("light", "VERT")
@@ -39,7 +40,7 @@ def serve(cfg, client, stop=None, profiles=None):
             controller.registry[agent]["tools"] = set()
     saved_view = client.get(prefix + "vigie:view")
     view = VigieState(
-        cfg, Params(client, prefix, cfg), json.loads(saved_view) if saved_view else None
+        cfg, checkpoint=json.loads(saved_view) if saved_view else None
     )
     auditor = Auditor(controller)
     pubsub = client.pubsub(ignore_subscribe_messages=False)
@@ -65,23 +66,30 @@ def serve(cfg, client, stop=None, profiles=None):
                 continue
             data = None
             try:
-                data = json.loads(raw["data"])
+                wire = raw.get('data')
+                if (not isinstance(wire, (str, bytes)) or len(wire) > MAX_MESSAGE_BYTES
+                        or isinstance(wire, str) and len(wire.encode('utf-8')) > MAX_MESSAGE_BYTES):
+                    # Le portique intégré garde la borne avant JSON du mode
+                    # couche 3 seule ; cette entrée n'est pas une panne interne.
+                    controller.layer3.admission.reject(None, 'wire_size')
+                    controller.out.extend(controller.layer3.diagnostics())
+                    raise ValueError('WIRE_SIZE')
+                data = json.loads(wire)
                 if raw["channel"] == prefix + "bus":
                     if isinstance(data, dict) and data.get("from") == "vigie":
                         continue
                     # The controller judges each message on the view built from the ones before it.
                     controller.observe(data, view.read())
-                    view.observe(
-                        data,
-                        controller.keyring,
-                        controller.isolated_services
-                        | controller.quarantined
-                        | set(controller.detect.suspect),
-                    )
+                    if controller.is_analysed(data):
+                        view.observe(
+                            data,
+                            controller.keyring,
+                            controller.isolated_services
+                            | controller.quarantined
+                            | set(controller.detect.suspect),
+                        )
                     if data.get("from") == "clock":
                         controller.history.append(dict(view.prices))
-                        # /graph's call counters only: the network telemetry layer 1 may read.
-                        controller.layer1.topology(json.loads(client.get(prefix + "graph") or "{}"))
                     if data.get("type") in {"tick", "execution", "service_status", "payment_proposal"}:
                         client.set(prefix + "vigie:view", json.dumps(view.checkpoint()))
                 else:
@@ -112,7 +120,12 @@ def serve(cfg, client, stop=None, profiles=None):
                             }
                         ),
                     )
-            except (ValueError, KeyError, TypeError, AttributeError):
+            except (ValueError, KeyError, TypeError, AttributeError, RecursionError) as exc:
+                if raw["channel"] == prefix + "bus":
+                    controller.reject_analysis(data)
+                if str(exc) != 'WIRE_SIZE':
+                    controller.layer3.admission.reject(None, 'wire_envelope')
+                    controller.out.extend(controller.layer3.diagnostics())
                 controller.summary("bus", "block", "INVALID_ENVELOPE", 1)
             auditor.step()
             for out in controller.drain():
@@ -177,8 +190,11 @@ def serve(cfg, client, stop=None, profiles=None):
                 client.set(prefix + "vigie:processed", data["message_id"])
                 client.set(prefix + "vigie:ack:" + data["message_id"], "1", ex=60)
     finally:
-        pubsub.close()
-        client.delete(prefix + "vigie:ready")
+        try:
+            client.publish(prefix+'bus', canonical(controller.layer3.proposition_alert()))
+        finally:
+            pubsub.close()
+            client.delete(prefix + "vigie:ready")
 
 
 def main():
@@ -191,6 +207,8 @@ def main():
     parser.add_argument("--redis-url")
     parser.add_argument("--prefix")
     parser.add_argument("--profiles")
+    parser.add_argument("--freeze-state")
+    parser.add_argument("--fresh-freeze-state", action="store_true")
     args = parser.parse_args()
     cfg = load_config(overrides={"llm": {"enabled": False}})
     if args.redis_url:
@@ -200,4 +218,26 @@ def main():
     profile_path = args.profiles or cfg["vigie"].get("profiles_path")
     profiles = json.loads(Path(profile_path).read_text()) if profile_path else None
     print(f"[vigie] portique Redis actif ; auditeur LLM {'Mistral actif' if os.environ.get('MISTRAL_API_KEY') else 'désactivé (MISTRAL_API_KEY absente)'}", flush=True)
-    serve(cfg, connect(cfg["redis"]["url"]), profiles=profiles)
+    import hashlib
+    import httpx
+    import signal
+    import threading
+    from vigie.freeze_store import FileCheckpoint
+    meta = {}
+    with httpx.Client(timeout=2.0) as http:
+        for sid, spec in cfg['services'].items():
+            try:
+                response = http.get(f"http://127.0.0.1:{spec['port']}/meta")
+                response.raise_for_status()
+                record = response.json()
+                if record.get('service_id') == sid:
+                    meta[sid] = record
+            except (httpx.HTTPError, ValueError):
+                print(f'[vigie] /meta indisponible : {sid}', flush=True)
+    namespace = hashlib.sha256(cfg['redis']['prefix'].encode()).hexdigest()[:16]
+    checkpoint = FileCheckpoint(args.freeze_state or Path(cfg['runs_dir'])/('freeze-state-integrated-'+namespace+'.json'))
+    stop = threading.Event()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, lambda signum, frame: stop.set())
+    serve(cfg, connect(cfg["redis"]["url"]), stop=stop, profiles=profiles,
+          meta=meta, checkpoint=checkpoint, fresh_checkpoint=args.fresh_freeze_state)

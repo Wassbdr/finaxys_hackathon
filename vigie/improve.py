@@ -52,7 +52,13 @@ NAMING_FINDINGS = {"impact_radius", "anomaly"}  # layer-1 findings whose target 
 
 
 def scenario_paths():
-    return sorted([*(ROOT / "scenarios").glob("*.yaml"), *(ROOT / "vigie" / "scenarios").glob("*.yaml")])
+    paths = [*(ROOT / "scenarios").glob("*.yaml"), *(ROOT / "vigie" / "scenarios").glob("*.yaml")]
+    # Le banc historique garde exactement son injection, dans un fichier nommé
+    # explicitement ; la couche 3 utilise séparément le scénario canonique.
+    legacy = ROOT / 'vigie' / 'scenarios' / 'trader_corrompu_49m_marius.yaml'
+    if legacy.exists():
+        paths = [p for p in paths if p != legacy.with_name('trader_corrompu_49m.yaml')]
+    return sorted(paths)
 
 
 def read_journal(run):

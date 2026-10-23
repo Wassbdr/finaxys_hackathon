@@ -19,7 +19,7 @@ def runtime_config(cfg, no_vigie=False):
     cfg = copy.deepcopy(cfg)
     cfg.pop("_path", None)
     cfg["llm"]["enabled"] = False
-    cfg["vigie"].update(enabled=not no_vigie, stub=False)
+    cfg["vigie"].update(enabled=not no_vigie, stub=False, public_network_calls=not no_vigie)
     cfg["gate"].update(
         impl="passthrough" if no_vigie else "bus", default_on_timeout="reject"
     )
@@ -47,7 +47,11 @@ def main():
         profile_path.write_text(json.dumps(profiles))
         cfg["vigie"]["profiles_path"] = str(profile_path)
         path.write_text(yaml.safe_dump(cfg, allow_unicode=True))
-        text += f"vigie: {python_bin()} -m vigie --profiles {shlex.quote(str(profile_path))}\n"
+        # Le profil neuf identifie un livre neuf ; rejouer ce Procfile sur un
+        # checkpoint existant restera refusé, sans l'écraser.
+        freeze_path = reference / 'freeze-state.json'
+        text += (f"vigie: {python_bin()} -m vigie --profiles {shlex.quote(str(profile_path))} "
+                 f"--freeze-state {shlex.quote(str(freeze_path))} --fresh-freeze-state\n")
     # Honcho lancé ensuite doit hériter du même profil que le superviseur.
     text = (
         "\n".join(

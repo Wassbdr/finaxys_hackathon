@@ -13,13 +13,15 @@ import copy
 import re
 
 from vigie.shadow import ShadowLedger
+from vigie.core import VigieState as BusState
 
 NEWS = re.compile(r'<donnee_externe source="news-wire"[^>]*>\n(.*?)(?:\n</donnee_externe>|$)', re.S)
-FIELDS = ("tick", "prices", "anchors", "cash_history", "modes", "news", "ibans", "iban_changes")
+FIELDS = ("tick", "prices", "anchors", "cash_history", "modes", "news", "ibans", "iban_changes", "operator_params")
 
 
-class VigieState:
+class VigieState(BusState):
     def __init__(self, cfg, params=None, checkpoint=None):
+        super().__init__()
         self.cfg, self.params = cfg, params
         self.tick = 0
         self.prices = {a: float(cfg["market"]["initial_price"]) for a in cfg["market"]["assets"]}
@@ -29,10 +31,12 @@ class VigieState:
         self.news = []
         self.ibans = {b["id"]: b["iban"] for b in cfg["beneficiaries"]}
         self.iban_changes = {}
+        self.operator_params = {"restricted_list": list(cfg["agents"]["compliance"]["restricted_list"])}
         self.shadow = ShadowLedger(cfg, checkpoint["shadow"] if checkpoint else None)
         if checkpoint:
             for name in FIELDS:
-                setattr(self, name, copy.deepcopy(checkpoint[name]))
+                if name in checkpoint:
+                    setattr(self, name, copy.deepcopy(checkpoint[name]))
 
     def observe(self, msg, keyring, distrusted=()):
         """`distrusted`: services and agents the Vigie already holds suspect; their prices are not taken."""
@@ -41,7 +45,11 @@ class VigieState:
                 return
         except (TypeError, ValueError, KeyError, AttributeError):
             return
+        super().observe(msg, keyring)
         sender, kind, p = msg["from"], msg["type"], msg["payload"]
+        if kind == 'alert' and sender in {'human', 'inject'} and p.get('kind') == 'parameter_changed':
+            if p.get('name') == 'restricted_list' and isinstance(p.get('value'), list) and all(isinstance(a, str) for a in p['value']):
+                self.operator_params['restricted_list'] = list(p['value'])
         if kind == "tick" and sender == "clock":
             if msg["tick"] < self.tick:
                 # The world restarted under a Vigie restored from its checkpoint: start a new book.
@@ -87,7 +95,7 @@ class VigieState:
             params={
                 "restricted_list": self.params.get("restricted_list")
                 if self.params
-                else self.cfg["agents"]["compliance"]["restricted_list"]
+                else self.operator_params["restricted_list"]
             },
         )
         return state

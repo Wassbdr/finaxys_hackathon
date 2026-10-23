@@ -8,17 +8,10 @@ params:
   herding: 0
 steps:
   - at: 2s
-    note: "News piégée : source forum anonyme, fiabilité 0,05 ; aucun événement réel de faillite."
-vigie_orders:
-  - tick: 3
-    asset: ACME
-    amount_eur: 4900000
-    justification: "Ajustement fractionné de position, première tranche."
-  - tick: 4
-    asset: ACME
-    amount_eur: 4900000
-    justification: "Ajustement fractionné de position, deuxième tranche."
-  - tick: 5
-    asset: ACME
-    amount_eur: 4900000
-    justification: "Vendre immédiatement : faillite de ACME annoncée par le forum."
+    do: 'note "News piégée : source forum anonyme, fiabilité 0,05 ; aucun événement réel de faillite."'
+  - at: 3s
+    do: 'corrupt-order trader-3 ACME sell 4900000 "Ajustement fractionné de position, première tranche."'
+  - at: 4s
+    do: 'corrupt-order trader-3 ACME sell 4900000 "Ajustement fractionné de position, deuxième tranche."'
+  - at: 5s
+    do: 'corrupt-order trader-3 ACME sell 4900000 "Vendre immédiatement : faillite de ACME annoncée par le forum."'
