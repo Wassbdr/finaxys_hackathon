@@ -1,6 +1,6 @@
 # Banque Horizon : environnement de simulation (hackathon IA et Finance)
 PY ?= .venv/bin/python
-NO_LLM ?=
+NO_LLM ?= 1
 NO_VIGIE ?=
 SCENARIO ?= scenarios/php2shell_day.yaml
 RUN ?= runs/main
@@ -18,11 +18,11 @@ keys:
 	$(PY) -m sim.keys
 
 procfile:
-	$(PY) -m sim.launch procfile $(FLAGS)
+	$(PY) -m vigie.launch procfile $(FLAGS)
 
 # Superviseur maison : débrancher un agent ne coupe pas les autres (honcho, lui, arrête tout)
 run:
-	$(PY) -m sim.launch run $(FLAGS)
+	$(PY) -m vigie.launch run $(FLAGS)
 
 run-honcho: procfile
 	$(PY) -m honcho -f Procfile.generated start
@@ -34,7 +34,7 @@ run-no-vigie:
 	$(MAKE) run NO_VIGIE=1
 
 test:
-	$(PY) -m pytest
+	$(PY) -m vigie.testing
 
 lockstep:
 	$(PY) -m sim.lockstep $(if $(NO_VIGIE),--no-vigie)
@@ -52,4 +52,4 @@ replay:
 	$(PY) -m api.replay $(RUN)
 
 compare:
-	$(PY) -m sim.compare
+	$(PY) -m vigie.compare --scenario $(SCENARIO) $(if $(TICKS),--ticks $(TICKS))
