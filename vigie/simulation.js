@@ -322,9 +322,15 @@ function show(t) {
     st[k] = val;
   }
   const iso = (st.iso ?? "").split(",");
+  const live = sc.services.filter(s => st["s:" + s] === "compromised" && !iso.includes(s));
   for (const a of sc.agents) {
     const b = nodes[a.id];
-    if (b) Object.assign(b, { sick: st["c:" + a.id] === 1, asleep: st["z:" + a.id] === 1, level: ours ? st["v:" + a.id] ?? "VERT" : null });
+    if (!b) continue;
+    Object.assign(b, { sick: st["c:" + a.id] === 1, asleep: st["z:" + a.id] === 1, level: ours ? st["v:" + a.id] ?? "VERT" : null });
+    // the ring shows the agent's problem in both worlds: red once it acts on compromised data (or the Vigie says red),
+    // orange while it only reads a compromised service or got a message built on one (or the Vigie says orange)
+    const exposed = live.length && (W.hit[a.id] <= t || sc.reads.some(([r, s]) => r === a.id && live.includes(s)));
+    b.alert = b.sick || b.level === "ROUGE" || b.level === "QUARANTAINE" ? "ROUGE" : exposed || b.level === "ORANGE" ? "ORANGE" : "VERT";
   }
   for (const s of sc.services) {
     const n = nodes[s];
@@ -384,6 +390,10 @@ function load(n) {
   for (const w of Object.values(sc.worlds)) {
     w.msgAt ??= Object.groupBy(w.msgs, m => m[0]);
     w.evAt ??= Object.groupBy(w.events, e => e[0]);
+    if (!w.hit) {
+      w.hit = {};
+      for (const [t, , to, , bad] of w.msgs) if (bad) w.hit[to] = Math.min(w.hit[to] ?? t, t);
+    }
   }
   for (const l of links.values()) world.remove(l.g);
   links.clear();
@@ -445,8 +455,9 @@ function animateBlob(b, dt, k) {
   b.skin.color.lerp(want, k);
   // a red glow, not a red tint: mixed into a teal or a blue skin, red turns it grey and the blob looks asleep
   b.skin.emissiveIntensity += ((b.sick && !b.asleep ? 0.3 + Math.sin(time * 4 + b.phase) * 0.12 : 0) - b.skin.emissiveIntensity) * k;
-  b.halo.material.color.setHex(LIGHT[b.level] ?? LIGHT.VERT);
-  b.halo.material.opacity += ((b.level ? 0.85 : 0) - b.halo.material.opacity) * k;
+  b.halo.material.color.setHex(RING[b.alert] ?? RING.VERT);
+  b.halo.material.opacity += ((b.alert ? 0.9 : 0) - b.halo.material.opacity) * k;
+  b.halo.scale.setScalar(b.alert === "ORANGE" || b.alert === "ROUGE" ? 1.1 + Math.sin(time * 5 + b.phase) * 0.08 : 1);
   b.glass.scale.setScalar(THREE.MathUtils.lerp(b.glass.scale.x, b.level === "QUARANTAINE" ? 1.5 : 0.001, k));
   if (b.sick && !b.asleep && b.g.parent === world && Math.random() < dt * 2.5) {
     const m = mesh(GEO.dot, shine(DOT.bad), [b.g.position.x + (Math.random() - 0.5) * 1.2, 1.6, b.g.position.z + (Math.random() - 0.5) * 1.2], 0.6);
@@ -465,6 +476,48 @@ function animateServer(n, k) {
   n.g.position.x = POS[n.id][0] + (bad ? (Math.random() - 0.5) * 0.06 : 0);
   n.field.scale.setScalar(THREE.MathUtils.lerp(n.field.scale.x, n.iso ? 1 : 0.001, k));
   n.field.rotation.y += 0.01;
+}
+
+// a true orange for the ring: the bank light's amber reads yellow on the dark floor
+const RING = { VERT: LIGHT.VERT, ORANGE: 0xf97316, ROUGE: 0xef4444 };
+
+// How far the problem has spread: a red zone on the floor around each compromised service and each agent whose ring is
+// red, merged into one shape where they stand close (a metaball field), with a striped cordon on its edge.
+const ZONE_R = 2.8, zonePts = Array.from({ length: 24 }, () => new THREE.Vector3());
+const cordon = turn(new THREE.Mesh(new THREE.PlaneGeometry(46, 46), new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false,
+  uniforms: { pts: { value: zonePts }, n: { value: 0 }, time: { value: 0 }, color: { value: new THREE.Color(0xef4444) } },
+  vertexShader: "varying vec2 p; void main() { p = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+  fragmentShader: `uniform vec3 pts[24]; uniform int n; uniform float time; uniform vec3 color; varying vec2 p;
+    void main() {
+      float f = 1e-6;
+      for (int i = 0; i < 24; i++) {
+        if (i >= n) break;
+        vec2 d = p - pts[i].xy;
+        float q = pts[i].z * pts[i].z / max(dot(d, d), 1e-4);
+        f += q * q;
+      }
+      float h = pow(f, -0.25), w = fwidth(h), inside = 1.0 - smoothstep(1.0 - w, 1.0 + w, h);
+      float edge = inside * smoothstep(0.9 - w, 0.9 + w, h), stripe = step(0.5, fract((p.x + p.y) * 0.8 - time * 0.5));
+      gl_FragColor = vec4(color, inside * (0.24 + 0.06 * sin(time * 2.0)) + edge * (0.3 + 0.6 * stripe));
+      #include <colorspace_fragment>
+    }`,
+})), -Math.PI / 2);
+cordon.position.y = 0.02;
+cordon.renderOrder = 1;
+world.add(cordon);
+for (const n of Object.values(nodes)) if (n.halo) n.halo.renderOrder = 2;
+
+function spread(k) {
+  let i = 0;
+  for (const n of Object.values(nodes)) {
+    n.zr = THREE.MathUtils.lerp(n.zr ?? 0, (n.eyes ? n.alert === "ROUGE" : n.mode === "compromised") ? ZONE_R : 0, k);
+    if (n.zr < 0.05 || i === zonePts.length) continue;
+    world.worldToLocal(n.g.getWorldPosition(tmp));
+    zonePts[i++].set(tmp.x, -tmp.z, n.zr);
+  }
+  cordon.material.uniforms.n.value = i;
+  cordon.material.uniforms.time.value = time;
 }
 
 let last = performance.now();
@@ -509,6 +562,7 @@ renderer.setAnimationLoop(now => {
     else animateServer(n, k);
     if (n.bubble && time > n.bubbleUntil) n.bubble.removeFromParent(), (n.bubble = null);
   }
+  spread(k);
   const ts = THREE.MathUtils.lerp(tower.scale.x, worldName === "ours" ? 1 : 0.001, k);
   tower.scale.setScalar(ts);
   tower.visible = ts > 0.01;
