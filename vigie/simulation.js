@@ -63,7 +63,7 @@ sec.innerHTML = `<div class="settings"><div class="fold">
       ${row("Bubbles", choice("bubbles", OFF_ON), "What each agent says, over its head")}
       ${row("Helper", choice("helper", OFF_ON), "A box that follows the pointer: what is under it, or what happens at this tick")}
       ${row("Details", choice("details", OFF_ON), "Whether the helper's box adds what an agent reads, its messages of this tick and its last event")}
-      <span class="opt" data-help="Layout|Hold Option over a drop to carry it: it follows the pointer until Option is let go, a role's pad with its agents|Saves where everything stands as the default layout, for everyone"><span>Layout</span><span class="choice"><button type="button" id="sim-save">Save as default</button></span></span>
+      <span class="opt" data-help="Layout|Hold Option over a drop or a service to carry it: it follows the pointer until Option is let go, a role's pad with its agents|Saves where everything stands as the default layout, for everyone"><span>Layout</span><span class="choice"><button type="button" id="sim-save">Save as default</button></span></span>
     </div></div></div></div>
   <div class="sim-stage"><p class="sim-stop" hidden></p></div>`;
 const ui = { sc: sec.querySelector("#sim-sc"), play: sec.querySelector("#sim-play"), t: sec.querySelector("#sim-t"), tick: sec.querySelector("#sim-tick"),
@@ -886,7 +886,7 @@ function hoverPaint() {
   return () => was.forEach(([m, o, c]) => ((m.opacity = o), c !== undefined && m.color.setHex(c)));
 }
 
-// Holding Option over a drop picks it up: it follows the pointer on the floor until Option is let go, a role's pad and
+// Holding Option over a drop or a service picks it up: it follows the pointer on the floor until Option is let go, a role's pad and
 // all its agents with it, its links redrawn as it goes; Layout › Save as default keeps where everything stands (Marius, 24-10)
 const ground = new THREE.Plane(v(0, 1, 0), 0), hit = new THREE.Vector3();
 let held = null, grip = [0, 0];
@@ -907,7 +907,7 @@ function carry(e) {
   if (!p) return;
   if (!held) {
     const id = pick(e.clientX, e.clientY);
-    if (!nodes[id]?.eyes) return;
+    if (!nodes[id]) return;
     held = id;
     grip = [POS[id][0] - p[0], POS[id][1] - p[1]];
   }
