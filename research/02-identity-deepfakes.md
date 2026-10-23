@@ -2,7 +2,7 @@
 
 Organisers' wording (deck in #liens): "How do you verify an identity and fight voice fraud?"
 
-Branches done: 8/8 (last update 14:35)
+Branches done: 8/8 (last update 14:04)
 
 ## Recommendation
 
