@@ -53,9 +53,9 @@ What the report puts forward (it gives no single cause for 2025):
 
 ## Pitch hook
 
-Marie is 73 and lives in a village in the Bouches-du-Rhône. A man with "a very cordial voice" calls from "your bank's head office": small EUR 60 debits are leaving her account. He guides her, step by step, through her own banking app to stop them. She loses EUR 23,000, "what was left of my parents' inheritance". Her bank: "you will get nothing, you gave your bank details". (franceinfo, 20 Jul 2026: https://www.franceinfo.fr/replay-radio/le-choix-franceinfo/temoignages-vous-n-obtiendrez-aucun-remboursement-le-difficile-combat-pour-etre-indemnise-apres-une-arnaque-au-faux-conseiller-bancaire_8084705.html)
+Marie is 73, retired, and lives in a village in the Bouches-du-Rhône. She is driving in Marseille to pick up her granddaughter from school, late, "20 cars behind me honking". A man with "a very cordial voice" calls: "This is your bank's head office", "you have already been charged EUR 60 six or eight times". It had happened to her before, so she answers: "do what's necessary". He then guides her through "a series of operations on the banking app". She loses EUR 23,000: "what was left of my parents' inheritance, I wanted to give it to my children". Her bank: "I would get nothing because I had given my bank details. I was responsible." (franceinfo, Valentine Joubin, 20 Jul 2026: https://www.franceinfo.fr/replay-radio/le-choix-franceinfo/temoignages-vous-n-obtiendrez-aucun-remboursement-le-difficile-combat-pour-etre-indemnise-apres-une-arnaque-au-faux-conseiller-bancaire_8084705.html)
 
-Nobody hacked Marie: she approved every step herself, in her real app, on her real phone. Backup, with a court record: the BNP client who lost EUR 54,500 re-adding beneficiaries on a call that showed his own advisor's number (Cass. com., 23 Oct 2024).
+The article does not say which operations she made in the app nor how the money left. For the mechanism, use the court record: a BNP client was told by "his advisor's assistant", on a call showing his advisor's number, that his transfer beneficiaries had been deleted "to foil a cyberattack" and had to be re-registered; staying on the line, he got messages on his phone asking him to validate beneficiary additions and entered his code each time; five beneficiaries were added and EUR 54,500 left his account (Cass. com., 23 Oct 2024, n° 23-16.267).
 
 ## 3 figures for the problem slide
 
@@ -65,5 +65,5 @@ Nobody hacked Marie: she approved every step herself, in her real app, on her re
 
 ## Consequence for our product
 
-- In this scam the signer is the real client. A transaction-bound passkey on the real client's phone is strong authentication again: Marie would have signed.
+- In this scam the signer is the real client. A transaction-bound passkey on the real client's phone is strong authentication again: the client on the line with the fraudster signs it, as the BNP client entered his code.
 - What the regulator points at fits the same build, turned around: the bank proves its calls to the client ("is it really my bank calling?", as Monzo's Call Status has done since Sep 2023: https://www.fintechfutures.com/digital-banking/monzo-announces-new-feature-to-help-protect-customers-against-impersonation-scams), and a validation made during a call the bank did not sign, after a chain of risky operations, is held and explained in plain words (call in progress per the OSMP and the CNIL, no listening).
