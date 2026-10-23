@@ -13,7 +13,8 @@ if (!F) {
   throw new Error("no /dashboard/dashboard-sim.json");
 }
 
-const TPS = 3;
+// The film is timed at 3 ticks/s; 1× plays it 4 times slower, flights included (Marius found 3 ticks/s far too fast).
+const TPS = 3, SPEEDS = [0.25, 0.5, 1, 2, 4], SLOW = 0.25;
 const POS = {
   "market-feed": [-13, -7], "news-wire": [-13, -3.5], "payment-gateway": [-13, 0], "core-ledger": [-13, 3.5], "kyc-docs": [-13, 7],
   quant: [-8, -7], "trader-1": [-7.6, -1.5], "trader-2": [-4.6, -1.5], "trader-3": [-1.6, -1.5], payment: [-4.6, 6.4],
@@ -24,23 +25,20 @@ const LIGHT = { VERT: 0x34d399, ORANGE: 0xfbbf24, ROUGE: 0xf87171, QUARANTAINE: 
 const LED = { normal: 0x34d399, compromised: 0xef4444, down: 0x1e293b, stale: 0xfbbf24, slow: 0xfbbf24 };
 const DOT = { read: 0x7dd3fc, hidden: 0xfbbf24, bad: 0xf87171, price: 0x67e8f9, order: 0x60a5fa, payment: 0x34d399, decision: 0xc4b5fd, brake: 0xfb923c, exec: 0x86efac, approve: 0x34d399, refuse: 0xef4444, wire: 0xfacc15, fraud: 0xef4444 };
 const WHY = { ours: "With our Vigie: one view of every agent and service, and a gate before each execution.", theirs: "Without it: each agent checks only its own rules, nothing watches the whole bank." };
-const hex = c => "#" + c.toString(16).padStart(6, "0");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-const eur = v => (v < 0 ? "−" : "") + (!v ? "€0" : Math.abs(v) >= 1e6 ? `€${(Math.abs(v) / 1e6).toFixed(2)}M` : `€${Math.round(Math.abs(v) / 1e3)}k`);
+// Camera presets, to get back to a simple view after orbiting: where the camera looks from, how far, and what it looks at.
+const VIEWS = { "3/4": { dir: [0.5, 13.2, 24.5], dist: 32 }, Top: { dir: [0, 1, 0.02], dist: 37 }, Front: { dir: [0, 0.25, 1], dist: 35 }, Agents: { dir: [0, 1.3, 1], dist: 24, on: "agents" } };
 
-sec.innerHTML = `<div class="sim-top">
+sec.innerHTML = `<div class="sim-stage"><details class="sim-set">
+    <summary>Settings</summary>
+    <div class="sim-seg" role="group" aria-label="View"><b>View</b>${Object.keys(VIEWS).map(k => `<button type="button" data-view="${k}">${k}</button>`).join("")}</div>
+    <div class="sim-play"><button type="button" class="act ghost" id="sim-play"></button><input type="range" id="sim-t" min="0" step="1" aria-label="Tick"><span id="sim-tick"></span></div>
+    <label>Speed <input type="range" id="sim-speed" min="0" max="${SPEEDS.length - 1}" step="1" value="${SPEEDS.indexOf(1)}"><span id="sim-x"></span></label>
     <label>Scenario <select id="sim-sc">${Object.keys(F.scenarios).map(n => `<option value="${esc(n)}">${esc(n.replaceAll("_", " "))}</option>`).join("")}</select></label>
-    <div class="sim-seg" role="group" aria-label="Vigie"><b>Vigie</b><button type="button" data-w="ours">Ours</button><button type="button" data-w="theirs">Theirs</button></div>
-    <span class="sim-why" id="sim-why"></span>
-  </div>
-  <div class="sim-stage"><div class="sim-money" id="sim-money"></div><ol class="sim-feed" id="sim-feed"></ol></div>
-  <div class="sim-play"><button type="button" class="act ghost" id="sim-play"></button><input type="range" id="sim-t" min="0" step="1" aria-label="Tick"><span id="sim-tick"></span></div>
-  <div class="legend">${[["price", "price"], ["order", "order"], ["payment", "payment"], ["decision", "decision"], ["execution", "exec"], ["euros wired", "wire"], ["built on a compromised service's data", "bad"]]
-    .map(([t, k]) => `<span><i class="dot" style="--c:${hex(DOT[k])}"></i>${t}</span>`).join("")}
-    <span><i style="color:var(--orange);border-top-style:dashed"></i>undeclared read</span>
-    <span>cyan shield: isolated by the Vigie · glass dome: quarantined · ring: the Vigie's level</span></div>`;
-const ui = { sc: sec.querySelector("#sim-sc"), seg: sec.querySelectorAll(".sim-seg button"), why: sec.querySelector("#sim-why"), money: sec.querySelector("#sim-money"),
-  feed: sec.querySelector("#sim-feed"), play: sec.querySelector("#sim-play"), t: sec.querySelector("#sim-t"), tick: sec.querySelector("#sim-tick") };
+    <div class="sim-seg" role="group" aria-label="Vigie"><b>Vigie</b>${Object.entries(WHY).map(([w, why]) => `<button type="button" data-w="${w}" title="${esc(why)}">${w === "ours" ? "Ours" : "Theirs"}</button>`).join("")}</div>
+  </details></div>`;
+const ui = { sc: sec.querySelector("#sim-sc"), seg: sec.querySelectorAll("[data-w]"), views: sec.querySelectorAll("[data-view]"), play: sec.querySelector("#sim-play"),
+  t: sec.querySelector("#sim-t"), tick: sec.querySelector("#sim-tick"), speed: sec.querySelector("#sim-speed"), x: sec.querySelector("#sim-x") };
 const stage = sec.querySelector(".sim-stage");
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -56,9 +54,7 @@ const scene = new THREE.Scene();
 scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
 scene.environmentIntensity = 0.6;
 const camera = new THREE.PerspectiveCamera(36, 2, 0.1, 200);
-camera.position.set(0, 14, 23);
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(-0.5, 0.8, -1.5);
 Object.assign(controls, { enableDamping: true, enablePan: false, minDistance: 10, maxDistance: 55, maxPolarAngle: 1.4 });
 scene.add(new THREE.HemisphereLight(0xc7d2fe, 0x1e1b4b, 1.2));
 const sun = new THREE.DirectionalLight(0xffffff, 2.4);
@@ -356,7 +352,6 @@ function seek(t) {
   flying = [];
   for (const n of Object.values(nodes)) n.bubble?.removeFromParent(), (n.bubble = null);
   show(t);
-  feed();
 }
 
 function step(t) {
@@ -366,24 +361,25 @@ function step(t) {
   for (const [a, s, rate, hidden] of sc.reads)
     if (Math.random() < rate && !nodes[a]?.asleep) send(s, a, hidden ? "hidden" : "read", nodes[s]?.mode === "compromised", Math.random() * span);
   for (const e of W.evAt[t] ?? []) say(e);
-  feed();
-}
-
-function feed() {
-  ui.feed.innerHTML = W.events.filter(e => e[0] <= tick).slice(-5).reverse()
-    .map(([t, k, text]) => `<li class="k-${esc(k)}"><b>t${t}</b>${esc(text)}</li>`).join("");
 }
 
 function hud() {
-  const other = worldName === "ours" ? "theirs" : "ours", O = sc.worlds[other], fraud = W.fraud[tick] ?? 0;
-  ui.money.innerHTML = `<span>Fraud wired out</span><b class="${fraud ? "neg" : "pos"}">${eur(fraud)}</b><span>Trading P&amp;L ${eur(W.pnl[tick] ?? 0)}</span>`
-    + `<small>${other === "ours" ? "With our Vigie" : "Without it"}: ${eur(O.fraud[tick] ?? 0)} wired out</small>`;
   ui.tick.textContent = `tick ${tick} / ${sc.ticks - 1}`;
   ui.t.value = tick;
   ui.play.textContent = playing ? "Pause" : tick >= sc.ticks - 1 ? "Replay" : "Play";
-  ui.why.textContent = WHY[worldName];
   for (const b of ui.seg) b.setAttribute("aria-pressed", b.dataset.w === worldName);
 }
+
+let goal = null, speed = 1, fit = 1;
+function view(k) {
+  const V = VIEWS[k], blobs = Object.values(nodes).filter(n => n.eyes && n.g.parent === world);
+  const target = V.on ? blobs.reduce((c, n) => c.add(n.g.position), v(0, 0, 0)).divideScalar(blobs.length).setY(1) : v(-1.5, 0.8, -1);
+  goal = { target, pos: v(...V.dir).setLength(V.dist * fit).add(target) };
+}
+view("3/4");
+camera.position.copy(goal.pos);
+controls.target.copy(goal.target);
+goal = null;
 
 function load(n) {
   sc = F.scenarios[n];
@@ -413,6 +409,10 @@ ui.play.onclick = () => {
   hud();
 };
 ui.t.oninput = () => seek(+ui.t.value);
+ui.speed.oninput = () => ((speed = SPEEDS[+ui.speed.value]), (ui.x.textContent = speed + "×"));
+ui.speed.oninput();
+for (const b of ui.views) b.onclick = () => view(b.dataset.view);
+controls.addEventListener("start", () => (goal = null));
 load(ui.sc.value);
 
 new ResizeObserver(() => {
@@ -422,7 +422,9 @@ new ResizeObserver(() => {
   labels.setSize(w, h);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
-  camera.position.sub(controls.target).setLength(27 * Math.max(1, 1.75 / camera.aspect)).add(controls.target);
+  const f = Math.max(1, 1.75 / camera.aspect);
+  camera.position.sub(controls.target).multiplyScalar(f / fit).add(controls.target);
+  fit = f;
 }).observe(stage);
 
 const tmp = new THREE.Vector3(), look = new THREE.Vector3(), want = new THREE.Color(), GREY = new THREE.Color(0x64748b);
@@ -522,12 +524,12 @@ function spread(k) {
 
 let last = performance.now();
 renderer.setAnimationLoop(now => {
-  const dt = Math.min(0.05, (now - last) / 1000), k = 1 - Math.exp(-dt * 4);
+  const dt = Math.min(0.05, (now - last) / 1000), k = 1 - Math.exp(-dt * 4), film = dt * SLOW * speed;
   last = now;
   if (sec.hidden || document.hidden) return;
   time += dt;
   if (playing) {
-    acc += dt * TPS;
+    acc += film * TPS;
     while (acc >= 1) {
       acc -= 1;
       if (tick >= sc.ticks - 1) {
@@ -540,7 +542,7 @@ renderer.setAnimationLoop(now => {
   }
   world.rotation.y = Math.sin(time * 0.12) * 0.05;
   for (const p of flying) {
-    p.at += dt;
+    p.at += film;
     if (p.at < 0) continue;
     if (!p.m.visible) (p.m.visible = true), depart(p);
     const u = Math.min(1, p.at / p.dur), e = u * u * (3 - 2 * u);
@@ -570,6 +572,11 @@ renderer.setAnimationLoop(now => {
   lamp.material.emissive.setHex(beacon);
   lamp.material.emissiveIntensity = 1.6 + Math.sin(time * 3) * 0.8;
   beam.color.setHex(beacon);
+  if (goal) {
+    controls.target.lerp(goal.target, k);
+    camera.position.lerp(goal.pos, k);
+    if (camera.position.distanceTo(goal.pos) < 0.05) goal = null;
+  }
   controls.update();
   renderer.render(scene, camera);
   labels.render(scene, camera);

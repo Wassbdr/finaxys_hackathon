@@ -158,17 +158,23 @@
   .x:hover { background: rgb(0 0 0 / .08); }
 
   .toast { position: fixed; bottom: 20px; right: 20px; z-index: 30; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line); background: rgb(37 42 49 / .92); backdrop-filter: blur(12px); }
-  /* The Simulation tab: a replay of the bench as a 3D scene (simulation.js), its money and its news floating over it */
-  main:has(> #simulation:not([hidden])) { max-width: min(1680px, 100vw); }
-  .sim-top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; margin-bottom: 12px; }
-  .sim-top label { display: flex; align-items: center; gap: 8px; color: var(--dim); }
-  .sim-top select { background: #1C2127; border: 1px solid #404854; border-radius: 6px; padding: 4px 8px; }
-  .sim-seg { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 10px; background: rgb(148 163 184 / .14); }
-  .sim-seg b { padding: 0 8px 0 6px; font-weight: 600; }
-  .sim-seg button { border: 0; border-radius: 7px; padding: 5px 16px; background: transparent; color: var(--dim); font-weight: 600; cursor: pointer; }
+  /* The Simulation tab: a replay of the bench as a 3D scene (simulation.js) filling the tab, its settings top left;
+     the header row is the live bank's, not the replay's, so it goes (Marius, 23-10) */
+  main:has(> #simulation:not([hidden])) { max-width: none; padding: 0; }
+  body:has(#simulation:not([hidden])) .bar { display: none; }
+  .sim-set { position: absolute; z-index: 1; top: 14px; left: 14px; display: grid; gap: 10px; width: 330px; padding: 8px 12px; border-radius: 12px; color: var(--dim); background: rgb(15 18 24 / .72); backdrop-filter: blur(8px); }
+  .sim-set:not([open]) { width: auto; }
+  .sim-set summary { cursor: pointer; color: var(--text); font-weight: 600; }
+  .sim-set label { display: flex; align-items: center; gap: 8px; }
+  .sim-set select { flex: 1; font: inherit; background: #1C2127; border: 1px solid #404854; border-radius: 6px; padding: 4px 8px; }
+  .sim-set #sim-speed { flex: 1; accent-color: #2D72D2; }
+  .sim-set #sim-x { min-width: 40px; text-align: right; font-variant-numeric: tabular-nums; }
+  .sim-seg { display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 10px; background: rgb(148 163 184 / .14); }
+  .sim-seg b { padding: 0 8px 0 6px; font-weight: 600; color: var(--text); }
+  .sim-seg button { flex: 1; border: 0; border-radius: 7px; padding: 5px 8px; background: transparent; color: var(--dim); font-weight: 600; cursor: pointer; }
+  .sim-seg button:hover { color: var(--text); }
   .sim-seg button[aria-pressed=true] { background: #2D72D2; color: #fff; }
-  .sim-why { color: var(--dim); }
-  .sim-stage { position: relative; height: min(72vh, 760px); overflow: hidden; border-radius: 16px; border: 1px solid var(--line);
+  .sim-stage { position: relative; height: calc(100dvh - var(--menu)); overflow: hidden;
     background: radial-gradient(70% 60% at 50% 35%, rgb(76 144 240 / .1), transparent 70%), rgb(148 163 184 / .05); }
   .sim-stage canvas { display: block; }
   .sim-labels { position: absolute; inset: 0; pointer-events: none; }
@@ -177,18 +183,9 @@
   .sim-label .m-stale, .sim-label .m-slow, .sim-label .m-down { color: var(--orange); } .sim-label .m-compromised { color: var(--red); } .sim-label .m-iso { color: #22d3ee; }
   .sim-bubble { max-width: 220px; padding: 5px 10px; border-radius: 10px; font-size: 12px; line-height: 1.3; color: #1C2127; background: rgb(255 255 255 / .92); box-shadow: 0 4px 14px rgb(0 0 0 / .35); animation: pop .15s ease-out; }
   .sim-bubble.k-bad { background: #fee2e2; color: #7f1d1d; } .sim-bubble.k-good { background: #dcfce7; color: #14532d; } .sim-bubble.k-warn { background: #ffedd5; color: #7c2d12; }
-  .sim-money, .sim-feed { position: absolute; z-index: 1; pointer-events: none; }
-  .sim-money { top: 14px; right: 14px; display: grid; gap: 2px; padding: 10px 14px; border-radius: 12px; text-align: right; font-variant-numeric: tabular-nums; color: var(--dim); background: rgb(15 18 24 / .72); backdrop-filter: blur(8px); }
-  .sim-money b { font-size: 26px; letter-spacing: -.02em; } .sim-money .neg { color: var(--red); } .sim-money .pos { color: var(--green); }
-  .sim-feed { left: 14px; top: 14px; max-width: 44%; margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 13px; }
-  .sim-feed li { padding: 4px 10px; border-radius: 8px; color: var(--dim); background: rgb(15 18 24 / .72); }
-  .sim-feed li:not(:first-child) { opacity: .65; }
-  .sim-feed b { margin-right: 8px; color: var(--text); font-variant-numeric: tabular-nums; }
-  .sim-feed .k-bad { color: var(--red); } .sim-feed .k-good { color: var(--green); } .sim-feed .k-warn { color: var(--orange); }
-  .sim-play { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
-  .sim-play input { flex: 1; accent-color: #2D72D2; }
-  .sim-play span { min-width: 100px; text-align: right; color: var(--dim); font-variant-numeric: tabular-nums; }
-  .legend i.dot { width: 10px; height: 10px; border: 0; border-radius: 50%; background: var(--c); }
+  .sim-play { display: flex; align-items: center; gap: 10px; }
+  .sim-play input { flex: 1; min-width: 0; accent-color: #2D72D2; }
+  .sim-play span { min-width: 84px; text-align: right; font-variant-numeric: tabular-nums; }
   @media (prefers-reduced-motion: reduce) { .sky i { animation: none; opacity: var(--e); } .tabs .line, dialog.glass[open] { transition: none; animation: none; } .lamp::before, .pastille::before { animation: none !important; } }
   @media (max-width: 760px) { main, .bar { max-width: none; } .menu { padding: 0; justify-content: flex-start; } .brand { display: none; } .bar { grid-template-columns: 1fr; row-gap: 12px; } .bar .col { margin: 0 !important; } .grid.three { grid-template-columns: 1fr; } }
 </style>
