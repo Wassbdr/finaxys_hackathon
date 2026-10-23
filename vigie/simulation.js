@@ -759,6 +759,15 @@ function draw2d() {
     g2.setLineDash(l.hidden ? [6, 5] : []);
     g2.stroke();
   }
+  for (const o of held ? snaps : []) {
+    if (!o) continue;
+    g2.beginPath();
+    g2.moveTo(...to2(...POS[held]));
+    g2.lineTo(...to2(...POS[o]));
+    g2.strokeStyle = "#7dd3fc";
+    g2.setLineDash([5, 4]);
+    g2.stroke();
+  }
   g2.setLineDash([]);
   for (const p of flying) {
     if (!p.m.visible) continue;
@@ -894,6 +903,20 @@ function hoverPaint() {
 // all its agents with it, its links redrawn as it goes; Layout › Save as default keeps where everything stands (Marius, 24-10)
 const ground = new THREE.Plane(v(0, 1, 0), 0), hit = new THREE.Vector3();
 let held = null, grip = [0, 0];
+// its centre snaps onto the column or the row of a thing it comes within SNAP of, the nearest such thing, and a guide
+// line joins the two centres (Marius, 24-10)
+const SNAP = 0.7, guideMat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc, depthTest: false }), guides = [0, 1].map(() => new THREE.Group());
+let snaps = [];
+world.add(...guides);
+addEventListener("keyup", e => e.key === "Alt" && held && ((held = null), guide()));
+function guide() {
+  guides.forEach((g, axis) => {
+    for (const o of g.children) o.geometry.dispose();
+    g.clear();
+    const o = held && snaps[axis];
+    if (o) g.add(stick(v(POS[held][0], 0.08, POS[held][1]), v(POS[o][0], 0.08, POS[o][1]), 0.05, guideMat)).children[0].castShadow = false;
+  });
+}
 function floorAt(x, y) {
   if (set.display === "2D") {
     const r = flat.getBoundingClientRect();
@@ -906,7 +929,7 @@ function floorAt(x, y) {
   return [hit.x, hit.z];
 }
 function carry(e) {
-  if (!e.altKey) return (held = null);
+  if (!e.altKey) return ((held = null), guide());
   const p = floorAt(e.clientX, e.clientY);
   if (!p) return;
   if (!held) {
@@ -916,13 +939,18 @@ function carry(e) {
     grip = [POS[id][0] - p[0], POS[id][1] - p[1]];
   }
   const pad = pads.find(q => q.ids.includes(held)), ids = pad ? pad.ids : [held];
-  const dx = p[0] + grip[0] - POS[held][0], dz = p[1] + grip[1] - POS[held][1];
+  const t = [p[0] + grip[0], p[1] + grip[1]], others = Object.keys(POS).filter(o => nodes[o] && !ids.includes(o));
+  snaps = [0, 1].map(axis => others.filter(o => Math.abs(POS[o][axis] - t[axis]) < SNAP)
+    .sort((a, b) => Math.hypot(POS[a][0] - t[0], POS[a][1] - t[1]) - Math.hypot(POS[b][0] - t[0], POS[b][1] - t[1]))[0]);
+  snaps.forEach((o, axis) => o && (t[axis] = POS[o][axis]));
+  const dx = t[0] - POS[held][0], dz = t[1] - POS[held][1];
   for (const id of ids) {
     POS[id] = [POS[id][0] + dx, POS[id][1] + dz];
     (id === "vigie" ? tower : nodes[id].g).position.set(POS[id][0], 0, POS[id][1]);
   }
   if (pad) (pad.x += dx), (pad.z += dz), pad.zone.position.set(pad.x, 0, pad.z), pad.label.position.set(pad.x + pad.r + 1.6, 0, pad.z);
   for (const l of links.values()) if (ids.includes(l.a) || ids.includes(l.b)) shape(l);
+  guide();
 }
 sec.querySelector("#sim-save").onclick = async e => {
   const b = e.currentTarget, layout = Object.fromEntries(Object.entries(POS).map(([id, [x, z]]) => [id, [+x.toFixed(2), +z.toFixed(2)]]));
