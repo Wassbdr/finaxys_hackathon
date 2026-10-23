@@ -17,7 +17,7 @@ if (!F) {
 const TPS = 3, SPEEDS = [0.25, 0.5, 1, 2, 4], SLOW = 0.25;
 const POS = {
   "market-feed": [-13, -7], "news-wire": [-13, -3.5], "payment-gateway": [-13, 0], "core-ledger": [-13, 3.5], "kyc-docs": [-13, 7],
-  quant: [-8, -7], "trader-1": [-7.6, -1.5], "trader-2": [-4.6, -1.5], "trader-3": [-1.6, -1.5], payment: [-4.6, 6.4],
+  quant: [-8.5, -8.6], "trader-1": [-4.6, -6], "trader-2": [-4.6, -1.5], "trader-3": [-4.6, 3], payment: [-4.6, 7.9],
   compliance: [3, 1], risk: [7, -4], executor: [10.5, 3], vigie: [2, -9],
 };
 const SKIN = { quant: 0xa78bfa, trader: 0x60a5fa, payment: 0x34d399, compliance: 0xfb923c, risk: 0xf472b6, executor: 0x2dd4bf, vigie: 0xf8fafc };
@@ -214,11 +214,12 @@ function server(id) {
 const first = Object.values(F.scenarios)[0];
 for (const s of first.services) if (POS[s]) world.add(server(s).g);
 for (const a of first.agents) if (POS[a.id]) world.add(blob(a.id, a.profile, a.role).g);
-// agents of one role stand on one pad named after the role, as the other tabs make them one block (Marius, 23-10)
+// agents of one role stand in a column on one pad named after the role, as the other tabs make them one block; its name
+// stands on its right, clear of the agents' own names (Marius, 23-10)
 const stadium = (w, r) => new THREE.Shape().absarc(-w, 0, r, Math.PI / 2, Math.PI * 1.5).absarc(w, 0, r, -Math.PI / 2, Math.PI / 2);
 for (const [role, members] of Object.entries(Object.groupBy(first.agents.filter(a => POS[a.id]), a => a.role))) {
   if (members.length < 2) continue;
-  const xs = members.map(a => POS[a.id][0]), w = (Math.max(...xs) - Math.min(...xs)) / 2, r = 3, c = SKIN[role] ?? 0x94a3b8;
+  const zs = members.map(a => POS[a.id][1]), w = (Math.max(...zs) - Math.min(...zs)) / 2, r = 2.4, c = SKIN[role] ?? 0x94a3b8;
   const zone = new THREE.Group(), rim = stadium(w, r);
   rim.holes.push(stadium(w, r - 0.14));
   for (const [shape, opacity] of [[stadium(w, r), 0.16], [rim, 0.9]]) {
@@ -227,11 +228,12 @@ for (const [role, members] of Object.entries(Object.groupBy(first.agents.filter(
     m.renderOrder = 1;
     zone.add(m);
   }
-  const label = tag(`${esc(role)}<small>${members.length} agents</small>`, [0, 0, r - 0.85]);
+  const x = POS[members[0].id][0], z = Math.min(...zs) + w;
+  const label = tag(`${esc(role)}<small>${members.length} agents</small>`, [x + r + 1.6, 0, z]);
   Object.assign(label.element.style, { color: "#" + new THREE.Color(c).getHexString(), fontSize: "15px", letterSpacing: ".12em", textTransform: "uppercase" });
-  zone.add(label);
-  zone.position.set(Math.min(...xs) + w, 0, members.reduce((z, a) => z + POS[a.id][1], 0) / members.length + 1.3);
-  world.add(zone);
+  zone.position.set(x, 0, z);
+  zone.rotation.y = Math.PI / 2;
+  world.add(zone, label);
 }
 const tower = new THREE.Group(), lamp = mesh(ball, new THREE.MeshStandardMaterial({ color: 0x0b0d12, emissive: LIGHT.VERT, emissiveIntensity: 2 }), [0, 6.15, -1.15], 0.26);
 const beam = new THREE.PointLight(LIGHT.VERT, 6, 7);
