@@ -843,7 +843,7 @@ function draw2d() {
 
 // Hovering a blob or a service fades the others and lights its links (Marius, 23-10). The opacities are changed
 // for the frame's drawing only and put back after it, so show() and the animations keep their own.
-const FADE = 0.4;
+const FADE = 0.15;
 let hovered = null, dim = new Set(), near = new Set(), tint = "";
 stage.addEventListener("pointermove", e => (carry(e), hover(held ?? pick(e.clientX, e.clientY))));
 stage.addEventListener("pointerleave", () => hover(null));
