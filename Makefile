@@ -93,3 +93,11 @@ invariant:
 	$(PY) -m vigie.invariant_guard --launch
 compare-invariant:
 	$(PY) -m vigie.invariant_compare --out $(RUN)
+
+.PHONY: cout-panne
+cout-panne:
+	HORIZON_NO_LLM=1 $(PY) -m vigie.panne
+
+.PHONY: verify-cout-panne
+verify-cout-panne:
+	HORIZON_NO_LLM=1 $(PY) -m vigie.panne_verify $(RUN)
