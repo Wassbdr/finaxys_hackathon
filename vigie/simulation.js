@@ -29,16 +29,36 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 // Camera presets, to get back to a simple view after orbiting: where the camera looks from, how far, and what it looks at.
 const VIEWS = { "3/4": { dir: [0.5, 13.2, 24.5], dist: 32 }, Top: { dir: [0, 1, 0.02], dist: 37 }, Front: { dir: [0, 0.25, 1], dist: 35 }, Agents: { dir: [0, 1.3, 1], dist: 24, on: "agents" } };
 
-sec.innerHTML = `<div class="sim-stage"><details class="sim-set">
-    <summary>Settings</summary>
-    <div class="sim-seg" role="group" aria-label="View"><b>View</b>${Object.keys(VIEWS).map(k => `<button type="button" data-view="${k}">${k}</button>`).join("")}</div>
-    <div class="sim-play"><button type="button" class="act ghost" id="sim-play"></button><input type="range" id="sim-t" min="0" step="1" aria-label="Tick"><span id="sim-tick"></span></div>
-    <label>Speed <input type="range" id="sim-speed" min="0" max="${SPEEDS.length - 1}" step="1" value="${SPEEDS.indexOf(1)}"><span id="sim-x"></span></label>
-    <label>Scenario <select id="sim-sc">${Object.keys(F.scenarios).map(n => `<option value="${esc(n)}">${esc(n.replaceAll("_", " "))}</option>`).join("")}</select></label>
-    <div class="sim-seg" role="group" aria-label="Vigie"><b>Vigie</b>${Object.entries(WHY).map(([w, why]) => `<button type="button" data-w="${w}" title="${esc(why)}">${w === "ours" ? "Ours" : "Theirs"}</button>`).join("")}</div>
-  </details></div>`;
-const ui = { sc: sec.querySelector("#sim-sc"), seg: sec.querySelectorAll("[data-w]"), views: sec.querySelectorAll("[data-view]"), play: sec.querySelector("#sim-play"),
-  t: sec.querySelector("#sim-t"), tick: sec.querySelector("#sim-tick"), speed: sec.querySelector("#sim-speed"), x: sec.querySelector("#sim-x") };
+// What stops the replay when its setting is on: the kinds of event simulation.py writes
+const STOPS = { stopBad: ["bad", "warn"], stopGood: ["good"] };
+// The Settings box's choices, kept by this browser as the recon keeps its own
+const set = { view: "3/4", speed: 1, world: "ours", stopBad: false, stopGood: false, focus: true, reads: true, bubbles: true, ...JSON.parse(localStorage.getItem("vigie.sim") || "{}") };
+const keep = () => localStorage.setItem("vigie.sim", JSON.stringify(set));
+const OFF_ON = [[false, "Off"], [true, "On"]];
+const choice = (key, options) => `<span class="choice" role="group" data-set="${key}">${options.map(([v, label, title]) =>
+  `<button type="button" data-v="${esc(JSON.stringify(v))}"${title ? ` title="${esc(title)}"` : ""}>${esc(label)}</button>`).join("")}</span>`;
+const row = (name, html, title) => `<span class="opt"${title ? ` title="${esc(title)}"` : ""}><span>${name}</span>${html}</span>`;
+
+// The recon dashboard's Settings box (recon-v3-mr/web, helper.tsx and map.tsx Fold): its gear and its name in the top
+// left corner, over the menu; it opens under the pointer and folds when the pointer leaves, unless pinned.
+sec.innerHTML = `<div class="settings"><div class="fold">
+    <span class="fold-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>Settings</span>
+    <button type="button" class="fold-pin" aria-label="Keep Settings open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></button>
+    <div class="fold-body"><div class="fold-in">
+      <span class="opt" title="Space plays or pauses"><span class="choice"><button type="button" id="sim-play"></button></span><input type="range" id="sim-t" min="0" step="1" aria-label="Tick"><span id="sim-tick"></span></span>
+      ${row("View", choice("view", Object.keys(VIEWS).map(k => [k, k])), "Puts the camera back on a preset view")}
+      ${row("Speed", choice("speed", SPEEDS.map(s => [s, s + "×"])), "1× is a tick every 1.3 s")}
+      ${row("Scenario", `<select id="sim-sc" aria-label="Scenario">${Object.keys(F.scenarios).map(n => `<option value="${esc(n)}">${esc(n.replaceAll("_", " "))}</option>`).join("")}</select>`)}
+      ${row("Vigie", choice("world", Object.entries(WHY).map(([w, why]) => [w, w === "ours" ? "Ours" : "Theirs", why])))}
+      ${row("Stop on a problem", choice("stopBad", OFF_ON), "Pauses when a service is compromised, an agent acts on compromised data, money leaves to a rerouted IBAN, the bank light turns orange or red, a CVE is published, a trader stops or the Vigie's heartbeat is lost")}
+      ${row("Stop on an action", choice("stopGood", OFF_ON), "Pauses when the gate or the executor refuses, the Vigie raises a level, isolates a service or turns the bank red, compliance blocks, or a forged signature is rejected")}
+      ${row("Focus on a stop", choice("focus", OFF_ON), "When the replay stops, the camera flies to whoever caused it")}
+      ${row("Background reads", choice("reads", OFF_ON), "The dots of the agents' routine reads of the services; off, only their messages fly")}
+      ${row("Bubbles", choice("bubbles", OFF_ON), "What each agent says, over its head")}
+    </div></div></div></div>
+  <div class="sim-stage"><p class="sim-stop" hidden></p></div>`;
+const ui = { sc: sec.querySelector("#sim-sc"), play: sec.querySelector("#sim-play"), t: sec.querySelector("#sim-t"), tick: sec.querySelector("#sim-tick"),
+  stop: sec.querySelector(".sim-stop"), fold: sec.querySelector(".fold"), pin: sec.querySelector(".fold-pin") };
 const stage = sec.querySelector(".sim-stage");
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -250,7 +270,7 @@ function link(a, b, hidden) {
 const GEO = { dot: new THREE.SphereGeometry(0.11, 14, 10), box: new THREE.BoxGeometry(0.3, 0.2, 0.05), coin: new THREE.CylinderGeometry(0.2, 0.2, 0.06, 22) };
 const glow = {};
 const shine = c => (glow[c] ??= new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.9, roughness: 0.4 }));
-let flying = [], fx = [], sc, W, worldName = "ours", tick = 0, acc = 0, playing = true, light = "VERT", time = 0;
+let flying = [], fx = [], sc, W, worldName = set.world, tick = 0, acc = 0, playing = true, light = "VERT", time = 0;
 
 function send(from, to, kind, bad, delay) {
   const l = link(from, to);
@@ -299,7 +319,7 @@ function actor(text) {
 
 function say([, kind, text]) {
   const id = actor(text), n = nodes[id];
-  if (!n || (id === "vigie" && worldName !== "ours")) return;
+  if (!set.bubbles || !n || (id === "vigie" && worldName !== "ours")) return;
   n.bubble?.removeFromParent();
   const d = document.createElement("div");
   d.className = "sim-bubble k-" + kind;
@@ -351,6 +371,7 @@ function seek(t) {
   for (const p of flying) world.remove(p.m);
   flying = [];
   for (const n of Object.values(nodes)) n.bubble?.removeFromParent(), (n.bubble = null);
+  halted = null;
   show(t);
 }
 
@@ -358,28 +379,68 @@ function step(t) {
   show(t);
   const span = 1 / TPS, rows = W.msgAt[t] ?? [];
   rows.forEach(([, a, b, kind, bad], i) => send(a, b, kind, bad, (i / rows.length) * span * 0.9));
-  for (const [a, s, rate, hidden] of sc.reads)
+  if (set.reads) for (const [a, s, rate, hidden] of sc.reads)
     if (Math.random() < rate && !nodes[a]?.asleep) send(s, a, hidden ? "hidden" : "read", nodes[s]?.mode === "compromised", Math.random() * span);
   for (const e of W.evAt[t] ?? []) say(e);
 }
 
 function hud() {
-  ui.tick.textContent = `tick ${tick} / ${sc.ticks - 1}`;
+  ui.tick.textContent = `${tick} / ${sc.ticks - 1}`;
   ui.t.value = tick;
   ui.play.textContent = playing ? "Pause" : tick >= sc.ticks - 1 ? "Replay" : "Play";
-  for (const b of ui.seg) b.setAttribute("aria-pressed", b.dataset.w === worldName);
+  if (playing) halted = null;
+  ui.stop.hidden = !halted;
+  if (halted) ui.stop.textContent = `Stopped at tick ${halted[0]}: ${halted[2]} · Space resumes`;
 }
 
-let goal = null, speed = 1, fit = 1;
+let goal = null, fit = 1, halted = null;
 function view(k) {
   const V = VIEWS[k], blobs = Object.values(nodes).filter(n => n.eyes && n.g.parent === world);
   const target = V.on ? blobs.reduce((c, n) => c.add(n.g.position), v(0, 0, 0)).divideScalar(blobs.length).setY(1) : v(-1.5, 0.8, -1);
   goal = { target, pos: v(...V.dir).setLength(V.dist * fit).add(target) };
 }
-view("3/4");
+view(VIEWS[set.view] ? set.view : "3/4");
 camera.position.copy(goal.pos);
 controls.target.copy(goal.target);
 goal = null;
+
+// The first event of tick t that a Stop setting pauses on
+const stopAt = t => (W.evAt[t] ?? []).find(([, k]) => Object.entries(STOPS).some(([s, kinds]) => set[s] && kinds.includes(k)));
+function halt(e) {
+  playing = false;
+  acc = 0;
+  halted = e;
+  const id = actor(e[2]), n = nodes[id];
+  if (set.focus && n && (id !== "vigie" || worldName === "ours")) {
+    const target = n.g.getWorldPosition(v(0, 0, 0)).add(v(0, 1, 0));
+    goal = { target, pos: camera.position.clone().sub(controls.target).setLength(16 * fit).add(target) };
+    set.view = null;
+    paint();
+  }
+  hud();
+}
+
+function paint() {
+  for (const b of sec.querySelectorAll(".choice [data-v]")) b.setAttribute("aria-pressed", JSON.stringify(set[b.parentElement.dataset.set]) === b.dataset.v);
+}
+const apply = { view, world: w => ((worldName = w), (W = sc.worlds[w]), seek(tick)) };
+for (const b of sec.querySelectorAll(".choice [data-v]"))
+  b.onclick = () => {
+    const k = b.parentElement.dataset.set, val = JSON.parse(b.dataset.v);
+    set[k] = val;
+    keep();
+    apply[k]?.(val);
+    paint();
+  };
+const pin = on => {
+  ui.fold.classList.toggle("pinned", on);
+  ui.pin.setAttribute("aria-pressed", on);
+  ui.pin.title = on ? "Unpin: it closes once the pointer leaves" : "Pin: it stays open";
+  localStorage.setItem("vigie.pin.sim", on ? "1" : "");
+};
+ui.pin.onclick = () => pin(!ui.fold.classList.contains("pinned"));
+pin(localStorage.getItem("vigie.pin.sim") === "1");
+paint();
 
 function load(n) {
   sc = F.scenarios[n];
@@ -401,18 +462,20 @@ function load(n) {
   seek(0);
 }
 
-ui.sc.onchange = () => load(ui.sc.value);
-for (const b of ui.seg) b.onclick = () => ((worldName = b.dataset.w), (W = sc.worlds[worldName]), seek(tick));
+ui.sc.onchange = () => ((set.sc = ui.sc.value), keep(), load(ui.sc.value));
 ui.play.onclick = () => {
   if (tick >= sc.ticks - 1) seek(0), (playing = true);
   else playing = !playing;
   hud();
 };
 ui.t.oninput = () => seek(+ui.t.value);
-ui.speed.oninput = () => ((speed = SPEEDS[+ui.speed.value]), (ui.x.textContent = speed + "×"));
-ui.speed.oninput();
-for (const b of ui.views) b.onclick = () => view(b.dataset.view);
-controls.addEventListener("start", () => (goal = null));
+addEventListener("keydown", e => {
+  if (sec.hidden || e.code !== "Space" || e.target.closest("input, select, button, textarea")) return;
+  e.preventDefault();
+  ui.play.click();
+});
+controls.addEventListener("start", () => ((goal = null), (set.view = null), paint()));
+if (set.sc in F.scenarios) ui.sc.value = set.sc;
 load(ui.sc.value);
 
 new ResizeObserver(() => {
@@ -524,7 +587,7 @@ function spread(k) {
 
 let last = performance.now();
 renderer.setAnimationLoop(now => {
-  const dt = Math.min(0.05, (now - last) / 1000), k = 1 - Math.exp(-dt * 4), film = dt * SLOW * speed;
+  const dt = Math.min(0.05, (now - last) / 1000), k = 1 - Math.exp(-dt * 4), film = dt * SLOW * set.speed;
   last = now;
   if (sec.hidden || document.hidden) return;
   time += dt;
@@ -538,6 +601,11 @@ renderer.setAnimationLoop(now => {
         break;
       }
       step(tick + 1);
+      const e = stopAt(tick);
+      if (e) {
+        halt(e);
+        break;
+      }
     }
   }
   world.rotation.y = Math.sin(time * 0.12) * 0.05;
@@ -562,7 +630,7 @@ renderer.setAnimationLoop(now => {
   for (const n of Object.values(nodes)) {
     if (n.eyes) animateBlob(n, dt, k);
     else animateServer(n, k);
-    if (n.bubble && time > n.bubbleUntil) n.bubble.removeFromParent(), (n.bubble = null);
+    if (n.bubble && playing && time > n.bubbleUntil) n.bubble.removeFromParent(), (n.bubble = null);
   }
   spread(k);
   const ts = THREE.MathUtils.lerp(tower.scale.x, worldName === "ours" ? 1 : 0.001, k);
