@@ -33,7 +33,7 @@ const WHY = { ours: "With our KRYS: one view of every agent and service, and a g
 const displayName = s => String(s ?? "").replace(/\b(?:the |The |la |La )?Vigie\b/g, "KRYS").replace(/Banque Horizon/g, "ARGUS");
 const esc = s => displayName(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 // Camera presets, to get back to a simple view after orbiting: where the camera looks from, how far, and what it looks at.
-const VIEWS = { "3/4": { dir: [0.5, 13.2, 24.5], dist: 37 }, Top: { dir: [0, 1, 0.02], dist: 43 }, Front: { dir: [0, 0.25, 1], dist: 40 }, Agents: { dir: [0, 1.3, 1], dist: 28, on: "agents" } };
+const VIEWS = { "3/4": { dir: [0.5, 13.2, 24.5], dist: 42 }, Top: { dir: [0, 1, 0.02], dist: 49 }, Front: { dir: [0, 0.25, 1], dist: 45 }, Agents: { dir: [0, 1.3, 1], dist: 31, on: "agents" } };
 
 // What stops the replay when its setting is on: the kinds of event simulation.py writes
 const STOPS = { stopBad: ["bad", "warn"], stopGood: ["good"] };
@@ -65,6 +65,7 @@ sec.innerHTML = `<div class="settings"><div class="fold">
       ${row("Bubbles", choice("bubbles", OFF_ON), "What each agent says, over its head")}
       ${row("Helper", choice("helper", OFF_ON), "A box that follows the pointer: what is under it, or what happens at this tick")}
       ${row("Details", choice("details", OFF_ON), "Whether the helper's box adds what an agent reads, its messages of this tick and its last event")}
+      <span class="opt" data-help="Layout|Hold Option over a drop or a service to carry it: it follows the pointer until Option is let go, a role's pad with its agents|Saves where everything stands as the default layout, for everyone"><span>Layout</span><span class="choice"><button type="button" id="sim-save">Save as default</button></span></span>
     </div></div></div></div>
   <div class="sim-stage"><p class="sim-stop" hidden></p></div>`;
 const ui = { sc: sec.querySelector("#sim-sc"), play: sec.querySelector("#sim-play"), t: sec.querySelector("#sim-t"), tick: sec.querySelector("#sim-tick"),
@@ -222,13 +223,16 @@ function server(id) {
 }
 
 const first = Object.values(F.scenarios)[0];
-// more room between the blobs: each role moves away from the centre as one block, so a role's column keeps its own
-// spacing; the services stay in their column (Marius, 23-10)
-const SPREAD = 1.3;
-for (const ids of [...Object.values(Object.groupBy(first.agents.filter(a => POS[a.id]), a => a.role)).map(g => g.map(a => a.id)), ["vigie"]]) {
+// more room between things: each role moves away from the centre as one block, so a role's column keeps its own
+// spacing, and each service on its own, so their column stretches with the rest (Marius, 23-10, 24-10)
+const SPREAD = 1.5;
+for (const ids of [...Object.values(Object.groupBy(first.agents.filter(a => POS[a.id]), a => a.role)).map(g => g.map(a => a.id)), ["vigie"], ...first.services.filter(s => POS[s]).map(s => [s])]) {
   const [cx, cz] = ids.reduce(([x, z], id) => [x + POS[id][0] / ids.length, z + POS[id][1] / ids.length], [0, 0]);
   for (const id of ids) POS[id] = [POS[id][0] + cx * (SPREAD - 1), POS[id][1] + cz * (SPREAD - 1)];
 }
+// the layout saved from the Settings box (Layout › Save as default) wins over the one above
+const SAVED = await fetch("/dashboard/sim-layout.json").then(r => (r.ok ? r.json() : {}), () => ({}));
+for (const id in SAVED) if (POS[id]) POS[id] = SAVED[id];
 for (const s of first.services) if (POS[s]) world.add(server(s).g);
 for (const a of first.agents) if (POS[a.id]) world.add(blob(a.id, a.profile, a.role).g);
 // agents of one role stand in a column on one pad named after the role, as the other tabs make them one block; its name
@@ -252,7 +256,7 @@ for (const [role, members] of Object.entries(Object.groupBy(first.agents.filter(
   zone.position.set(x, 0, z);
   zone.rotation.y = Math.PI / 2;
   zone.userData.pick = "pad:" + role;
-  pads.push({ role, x, z, w, r, c: label.element.style.color, n: members.length });
+  pads.push({ role, x, z, w, r, c: label.element.style.color, n: members.length, ids: members.map(a => a.id), zone, label });
   world.add(zone, label);
 }
 const tower = new THREE.Group(), lamp = mesh(ball, new THREE.MeshStandardMaterial({ color: 0x0b0d12, emissive: LIGHT.VERT, emissiveIntensity: 2 }), [0, 6.15, -1.15], 0.26);
@@ -334,17 +338,25 @@ const links = new Map();
 function link(a, b, hidden) {
   const key = [a, b].sort().join("|");
   if (links.has(key) || !nodes[a] || !nodes[b]) return links.get(key);
-  const A = at(a), B = at(b), mid = A.clone().add(B).multiplyScalar(0.5);
-  mid.y += 1 + A.distanceTo(B) * 0.08;
-  const curve = new THREE.QuadraticBezierCurve3(A, mid, B), g = new THREE.Group();
   const material = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.16, depthWrite: false });
-  if (hidden) for (let i = 0; i < 24; i++) g.add(stick(curve.getPoint(i / 24), curve.getPoint((i + 0.55) / 24), 0.03, material));
-  else g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 48, 0.035, 6), material));
-  g.traverse(o => (o.castShadow = false));
-  world.add(g);
-  const l = { a, g, curve, material, hidden: !!hidden, vigie: a === "vigie" || b === "vigie", svc: nodes[a].leds ? a : nodes[b].leds ? b : null };
+  const l = { a, b, g: new THREE.Group(), curve: new THREE.QuadraticBezierCurve3(), material, hidden: !!hidden, vigie: a === "vigie" || b === "vigie", svc: nodes[a].leds ? a : nodes[b].leds ? b : null };
+  shape(l);
+  world.add(l.g);
   links.set(key, l);
   return l;
+}
+// a link's arc between its two ends and the tube or the dashes along it, drawn again while a drop is carried
+function shape(l) {
+  const { curve, g } = l;
+  curve.v0.copy(at(l.a));
+  curve.v2.copy(at(l.b));
+  curve.v1.lerpVectors(curve.v0, curve.v2, 0.5).y += 1 + curve.v0.distanceTo(curve.v2) * 0.08;
+  curve.needsUpdate = true;
+  for (const o of g.children) o.geometry.dispose();
+  g.clear();
+  if (l.hidden) for (let i = 0; i < 24; i++) g.add(stick(curve.getPoint(i / 24), curve.getPoint((i + 0.55) / 24), 0.03, l.material));
+  else g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 48, 0.035, 6), l.material));
+  g.traverse(o => (o.castShadow = false));
 }
 
 const GEO = { dot: new THREE.SphereGeometry(0.11, 14, 10), box: new THREE.BoxGeometry(0.3, 0.2, 0.05), coin: new THREE.CylinderGeometry(0.2, 0.2, 0.06, 22) };
@@ -627,9 +639,10 @@ function animateServer(n, k) {
 // a true orange for the ring: the bank light's amber reads yellow on the dark floor
 const RING = { VERT: LIGHT.VERT, ORANGE: 0xf97316, ROUGE: 0xef4444 };
 
-// How far the problem has spread: a red zone on the floor around each compromised service and each agent whose ring is
-// red, merged into one shape where they stand close (a metaball field), with a striped cordon on its edge.
-const ZONE_R = 2.8, zonePts = Array.from({ length: 24 }, () => new THREE.Vector3());
+// The problem spreading: a red zone on the floor swells around a service as it is compromised and an agent as its ring
+// turns red, then fades after ZONE_HOLD seconds, leaving the rings to say who is hit (Marius, 24-10); zones that overlap
+// merge into one shape (a metaball field), with a striped cordon on its edge.
+const ZONE_R = 2.8, ZONE_HOLD = 2, zonePts = Array.from({ length: 24 }, () => new THREE.Vector3());
 const cordon = turn(new THREE.Mesh(new THREE.PlaneGeometry(46, 46), new THREE.ShaderMaterial({
   transparent: true, depthWrite: false,
   uniforms: { pts: { value: zonePts }, n: { value: 0 }, time: { value: 0 }, color: { value: new THREE.Color(0xef4444) } },
@@ -657,7 +670,10 @@ for (const n of Object.values(nodes)) if (n.halo) n.halo.renderOrder = 2;
 function spread(k) {
   let i = 0;
   for (const n of Object.values(nodes)) {
-    n.zr = THREE.MathUtils.lerp(n.zr ?? 0, (n.eyes ? n.alert === "ROUGE" : n.mode === "compromised") ? ZONE_R : 0, k);
+    const red = n.eyes ? n.alert === "ROUGE" : n.mode === "compromised";
+    if (red && !n.red) n.redAt = time;
+    n.red = red;
+    n.zr = THREE.MathUtils.lerp(n.zr ?? 0, red && time - n.redAt < ZONE_HOLD ? ZONE_R : 0, k);
     if (n.zr < 0.05 || i === zonePts.length) continue;
     world.worldToLocal(n.g.getWorldPosition(tmp));
     zonePts[i++].set(tmp.x, -tmp.z, n.zr);
@@ -671,7 +687,7 @@ function spread(k) {
 const flat = document.createElement("canvas"), g2 = flat.getContext("2d");
 flat.className = "sim-2d";
 stage.append(flat);
-const MAP = { x0: -15, x1: 17, z0: -14.5, z1: 13.5 };  // the part of the floor the map shows
+const MAP = { x0: -17.5, x1: 17, z0: -14.5, z1: 13.5 };  // the part of the floor the map shows
 let s2 = 1, o2 = [0, 0];
 const to2 = (x, z) => [o2[0] + x * s2, o2[1] + z * s2];
 function fit2d(w, h) {
@@ -743,6 +759,15 @@ function draw2d() {
     g2.strokeStyle = rgb(l.material.color, l.material.opacity);
     g2.lineWidth = 1.5;
     g2.setLineDash(l.hidden ? [6, 5] : []);
+    g2.stroke();
+  }
+  for (const o of held ? snaps : []) {
+    if (!o) continue;
+    g2.beginPath();
+    g2.moveTo(...to2(...POS[held]));
+    g2.lineTo(...to2(...POS[o]));
+    g2.strokeStyle = "#7dd3fc";
+    g2.setLineDash([5, 4]);
     g2.stroke();
   }
   g2.setLineDash([]);
@@ -833,9 +858,9 @@ function draw2d() {
 
 // Hovering a blob or a service fades the others and lights its links (Marius, 23-10). The opacities are changed
 // for the frame's drawing only and put back after it, so show() and the animations keep their own.
-const FADE = 0.4;
+const FADE = 0.15;
 let hovered = null, dim = new Set(), near = new Set(), tint = "";
-stage.addEventListener("pointermove", e => hover(pick(e.clientX, e.clientY)));
+stage.addEventListener("pointermove", e => (carry(e), hover(held ?? pick(e.clientX, e.clientY))));
 stage.addEventListener("pointerleave", () => hover(null));
 function hover(id) {
   id = nodes[id] ? id : null;
@@ -875,6 +900,66 @@ function hoverPaint() {
   }
   return () => was.forEach(([m, o, c]) => ((m.opacity = o), c !== undefined && m.color.setHex(c)));
 }
+
+// Holding Option over a drop or a service picks it up: it follows the pointer on the floor until Option is let go, a role's pad and
+// all its agents with it, its links redrawn as it goes; Layout › Save as default keeps where everything stands (Marius, 24-10)
+const ground = new THREE.Plane(v(0, 1, 0), 0), hit = new THREE.Vector3();
+let held = null, grip = [0, 0];
+// its centre snaps onto the column or the row of a thing it comes within SNAP of, the nearest such thing, and a guide
+// line joins the two centres (Marius, 24-10)
+const SNAP = 0.7, guideMat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc, depthTest: false }), guides = [0, 1].map(() => new THREE.Group());
+let snaps = [];
+world.add(...guides);
+addEventListener("keyup", e => e.key === "Alt" && held && ((held = null), guide()));
+function guide() {
+  guides.forEach((g, axis) => {
+    for (const o of g.children) o.geometry.dispose();
+    g.clear();
+    const o = held && snaps[axis];
+    if (o) g.add(stick(v(POS[held][0], 0.08, POS[held][1]), v(POS[o][0], 0.08, POS[o][1]), 0.05, guideMat)).children[0].castShadow = false;
+  });
+}
+function floorAt(x, y) {
+  if (set.display === "2D") {
+    const r = flat.getBoundingClientRect();
+    return [(x - r.left - o2[0]) / s2, (y - r.top - o2[1]) / s2];
+  }
+  const r = renderer.domElement.getBoundingClientRect();
+  ray.setFromCamera(ndc.set(((x - r.left) / r.width) * 2 - 1, 1 - ((y - r.top) / r.height) * 2), camera);
+  if (!ray.ray.intersectPlane(ground, hit)) return null;
+  world.worldToLocal(hit);
+  return [hit.x, hit.z];
+}
+function carry(e) {
+  if (!e.altKey) return ((held = null), guide());
+  const p = floorAt(e.clientX, e.clientY);
+  if (!p) return;
+  if (!held) {
+    const id = pick(e.clientX, e.clientY);
+    if (!nodes[id]) return;
+    held = id;
+    grip = [POS[id][0] - p[0], POS[id][1] - p[1]];
+  }
+  const pad = pads.find(q => q.ids.includes(held)), ids = pad ? pad.ids : [held];
+  const t = [p[0] + grip[0], p[1] + grip[1]], others = Object.keys(POS).filter(o => nodes[o] && !ids.includes(o));
+  snaps = [0, 1].map(axis => others.filter(o => Math.abs(POS[o][axis] - t[axis]) < SNAP)
+    .sort((a, b) => Math.hypot(POS[a][0] - t[0], POS[a][1] - t[1]) - Math.hypot(POS[b][0] - t[0], POS[b][1] - t[1]))[0]);
+  snaps.forEach((o, axis) => o && (t[axis] = POS[o][axis]));
+  const dx = t[0] - POS[held][0], dz = t[1] - POS[held][1];
+  for (const id of ids) {
+    POS[id] = [POS[id][0] + dx, POS[id][1] + dz];
+    (id === "vigie" ? tower : nodes[id].g).position.set(POS[id][0], 0, POS[id][1]);
+  }
+  if (pad) (pad.x += dx), (pad.z += dz), pad.zone.position.set(pad.x, 0, pad.z), pad.label.position.set(pad.x + pad.r + 1.6, 0, pad.z);
+  for (const l of links.values()) if (ids.includes(l.a) || ids.includes(l.b)) shape(l);
+  guide();
+}
+sec.querySelector("#sim-save").onclick = async e => {
+  const b = e.currentTarget, layout = Object.fromEntries(Object.entries(POS).map(([id, [x, z]]) => [id, [+x.toFixed(2), +z.toFixed(2)]]));
+  const r = await fetch("/dashboard/sim-layout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(layout) }).catch(() => null);
+  b.textContent = r?.ok ? "Saved" : "Not saved";
+  setTimeout(() => (b.textContent = "Save as default"), 1500);
+};
 
 let last = performance.now();
 renderer.setAnimationLoop(now => {

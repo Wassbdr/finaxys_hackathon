@@ -16,6 +16,7 @@
     GET  /dashboard   tableau de bord de la Vigie (7 onglets)
     GET  /dashboard/{dashboard.js,dashboard-demo.json}  its script and the sample data it shows when no run is live
     GET  /dashboard/{simulation.js,dashboard-sim.json}  the Simulation tab's 3D scene and the bench replays it plays
+    GET  /dashboard/sim-layout.json  where its nodes stand, once saved; POST /dashboard/sim-layout {"quant": [x, z], …} saves it
 
 Toutes les routes acceptent ?world=A|B en mode comparaison.
     python -m api.app
@@ -37,6 +38,7 @@ from pydantic import BaseModel
 from sim.config import ROOT, load_config
 
 RECORDINGS = ROOT / "recordings"
+SIM_LAYOUT = ROOT / "vigie" / "sim-layout.json"
 
 
 class InjectRequest(BaseModel):
@@ -176,9 +178,21 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
 
     @app.get("/dashboard/{name}")
     def dashboard_file(name: str):
+        if name == "sim-layout.json":
+            return FileResponse(SIM_LAYOUT) if SIM_LAYOUT.exists() else {}
         if name not in ("dashboard.js", "dashboard-demo.json", "simulation.js", "dashboard-sim.json"):
             raise HTTPException(404)
         return FileResponse(ROOT / "vigie" / name)
+
+    @app.post("/dashboard/sim-layout")
+    def save_sim_layout(layout: dict[str, list[float]]):
+        """The Simulation tab's Layout › Save as default: where each node stands on the floor, its new default."""
+        if len(layout) > 50 or any(not k.replace("-", "").isalnum() or len(p) != 2 or not all(-50 <= c <= 50 for c in p)
+                                   for k, p in layout.items()):
+            raise HTTPException(400, "expected {node id: [x, z]}, |x|, |z| <= 50")
+        rows = ",\n".join(f"  {json.dumps(k)}: {json.dumps(p)}" for k, p in layout.items())
+        SIM_LAYOUT.write_text("{\n" + rows + "\n}\n", encoding="utf-8")
+        return {"ok": True}
 
     @app.get("/compare")
     def compare():
