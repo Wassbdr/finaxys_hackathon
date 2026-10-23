@@ -12,6 +12,7 @@ from bus.gate import Decision
 from bus.message import FIELDS, MessageFactory, canonical
 from sim.config import agent_ids, role_of
 from sim.ledger import historical_var
+from vigie.herding import Herding
 from vigie.provenance import Provenance
 from vigie.policy import Policy
 from vigie.statistics import Behavior, structuring
@@ -66,6 +67,7 @@ class Controller:
         self.ledger_evidence = []
         self.claim_evidence = []
         self.auditor_enabled = False
+        self.herding = Herding(cfg)
         permissions = {
             "quant": {"price_update"},
             "trader": {"order_proposal"},
@@ -342,6 +344,7 @@ class Controller:
                 if status.get("mode") in {"compromised", "stale", "down"}:
                     self.isolate_service(sid, "UNTRUSTED_PROVENANCE", [id_])
         kind, p = msg["type"], msg["payload"]
+        self.herding.observe(msg)
         if kind == "tick" and msg["from"] == "clock":
             self.advance(msg["tick"])
             self.last_clock_tick = msg["tick"]
@@ -1109,4 +1112,5 @@ class Controller:
                 for key, record in list(self.propagation.items())[-50:]
             },
             "auditor_llm": False,
+            "herding": self.herding.snapshot(),
         }
