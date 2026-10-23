@@ -1,7 +1,7 @@
-# Données Vigie pour l’équipe dashboard
+# Données KRYS pour l’équipe dashboard
 
 Aucune interface ajoutée. Le contrat JSON du bus de l’équipe reste inchangé,
-avec HMAC et préfixe de monde. La Vigie publie à chaque tick :
+avec HMAC et préfixe de monde. KRYS publie à chaque tick :
 
 ```text
 WS /stream?types=alert,heartbeat&world=B
@@ -48,7 +48,7 @@ suivent la propagation : service → agent consommateur, puis agent parent →
 agent dépendant. Leur sens est donc explicite, distinct des dépendances
 agent → service de la route `/graph` d’origine. Les nœuds victimes peuvent
 être `contaminated: true` tout en restant hors quarantaine et avec suspicion zéro.
-Le graphe de l’API existante `/graph` demeure disponible ; la vue Vigie en ajoute
+Le graphe de l’API existante `/graph` demeure disponible ; la vue KRYS en ajoute
 l’interprétation causale et l’isolement des sources. L’agrégation évite de renvoyer
 l’intégralité du journal à chaque tick ; tous les liens message par message sont
 conservés dans le journal et le moteur de provenance.
@@ -68,6 +68,6 @@ exact du service pour lever son isolement ; `action: resume` pour le rouge globa
 Restaurer un service ou laisser baisser le score ne vaut pas décision humaine.
 Les messages historiquement contaminés restent refusés après la restauration.
 
-La coupure de la Vigie conserve les cinq ticks et l’orange local du contrat de
+La coupure de KRYS conserve les cinq ticks et l’orange local du contrat de
 l’équipe. Le PID reste dans `{prefix}agent:vigie:pid` ; le bouton existant peut
 utiliser `POST /inject` avec `{"command":"kill-vigie"}`.

@@ -1,5 +1,5 @@
 "use strict";
-// The Vigie's dashboard: polls the API and redraws the four tabs. What the back does not send yet, or everything when no
+// KRYS's dashboard: polls the API and redraws the four tabs. What the back does not send yet, or everything when no
 // simulation runs, is drawn from dashboard-demo.json beside this file, tagged "sample" (or "demo data" in the header).
 
 const ROLES = {
@@ -8,14 +8,14 @@ const ROLES = {
   compliance: "Checks every order and payment is allowed (KYC, restricted list, split orders).",
   risk: "Measures what the bank can lose and brakes: validates, cuts or refuses.",
   payment: "Pays supplier invoices through the payment gateway.",
-  executor: "Executes only what the Vigie's gate approves.",
+  executor: "Executes only what KRYS's gate approves.",
 };
 const LAYERS = {1: "identity", 2: "rules", 3: "behavior", 4: "coherence"};
 const LIMIT_NAMES = {
   max_position_pct: "largest position", daily_loss_pct: "loss today", exposure_pct: "exposure",
   var_pct: "value at risk", daily_loss_incl_fraud_pct: "loss incl. fraud", liquidity_floor_pct: "cash floor", daily_pct: "paid today",
 };
-// a light or a level of the Vigie: the colour of its block and the word of its pastille
+// a light or a level of KRYS: the colour of its block and the word of its pastille
 const STATE = {VERT: ["green", "green"], ORANGE: ["orange", "orange"], ROUGE: ["red", "red"], QUARANTAINE: ["red", "quarantined"]};
 const PITCH = "php2shell_day";  // the scenario of the pitch's three figures
 const ORDER = ["quant", "trader", "compliance", "risk", "payment", "executor"];
@@ -23,7 +23,9 @@ const COLUMN = {quant: 1, trader: 2, payment: 2, compliance: 3, risk: 4, executo
 
 const $ = id => document.getElementById(id);
 const eur = v => v == null ? "-" : (Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(2) + " M€" : (Math.round(v) || 0).toLocaleString("en") + " €");
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+// Les archives gardent leurs identifiants et preuves ; seul le texte rendu adopte le nom public.
+const displayName = s => String(s ?? "").replace(/\b(?:the |The |la |La )?Vigie\b/g, "KRYS").replace(/Banque Horizon/g, "ARGUS");
+const esc = s => displayName(s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
 const pct = (x, digits = 0) => x == null ? "-" : (x * 100).toFixed(digits) + "%";
 const tone = p => p >= 100 ? "red" : p >= 80 ? "orange" : "green";
 const bar = (value, limit = 100) => { const p = limit ? value / limit * 100 : 0; return `<div class="bar-in s-${tone(p)}"><i style="width:${Math.min(100, Math.max(2, p))}%"></i></div>`; };
@@ -73,7 +75,7 @@ async function pollGuardrails() { GR = await getJson("/guardrails"); }
 
 function suspects() {
   const out = {...D.st.metrics?.suspect_services};
-  for (const sid of D.st.isolated_services || []) out[sid] ??= {since_tick: "?", text: "isolated by the Vigie"};
+  for (const sid of D.st.isolated_services || []) out[sid] ??= {since_tick: "?", text: "isolated by KRYS"};
   return out;
 }
 // an agent's state is the worst of its sanction level and its four layer lights: an orange layer does not show green
@@ -83,7 +85,7 @@ function agentState(id) {
   const level = [va.level || a.light || "VERT", ...Object.values(va.lights || {})].reduce((x, y) => RANK.indexOf(y) > RANK.indexOf(x) ? y : x);
   return a.alive === false && level === "VERT" ? ["grey", "silent"] : STATE[level] || ["grey", level];
 }
-// red: the Vigie distrusts it; orange: layer 1 reports it exposed (a CVE, a large impact radius) but it is still trusted
+// red: KRYS distrusts it; orange: layer 1 reports it exposed (a CVE, a large impact radius) but it is still trusted
 const serviceState = id => suspects()[id] ? ["red", "suspect"] : (D.st.graph?.suspects || []).some(s => s.service === id) ? ["orange", "exposed"] : ["green", "trusted"];
 const agentIds = () => Object.keys(D.S.agents || {}).sort((x, y) => order(x) - order(y));
 const roleOf = id => D.S.agents?.[id]?.role || id.split("-")[0];
@@ -142,7 +144,7 @@ function renderAgents() {
   put("agents", html);
 }
 
-/** The graph screen: the Vigie's contamination graph (layer 3), with the hidden dependencies layer 1 found. */
+/** The graph screen: KRYS's contamination graph (layer 3), with the hidden dependencies layer 1 found. */
 function graph() {
   const g = D.st.contamination_graph || {nodes: [], edges: []};
   if (!g.nodes?.length) return `<p class="empty">no message yet</p>`;
@@ -168,8 +170,8 @@ function agentDetail(id) {
   const st = D.st, ind = st.metrics || {}, a = D.S.agents?.[id] || {}, va = st.agents?.[id] || {}, role = a.role || id.split("-")[0];
   const susp = va.suspicion || 0, sus = suspects(), deps = D.G.nodes.find(n => n.id === id)?.depends_on || [];
   let html = head(id, agentState(id)) + `<p>${esc(ROLES[role] || role)}</p>`;
-  html += `<h4>The Vigie's four layers on it</h4><div class="chips">${[1, 2, 3, 4].map(n => { const l = va.lights?.[n] || "VERT", [c, w] = STATE[l] || ["grey", l]; return chip(c, `${n} ${LAYERS[n]}: ${w}`); }).join("")}</div>`;
-  html += `<div class="chips">${chip(a.alive === false ? "red" : "green", a.alive === false ? "silent" : "alive")}${a.paused ? chip("orange", "paused") : ""}${va.quarantined ? chip("red", "quarantined: key revoked, tools cut") : ""}${a.vigie_lost ? chip("orange", "lost the Vigie") : ""}`
+  html += `<h4>KRYS's four layers on it</h4><div class="chips">${[1, 2, 3, 4].map(n => { const l = va.lights?.[n] || "VERT", [c, w] = STATE[l] || ["grey", l]; return chip(c, `${n} ${LAYERS[n]}: ${w}`); }).join("")}</div>`;
+  html += `<div class="chips">${chip(a.alive === false ? "red" : "green", a.alive === false ? "silent" : "alive")}${a.paused ? chip("orange", "paused") : ""}${va.quarantined ? chip("red", "quarantined: key revoked, tools cut") : ""}${a.vigie_lost ? chip("orange", "lost KRYS") : ""}`
     + deps.map(d => chip(sus[d] ? "red" : "grey", `reads ${d}${sus[d] ? " (suspect)" : ""}`)).join("") + chip(susp >= 50 ? "red" : susp > 0 ? "orange" : "green", `suspicion ${susp.toFixed(0)}/100`) + `</div>`;
   let rows = "";
   for (const [name, v] of Object.entries(ind.limits?.[id] || {}))
@@ -189,7 +191,7 @@ function agentDetail(id) {
   const orders = (st.orders?.[id] || []).slice(-6).reverse();
   if (orders.length) html += `<h4>Its last orders</h4>` + table(`<th>tick</th><th>asset</th><th class="num">amount</th>`, orders.map(o => `<tr><td>${o.tick}</td><td>${esc(o.asset)}</td><td class="num">${eur(o.notional_eur)}</td></tr>`));
   const acts = actionsOf(id).slice(-6).reverse();
-  html += `<h4>What the Vigie did to it</h4>` + (acts.length ? table(`<th>tick</th><th>action</th><th>why</th><th>layer</th>`,
+  html += `<h4>What KRYS did to it</h4>` + (acts.length ? table(`<th>tick</th><th>action</th><th>why</th><th>layer</th>`,
     acts.map(x => `<tr><td>${x.tick}</td><td class="a-${esc(x.action)}"><b>${esc(x.action)}</b></td><td>${esc(x.text || x.reason)}</td><td>${esc(x.layer)}</td></tr>`)) : `<p class="empty">nothing: every action approved</p>`);
   if (va.quarantined) html += `<div><button class="act" onclick="human('human unblock ${esc(id)}')">Lift quarantine</button></div>`;
   return html;
@@ -226,12 +228,12 @@ function renderActions() {
     incidents.map(i => `<tr><td>${esc(i.id)}</td><td>${esc(i.root)}</td><td class="${i.level === "ORANGE" ? "a-slow" : "a-block"}"><b>${esc((STATE[i.level] || [, i.level])[1])}</b></td><td>${esc(i.reasons.join(", "))}</td><td>${i.first_tick} → ${i.last_tick}</td><td class="num">${i.raw_count}</td></tr>`)) : `<p class="empty">none</p>`);
   html += `<h2>Why a service was isolated<span class="hint">shadow ledger rebuilt from signed executions, independent price anchor</span></h2>` + ledgerTable(ledgerGroups());
   const claims = (st.claim_evidence || []).slice().reverse();
-  html += `<h2>What an agent claimed, and what the Vigie found${sample("claim_evidence")}</h2>` + (claims.length ? table(`<th>agent</th><th>client</th><th>claimed</th><th>found</th>`,
+  html += `<h2>What an agent claimed, and what KRYS found${sample("claim_evidence")}</h2>` + (claims.length ? table(`<th>agent</th><th>client</th><th>claimed</th><th>found</th>`,
     claims.slice(0, 8).map(c => `<tr><td>${esc(c.agent)}</td><td>${esc(c.client_id)}</td><td>${esc(c.assertion)}</td><td class="a-block">${esc(c.truth)}</td></tr>`)) : `<p class="empty">no false claim caught</p>`);
   const refused = decisions.filter(d => !d.approved).slice().reverse().slice(0, 15);
   html += `<h2>Refused at the gate, newest first</h2>` + (refused.length ? table(`<th>tick</th><th>request</th><th>reason</th><th>decided by</th>`,
     refused.map(d => `<tr><td>${d.tick}</td><td>${esc(d.request_id)}</td><td class="a-block">${esc(d.reason)}</td><td>${esc(d.decided_by)}</td></tr>`)) : `<p class="empty">nothing refused yet</p>`);
-  html += `<h2>Every Vigie decision on an agent, newest first<label class="hint"><input type="checkbox" ${showApprovals ? "checked" : ""} onchange="showApprovals=this.checked;render()"> show approvals</label></h2>`;
+  html += `<h2>Every KRYS decision on an agent, newest first<label class="hint"><input type="checkbox" ${showApprovals ? "checked" : ""} onchange="showApprovals=this.checked;render()"> show approvals</label></h2>`;
   const rows = actions.filter(a => showApprovals || a.action !== "green").slice().reverse().slice(0, 40);
   html += rows.length ? table(`<th>tick</th><th>agent / target</th><th>action</th><th>why</th><th>layer</th><th class="num">suspicion</th>`,
     rows.map(a => `<tr><td>${a.tick}</td><td>${esc(a.agent)}</td><td class="a-${esc(a.action)}"><b>${esc(a.action)}</b></td><td>${esc(a.text || a.reason)}</td><td>${esc(a.layer)}</td><td class="num">${a.suspicion ?? ""}</td></tr>`)) : `<p class="empty">no action yet</p>`;
@@ -326,14 +328,14 @@ function renderMetrics() {
   put("metrics", html);
 }
 
-/** The replays of every scenario without (A) and with (B) the Vigie, and the bench's metrics. */
+/** The replays of every scenario without (A) and with (B) KRYS, and the bench's metrics. */
 function evaluation() {
   const I = D.I, m = I.metrics || {}, when = new Date(I.generated_at).toLocaleString("en-GB");
-  let html = `<h2>Without and with the Vigie<span class="hint">replays of ${esc(when)}</span>${sample("improvements")}</h2>`;
+  let html = `<h2>Without and with KRYS<span class="hint">replays of ${esc(when)}</span>${sample("improvements")}</h2>`;
   const p = I.scenarios.find(s => s.scenario === PITCH);
   // three separate figures, never one inside another: the fraud blocked is larger than the net result saved
   if (p) html += `<div class="counts">${big(eur(p.avoided_fraud_eur), "fraud blocked", "green")}${big(eur(p.avoided_loss_eur), "net result saved", "green")}${big(eur(-p.brake_cost_eur), "cost of the blocks", "orange", "trading result lost to refused orders")}</div>
-    <p class="note">${esc(PITCH)}, same seed: ${eur(p.unprotected_net_eur)} without the Vigie (of which ${eur(p.avoided_fraud_eur)} of fraud), ${eur(p.protected_net_eur)} with it.</p>`;
+    <p class="note">${esc(PITCH)}, same seed: ${eur(p.unprotected_net_eur)} without KRYS (of which ${eur(p.avoided_fraud_eur)} of fraud), ${eur(p.protected_net_eur)} with it.</p>`;
   // the table is two thirds of the screen wide: thousands in k€, detection as ticks before (−) or after (+) the attack
   const k = v => v != null && Math.abs(v) >= 1e3 && Math.abs(v) < 1e6 ? Math.round(v / 1e3) + " k€" : eur(v);
   html += `<div style="margin-top:12px">` + table(`<th>scenario</th><th class="num">without</th><th class="num">with</th><th class="num">fraud blocked</th><th class="num">net result saved</th><th class="num">cost of the blocks</th><th class="num">clean money frozen</th><th class="num">contaminated ops</th><th>detected, ticks vs attack</th>`,
@@ -385,7 +387,7 @@ function renderSummary() {
   for (const [s, f] of Object.entries(suspects())) ask(bad, `${esc(s)} is suspect since tick ${esc(f.since_tick)}: every action it fed is refused.`, `human unblock ${s}`, "Trust it again", true);
   for (const [who, why] of Object.entries(D.S.agents?.compliance?.status?.blocked || {})) ask(bad, `Compliance blocked ${esc(who)} (${esc(why)}): only a human unblocks it.`, `human unblock ${who}`, "Unblock", true);
   const lost = agentIds().filter(id => D.S.agents[id].vigie_lost);
-  if (lost.length) ask(bad, `${esc(lost.join(", "))} lost the Vigie's heartbeat and went orange by themselves: check that the Vigie runs.`);
+  if (lost.length) ask(bad, `${esc(lost.join(", "))} lost KRYS's heartbeat and went orange by themselves: check that KRYS runs.`);
   const props = D.I.proposals || [], th = st.metrics?.thresholds || {}, open = props.filter(p => p.kind !== "threshold");
   if (open.length) ask(bad, `The replays found ${open.length} gap${open.length === 1 ? "" : "s"} or rule${open.length === 1 ? "" : "s"} to revisit: ${esc(open.map(p => p.target).join(", "))}.`, "#improve", "Read them", true);
   for (const p of props.filter(p => p.kind === "threshold" && p.proven && th[p.target] !== p.proposed)) ask(good, `The replays agree: ${esc(p.why)}`, p.apply, `Apply ${p.current} → ${p.proposed}`);
@@ -396,7 +398,7 @@ function renderSummary() {
   put("summary", html);
 }
 
-/** Every guardrail in force: each agent's limits as config.yaml sets them with how much of each is used now, the Vigie's, the LLM's. */
+/** Every guardrail in force: each agent's limits as config.yaml sets them with how much of each is used now, KRYS's, the LLM's. */
 const THRESHOLDS = {price_drift_z: "Price move in one tick that raises an alert, in standard deviations", reconciliation_gap_pct: "Gap between Risk's cash and the book of record that raises an alert, %",
   herding_share: "Share of the traders on one side of one asset within 3 ticks that raises an alert", breach_horizon_ticks: "Warns when a limit will break within, ticks"};
 function renderGuardrails() {
@@ -408,7 +410,7 @@ function renderGuardrails() {
   const on = x => chip(x ? "green" : "grey", x ? "on" : "off");
   const rows = list => table(`<th>who</th><th>guardrail</th><th class="num">set to</th><th class="num">now</th>`,
     list.map(([who, what, value, now = ""], i) => `<tr><td>${i && list[i - 1][0] === who ? "" : esc(who)}</td><td>${what}</td><td class="num">${value}</td><td class="num">${now}</td></tr>`));
-  let html = `<p class="lead">Each agent checks its own limits; the Vigie checks the agents. Values from config.yaml, use from the live bank${sample("all")}</p>`;
+  let html = `<p class="lead">Each agent checks its own limits; KRYS checks the agents. Values from config.yaml, use from the live bank${sample("all")}</p>`;
   html += `<h2>The bank's agents<span class="hint">an agent on orange has its order and payment limits × ${GR.vigie.orange_amount_factor}</span></h2>` + rows([
     ["trader", "Largest order", eur(t.max_order_eur), scale < 1 ? `× ${scale}: VaR is over ${pct(r.var_warning_ratio)} of its limit` : ""],
     ["trader", "Position in one asset", eur(t.max_position_eur), each("max_position_pct")],
@@ -431,10 +433,10 @@ function renderGuardrails() {
     ["quant", "Market data older than this is not priced", `${q.max_data_age_ticks} ticks`],
     ["quant", `A one-tick jump over this drops its confidence to ${q.low_confidence}, under the traders' ${t.min_confidence}`, `${q.jump_threshold_pct}%`],
   ]);
-  html += `<h2>The Vigie<span class="hint">a change of threshold is signed by a human, in Improvements</span></h2>` + rows([
-    ["Vigie", "Watches every message and approves every order and payment", on(D.S.vigie?.enabled ?? GR.vigie.enabled)],
+  html += `<h2>KRYS<span class="hint">a change of threshold is signed by a human, in Improvements</span></h2>` + rows([
+    ["KRYS", "Watches every message and approves every order and payment", on(D.S.vigie?.enabled ?? GR.vigie.enabled)],
     ["gate", `An order or payment it has not approved within this wait is ${GR.gate.default_on_timeout === "reject" ? "refused" : "approved"}`, `${GR.gate.timeout_s} s`, esc(D.S.vigie?.gate ?? "")],
-    ["agents", "An agent that hears no Vigie heartbeat for this long goes orange by itself", `${GR.vigie.heartbeat_timeout_ticks} ticks`, agentIds().filter(id => D.S.agents[id].vigie_lost).length ? `${agentIds().filter(id => D.S.agents[id].vigie_lost).length} lost it` : ""],
+    ["agents", "An agent that hears no KRYS heartbeat for this long goes orange by itself", `${GR.vigie.heartbeat_timeout_ticks} ticks`, agentIds().filter(id => D.S.agents[id].vigie_lost).length ? `${agentIds().filter(id => D.S.agents[id].vigie_lost).length} lost it` : ""],
     ...Object.entries(D.st.metrics?.thresholds || {}).map(([k, v]) => ["thresholds", esc(THRESHOLDS[k] || k), v]),
     ["LLM auditor", "Reads the agents' reasoning; can raise suspicion, never approve", on(D.st.auditor_llm)],
   ]);
@@ -523,7 +525,7 @@ const ICON = {
   click: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.1 12 6"/><path d="m5.1 8-2.9-.8"/><path d="m6 12-1.9 2"/><path d="M7.2 2.2 8 5.1"/><path d="M9.037 9.69a.498.498 0 0 1 .653-.653l11 4.5a.5.5 0 0 1-.074.949l-4.349 1.041a1 1 0 0 0-.74.739l-1.04 4.35a.5.5 0 0 1-.95.074z"/></svg>`,
   details: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>`,
 };
-const OPENS = {agent: "Opens its checks and what the Vigie did to it", role: "Opens the checks of each of its agents", service: "Opens its evidence and who reads it", metric: "Opens its figures"};
+const OPENS = {agent: "Opens its checks and what KRYS did to it", role: "Opens the checks of each of its agents", service: "Opens its evidence and who reads it", metric: "Opens its figures"};
 function describe(el, x, y) {
   if (!el) return null;
   if (el.closest(".sim-stage")) return window.simHelp?.(x, y) ?? null;

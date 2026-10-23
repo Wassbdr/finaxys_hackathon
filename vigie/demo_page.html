@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Banque Horizon — trois banques, une journée</title>
+<title>Argus — trois banques, une journée</title>
 <style>
 /* Page autonome de la démo : aucun chargement extérieur, lisible au vidéoprojecteur.
    Elle ne fait que LIRE le flux /demo/stream ; elle n'envoie aucune commande. */
@@ -66,7 +66,7 @@ canvas { width: 100%; height: 260px; display: block; }
 <body>
 <main>
   <header>
-    <h1>Banque Horizon — trois banques, une journée</h1>
+    <h1>Argus — trois banques, une journée</h1>
     <span class="meta" id="meta">graine — · direct</span>
     <div class="conn">
       <label for="url" class="status">Serveur</label>
@@ -87,14 +87,14 @@ canvas { width: 100%; height: 260px; display: block; }
 
   <section class="chart">
     <h3>Résultat réel de chaque banque (P&amp;L net de fraude, en M€)</h3>
-    <div class="legend"><span><i style="background:var(--a)"></i>Sans Vigie</span><span><i style="background:var(--b)"></i>Vigie classique</span><span><i style="background:var(--c)"></i>Couche 3 + gel</span></div>
+    <div class="legend"><span><i style="background:var(--a)"></i>Sans Krys</span><span><i style="background:var(--b)"></i>Contrôles classiques</span><span><i style="background:var(--c)"></i>Krys</span></div>
     <canvas id="chart" aria-label="Courbes du résultat des trois banques"></canvas>
   </section>
 
   <section class="final" id="final" hidden></section>
 
   <p class="note">Même journée, même graine, mêmes attaques pour les trois banques. Les pertes réelles ne servent qu'à afficher et noter :
-  aucune Vigie ne les lit. « Bloquées » compte les refus explicites du portique ; une banque en rouge ne propose plus d'opérations,
+  aucune KRYS ne les lit. « Bloquées » compte les refus explicites du portique ; une banque en rouge ne propose plus d'opérations,
   ce n'est donc pas « aucune protection ». Un feu VERT ne veut pas dire qu'aucune opération n'est bloquée.</p>
 </main>
 
@@ -146,7 +146,7 @@ function render(p) {
   $("meta").textContent = `graine ${seed ?? "—"} · ${p.replay || isReplay ? "replay" : "direct"}`;
   for (const [k] of BANKS) {
     const b = (p.banks || {})[k]; if (!b) continue;
-    $(`label-${k}`).textContent = b.label || k;
+    $(`label-${k}`).textContent = ({A: "Sans Krys", B: "Contrôles classiques", C: "Krys"})[k];
     // Le feu vient du réseau : seules les trois valeurs connues deviennent une classe CSS.
     const light = $(`light-${k}`); light.textContent = b.light || "—";
     light.className = `light ${LIGHTS.has(b.light) ? b.light : ""}`;
@@ -162,7 +162,7 @@ function render(p) {
     const f = b.findings || [];
     $(`feed-${k}`).innerHTML = f.length ? f.slice().reverse().map((x) =>
       `<li><small>t${escapeHtml(x.tick)}</small> ${escapeHtml(x.text || "")}${Array.isArray(x.proof) && x.proof.length ? ` <small>preuve ${escapeHtml(x.proof.slice(0, 2).join(", "))}</small>` : ""}</li>`).join("")
-      : `<li class="none">${k === "A" ? "Pas de Vigie : rien n'est surveillé." : "Aucun constat pour l'instant."}</li>`;
+      : `<li class="none">${k === "A" ? "Pas de KRYS : rien n'est surveillé." : "Aucun constat pour l'instant."}</li>`;
   }
   drawChart(p.tick);
   if (p.complete) showFinal(p);
@@ -173,7 +173,7 @@ function showFinal(p) {
   // Tout ce qui vient du flux est échappé avant d'entrer dans le HTML de la synthèse.
   const s = (k) => b[k] ? escapeHtml(`${euro(b[k].fraud_eur)} volés, ${euro(b[k].loss_eur)} de pertes, feu ${b[k].light}`) : "—";
   const el = $("final");
-  el.innerHTML = `<b>Fin de journée.</b> Sans Vigie : ${s("A")}. Vigie classique : ${s("B")}. Couche 3 : ${s("C")}.`;
+  el.innerHTML = `<b>Fin de journée.</b> Sans Krys : ${s("A")}. Contrôles classiques : ${s("B")}. Krys : ${s("C")}.`;
   el.hidden = false;
 }
 

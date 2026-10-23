@@ -1,5 +1,5 @@
 """The Simulation tab's film: each scenario of the last bench, replayed without (A, "theirs") and with (B, "ours")
-the Vigie, cut down to what the 3D scene animates: who sends what to whom, each node's state, the money.
+KRYS, cut down to what the 3D scene animates: who sends what to whom, each node's state, the money.
 
     python -m vigie.simulation        # after make metrics: runs/vigie-improve/improvements.json → vigie/dashboard-sim.json
 """
@@ -79,7 +79,7 @@ def world(directory: Path, ticks: int) -> dict:
             if p.get("status") == "refused":
                 what = "a payment" if p.get("kind") == "payment" else f"{target}'s order"
                 # the sim writes some reasons in French: a timeout and the executor's own orange-light hold
-                why = (", ".join(p.get("compromised_sources") or []) or {"timeout": "the Vigie did not answer in time"}.get(gate.get("decided_by"))
+                why = (", ".join(p.get("compromised_sources") or []) or {"timeout": "KRYS did not answer in time"}.get(gate.get("decided_by"))
                        or str(gate.get("reason") or "").lower().replace("_", " ") or ("orange light, no irreversible action" if "ORANGE" in str(p.get("reason")) else ""))
                 events.append([t, "good", f"{'the gate' if gate else 'the executor'} refuses {what}" + (f": {why}" if why else "")])
                 continue
@@ -95,11 +95,11 @@ def world(directory: Path, ticks: int) -> dict:
             for a, info in (st.get("agents") or {}).items():
                 level = "QUARANTAINE" if info.get("quarantined") else info.get("level", "VERT")
                 if level in LEVEL and last.get("v:" + a) != level:
-                    events.append([t, "good", "the Vigie " + LEVEL[level].format(a)])
+                    events.append([t, "good", "KRYS " + LEVEL[level].format(a)])
                 put(t, "v:" + a, level)
             iso = sorted(st.get("isolated_services") or [])
             for svc in set(iso) - set((last.get("iso") or "").split(",")) - {""}:
-                events.append([t, "good", f"the Vigie isolates {svc}"])
+                events.append([t, "good", f"KRYS isolates {svc}"])
             put(t, "iso", ",".join(iso))
         elif typ == "alert":
             kind = p.get("kind")
@@ -118,10 +118,10 @@ def world(directory: Path, ticks: int) -> dict:
                 events.append([t, "info", f"payment holds the invoice to {(p.get('invoice') or {}).get('beneficiary_id')}"])
             elif kind == "vigie_heartbeat_lost" and t not in lost:
                 lost.add(t)
-                events.append([t, "warn", "the agents lose the Vigie's heartbeat: each goes orange on its own"])
+                events.append([t, "warn", "the agents lose KRYS's heartbeat: each goes orange on its own"])
             elif kind == "vigie_incident" and p.get("incident_id") not in incidents and p.get("action") == "red":
                 incidents.add(p.get("incident_id"))
-                events.append([t, "good", f"the Vigie turns the bank red over {p.get('agent')}"])
+                events.append([t, "good", f"KRYS turns the bank red over {p.get('agent')}"])
 
     for t in range(ticks):
         put(t, "vigie", int(t in vigie_ticks))

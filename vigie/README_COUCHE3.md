@@ -1,6 +1,6 @@
-# Vigie : proposition de couche 3 (Dev 2)
+# KRYS : proposition de couche 3 (Dev 2)
 
-Base : `origin/banque-horizon`, `ed18463`. Aucun ancien contrôleur Vigie n'est requis.
+Base : `origin/banque-horizon`, `ed18463`. Aucun ancien contrôleur KRYS n'est requis.
 
 Dev 2 fournit `contagion.py`, `herding.py`, `analytics.py` et `eval.py`. `core.py` propose l'interface commune
 `VigieState` et `Finding(tick, layer, kind, target, severity, evidence, score)`.
@@ -115,7 +115,7 @@ seule ne reprend aucune des anciennes politiques de couches 1/2.
 ## Démo triple en direct (sans page)
 
 `make demo-live SCENARIO=vigie/scenarios/jour_noir.yaml` expose l'API locale
-sur `127.0.0.1:8010` : A sans Vigie, B classique, C couche 3 + gel livré.
+sur `127.0.0.1:8010` : A « Sans Krys », B « Contrôles classiques », C « Krys » (Krys, couche 3 avec gel livré).
 La page est fournie par le Dev 1. Le contrat exact, les exemples et le replay
 sont dans [DEMO_API.md](DEMO_API.md). `make demo-measure` rejoue les trois
 variantes hors ligne sur les graines 42 et 43. Aucune règle de B n'est affaiblie.

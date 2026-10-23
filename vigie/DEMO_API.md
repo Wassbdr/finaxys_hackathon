@@ -13,7 +13,7 @@ Options : `PORT=8010 SEED=42 SPEED=1.2`. La journée dure 180 ticks, soit enviro
 150 secondes à la vitesse par défaut, plus le démarrage. Le dernier résultat reste
 consultable jusqu'à Ctrl+C, qui arrête les deux contrôleurs et leur Redis dédié.
 `make demo-replay RECORDING=recordings/<nom>` choisit une sauvegarde ; sans argument,
-il reprend le dernier direct. Le replay ne relance ni les agents ni les Vigies.
+il reprend le dernier direct. Le replay ne relance ni les agents ni les instances KRYS.
 
 ## Autorisation des commandes locales (direct et replay)
 
@@ -96,15 +96,15 @@ Chaque banque contient exactement :
 
 | Champ | Sens |
 |---|---|
-| `label` | Sans Vigie / Vigie classique / Couche 3 + gel. |
+| `label` | Sans Krys / Contrôles classiques / Krys (Krys, couche 3). |
 | `pnl_eur`, `loss_eur`, `fraud_eur` | P&L réel net de fraude ; perte = max(0, −P&L) ; montant volé positif. Paiements légitimes exclus des pertes. |
 | `light` | Feu global observé : VERT, ORANGE, ROUGE. **VERT ne signifie pas « aucune action bloquée ».** |
-| `executed`, `blocked`, `gate_blocked` | Cumuls : exécutions réussies, refus explicites d'Executor, dont refus du portique Vigie. |
+| `executed`, `blocked`, `gate_blocked` | Cumuls : exécutions réussies, refus explicites d'Executor, dont refus du portique KRYS. |
 | `executed_after_detection` | Exécutions strictement après le tick du premier constat ; null sans constat. |
 | `last_execution_tick`, `detection_tick`, `first_block_tick` | Ticks, null si l'événement n'a pas eu lieu. Le constat peut être une vulnérabilité avant attaque. |
-| `contaminated_executions` | Nombre noté par l'arbitre, **jamais fourni aux Vigies**. |
+| `contaminated_executions` | Nombre noté par l'arbitre, **jamais fourni aux instances KRYS**. |
 | `working_agents`, `paused_agents` | Agents financiers qui ne sont pas / sont en pause. Un heartbeat actif n'est pas une opération exécutée. |
-| `decisions`, `last_decisions` | Décisions du portique de ce tick / les trois dernières décisions. A n'a pas de Vigie : listes vides. |
+| `decisions`, `last_decisions` | Décisions du portique de ce tick / les trois dernières décisions. A n'a pas de KRYS : listes vides. |
 | `findings` | Six derniers constats ou refus utiles : `{tick, text, proof:[message_id]}`. |
 
 Une décision est exactement `{tick, message_id, approved, reason, evidence}` :
@@ -170,7 +170,7 @@ le herding de 0,3 à 0,8. Le vrai krach injecte six nouvelles publiques (−8 à
 sur les trois actifs entre t60 et t75, sans attaque. La rumeur compromet seulement
 news-wire à t60 : ses fausses dépêches natives arrivent à t61, t66 et t72 ; aucun
 choc fondamental n'est injecté. Bruit de marché et news ordinaires de la graine
-restent actifs. Aucun seuil des Vigies n'est adapté aux scénarios.
+restent actifs. Aucun seuil des instances KRYS n'est adapté aux scénarios.
 
 - **Vrai krach** : B passe au rouge à t66 / t75. C ne bloque aucune action au
   portique. Sur la graine 43, C produit toutefois deux faux gels, t118 et t178,

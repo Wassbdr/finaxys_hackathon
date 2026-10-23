@@ -1,17 +1,17 @@
 > Rapport historique Dev 1, antérieur à la proposition de fusion. Les chiffres sont conservés ; ils doivent être remesurés avec le contrôleur intégré avant publication comme résultats de cette branche. `make metrics` utilise désormais `vigie.eval_metrics`.
 
-# Métriques de la Vigie
+# Métriques de KRYS
 
 Généré par `make metrics` (`python -m vigie.eval`) le 23/10/2026 à 20:59. Preuves : `runs/vigie-improve/20261023-205546`
 (journaux A et B, `comparison.json` par rejeu). Ce fichier se régénère : ne pas l’éditer à la main.
 
 ## Protocole
 
-- Chaque scénario est rejoué en lockstep deux fois avec la même graine : A sans Vigie, B avec la Vigie
+- Chaque scénario est rejoué en lockstep deux fois avec la même graine : A sans KRYS, B avec KRYS
   dans son propre processus Redis (`vigie/compare.py`).
 - Calibrage : une journée propre de 300 ticks sur la graine 1, jamais mesurée.
   Mesure : graines d’attaque 42, 43, 44, 45, 46 ; graines propres 101, 102, 103, 104, 105, 106, 107, 108, 109, 110 (`reference_propre`).
-- Vérité terrain, pour noter seulement (la Vigie ne la lit pas) : mode des services dans `states.jsonl`,
+- Vérité terrain, pour noter seulement (KRYS ne la lit pas) : mode des services dans `states.jsonl`,
   provenance des opérations, ordres injectés `corrupted:`, signatures invalides du journal.
 - 1 tick = 1,0 s en démonstration.
 
@@ -20,13 +20,13 @@ Généré par `make metrics` (`python -m vigie.eval`) le 23/10/2026 à 20:59. Pr
 - **ASR** (taux de succès d’attaque) : opérations contaminées exécutées / tentées (exécutées, refusées,
   messages forgés rejetés). 0/0 : aucune tentative n’a atteint l’exécuteur.
 - **Précision, rappel** (opérations du monde B) : vrais refus / refus ; vrais refus / (vrais refus + contaminées passées).
-- **Détection** : premier signal de la Vigie (action, indicateur, constat de couche 1) qui nomme l’entité attaquée,
+- **Détection** : premier signal de KRYS (action, indicateur, constat de couche 1) qui nomme l’entité attaquée,
   moins le tick de l’attaque. Négatif : vu avant la compromission, grâce à la CVE. Pire cas sur les entités
   détectées, puis détectées / attaquées.
 - **Confinement** : premier acte contre l’entité (refus d’une opération qu’elle alimente, isolement, quarantaine)
   après lequel aucune de ses opérations ne s’exécute. Pire cas, puis confinées / attaquées.
-- **Utilité** : opérations légitimes exécutées avec / sans Vigie.
-- **Rayon d’impact** : agents contaminés sans Vigie (vérité) → agents en quarantaine avec, sur 8 (exécuteur compris).
+- **Utilité** : opérations légitimes exécutées avec / sans KRYS.
+- **Rayon d’impact** : agents contaminés sans KRYS (vérité) → agents en quarantaine avec, sur 8 (exécuteur compris).
 - **Argent**, moyenne par rejeu : fraude bloquée = fraude A − fraude B ; résultat net sauvé = P&L net B − P&L net A ;
   écart de trading = trading B − trading A (négatif : coût des blocages ; positif : pertes de trading évitées).
   Les trois restent séparés : net sauvé = fraude bloquée + écart de trading.
@@ -36,7 +36,7 @@ Généré par `make metrics` (`python -m vigie.eval`) le 23/10/2026 à 20:59. Pr
 - **Latence du portique** : temps mur de `BusGate.request_approval` vu de l’exécuteur (fakeredis TCP, portable
   partagé), p50 et p99 ; au-delà de 200 ms, refus par défaut.
 
-## Sécurité, sans puis avec Vigie
+## Sécurité, sans puis avec KRYS
 
 | Scénario | Graines | ASR sans | ASR avec | Précision | Rappel | Détection | Confinement | Rayon d’impact |
 |---|---|---|---|---|---|---|---|---|

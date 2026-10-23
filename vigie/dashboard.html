@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>La Vigie · Banque Horizon</title>
+<title>KRYS · ARGUS</title>
 <style>
   /* The look of the s14 recon dashboard (recon-v3-mr/web): its sky and dust, its menu, its title bar, its cards, its
      tables and its frosted popups, in Blueprint's dark palette. */
@@ -39,7 +39,7 @@
   .tabs a:focus-visible { text-decoration: underline; }
   .tabs .line { position: absolute; bottom: 0; left: 0; width: 1px; height: 2px; background: #fff; transform-origin: left; transition: transform .3s ease-out; pointer-events: none; }
 
-  /* only the bank's light stays of the old Bank / Tick / P&L row: tick, P&L and prices are the market's, not the Vigie's (Marius, 23-10) */
+  /* only the bank's light stays of the old Bank / Tick / P&L row: tick, P&L and prices are the market's, not KRYS's (Marius, 23-10) */
   .bank { position: absolute; right: 16px; top: 0; height: 100%; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); }
   .bank .box { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1px solid #383E47; border-radius: 999px; font-weight: 600; }
   .bank .warn { color: var(--orange); font-weight: 500; }
@@ -226,11 +226,11 @@
 <nav class="menu" aria-label="Tabs">
   <div class="tabs">
     <a href="#summary" data-tab="summary" data-name="Summary" data-help="Summary|What waits for a human now: the problems only a human clears, and the good news only a human applies">Summary</a>
-    <a href="#simulation" data-tab="simulation" data-name="Simulation" data-help="Simulation|A replay of the bench without and with the Vigie, in 3D or 2D">Simulation</a>
+    <a href="#simulation" data-tab="simulation" data-name="Simulation" data-help="Simulation|A replay of the bench without and with KRYS, in 3D or 2D">Simulation</a>
     <a href="#agents" data-tab="agents" data-name="Agents" data-help="Agents|Each agent's state and who feeds whom">Agents</a>
-    <a href="#actions" data-tab="actions" data-name="Vigie actions" data-help="Vigie actions|What the Vigie did: the gate's refusals, its incidents and every decision on an agent">Vigie actions</a>
-    <a href="#guardrails" data-tab="guardrails" data-name="Guardrails" data-help="Guardrails|Every limit in force, each agent's and the Vigie's, with how much of it is used now">Guardrails</a>
-    <a href="#metrics" data-tab="metrics" data-name="Metrics" data-help="Metrics|The live indicators and the bench's figures without and with the Vigie">Metrics</a>
+    <a href="#actions" data-tab="actions" data-name="KRYS actions" data-help="KRYS actions|What KRYS did: the gate's refusals, its incidents and every decision on an agent">KRYS actions</a>
+    <a href="#guardrails" data-tab="guardrails" data-name="Guardrails" data-help="Guardrails|Every limit in force, each agent's and KRYS's, with how much of it is used now">Guardrails</a>
+    <a href="#metrics" data-tab="metrics" data-name="Metrics" data-help="Metrics|The live indicators and the bench's figures without and with KRYS">Metrics</a>
     <a href="#improve" data-tab="improve" data-name="Improvements" data-help="Improvements|The thresholds in force and what the replays propose to change">Improvements</a>
     <span class="line" aria-hidden="true"></span>
   </div>

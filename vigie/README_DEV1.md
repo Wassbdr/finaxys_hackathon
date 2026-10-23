@@ -1,4 +1,4 @@
-# Vigie — branchement de l'équipe
+# KRYS — branchement de l'équipe
 
 Un processus Python indépendant, branché exclusivement sur Redis. Les agents,
 services, exécuteur, API et journal sont ceux du dépôt de l'équipe. Argent et
@@ -20,7 +20,7 @@ sous `runs/vigie-reference-*`. Le Procfile généré et le Procfile statique uti
 ce profil effectif ; générer celui-ci avec `make procfile` avant honcho.
 Les valeurs stub de `config.yaml` restent le profil des tests historiques de
 l'équipe et du lockstep historique. Lancer la démonstration avec les cibles Make
-ci-dessus ; `python -m sim.launch` ne branche pas cette Vigie.
+ci-dessus ; `python -m sim.launch` ne branche pas cette KRYS.
 
 Les chemins générés sont relatifs lorsque `runs_dir` est relatif, sans chemin OVH.
 Le comparatif n'utilise que TCP sur `127.0.0.1` et un broker Redis compatible
@@ -38,7 +38,7 @@ existants utilisent leurs doubles fournis par l'équipe, sans appel extérieur.
 2. Règles fixes : deux visas signés (Compliance et Risk), proposition originale
    retrouvée dans le trafic, anti-rejeu, montants, positions, exposition globale,
    VaR historique recalculée, liquidité, perte, KYC et changement d'IBAN.
-   La Vigie reconstruit un grand livre fantôme depuis la configuration initiale et
+   KRYS reconstruit un grand livre fantôme depuis la configuration initiale et
    les seules exécutions signées. Elle confronte les soldes déclarés à cet invariant,
    isole le ledger menteur et utilise ses propres quantités/cash avec les prix
    réels comme ancre. Ni le solde de core-ledger ni la vue de Risk ne font foi.
@@ -62,7 +62,7 @@ existants utilisent leurs doubles fournis par l'équipe, sans appel extérieur.
    dépendances transitives. Les news injectées indiquent source et fiabilité ;
    une affirmation de l'agent ne fait pas preuve.
 
-La Vigie observe aussi les propositions refusées avant le portique. Elle publie
+KRYS observe aussi les propositions refusées avant le portique. Elle publie
 des notifications signées vers `human` aux changements de niveau, regroupées
 par racine causale. Le compteur brut → incidents → notifications est exporté.
 Une donnée contaminée bloque l'action et isole sa source ; elle ne pénalise
@@ -75,10 +75,10 @@ verrouillé jusqu'à `human_decision` signé `human` avec `action: resume`.
 Quarantaine révoque la clé au portique et les outils du registre, et adresse un
 rouge au seul agent. `human_decision` signé avec `action: unblock` et l'identifiant
 de l'agent restaure ses permissions. Rouge/quarantaine et l'anti-rejeu sont
-conservés dans Redis lors d'un redémarrage de la Vigie.
+conservés dans Redis lors d'un redémarrage de KRYS.
 
 Le monde fourni livre aussi les feux ciblés à son exécuteur, sans filtrer `to`.
-Après un feu ciblé, la Vigie réaffirme donc le feu global **à l'exécuteur seul**.
+Après un feu ciblé, KRYS réaffirme donc le feu global **à l'exécuteur seul**.
 Le Trader concerné garde son feu ciblé et les autres poursuivent ; un vrai rouge
 global reste rouge. Un test emploie le véritable World de l'équipe pour cette règle.
 
@@ -96,13 +96,13 @@ make compare SCENARIO=scenarios/vigie_debranchee.yaml
 ```
 
 Chaque comparaison termine après la durée du YAML. Même graine et même scénario
-pour A sans Vigie et B avec une Vigie réellement séparée. Résultats chiffrés,
+pour A sans KRYS et B avec une KRYS réellement séparée. Résultats chiffrés,
 journaux signés A/B, profil appris et log du processus sont sauvegardés dans un
 nouveau dossier `runs/vigie-compare-*`. `TICKS=20` permet un court essai.
 
 `avoided_loss_eur` est le P&L trading + fraude de B moins celui de A, sans compter
 les virements légitimes comme pertes. `avoided_fraud_eur` isole la fraude ; il ne
-faut pas additionner ces deux métriques. Une Vigie peut coûter de l'opportunité :
+faut pas additionner ces deux métriques. Une KRYS peut coûter de l'opportunité :
 un écart négatif reste affiché. Le scénario des 4,9 M€ démontre l'isolement,
 pas une promesse de gain. Son extension YAML `vigie_orders` est lue par
 `vigie.scenario` dans le comparatif ; le lanceur historique `sim.inject scenario`

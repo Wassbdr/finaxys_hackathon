@@ -1,4 +1,4 @@
-// The Simulation tab: each scenario of the last A/B bench replayed as a small 3D world, with our Vigie (world B, "Ours")
+// The Simulation tab: each scenario of the last A/B bench replayed as a small 3D world, with our KRYS (world B, "Ours")
 // or without it (world A, "Theirs": each agent checks only its own rules). The film comes from vigie/simulation.py.
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -28,8 +28,10 @@ const SKIN = { quant: 0xa78bfa, trader: 0x60a5fa, payment: 0x34d399, compliance:
 const LIGHT = { VERT: 0x34d399, ORANGE: 0xfbbf24, ROUGE: 0xf87171, QUARANTAINE: 0xf87171 };
 const LED = { normal: 0x34d399, compromised: 0xef4444, down: 0x1e293b, stale: 0xfbbf24, slow: 0xfbbf24 };
 const DOT = { read: 0x7dd3fc, hidden: 0xfbbf24, bad: 0xf87171, price: 0x67e8f9, order: 0x60a5fa, payment: 0x34d399, decision: 0xc4b5fd, brake: 0xfb923c, exec: 0x86efac, approve: 0x34d399, refuse: 0xef4444, wire: 0xfacc15, fraud: 0xef4444 };
-const WHY = { ours: "With our Vigie: one view of every agent and service, and a gate before each execution.", theirs: "Without it: each agent checks only its own rules, nothing watches the whole bank." };
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const WHY = { ours: "With our KRYS: one view of every agent and service, and a gate before each execution.", theirs: "Without it: each agent checks only its own rules, nothing watches the whole bank." };
+// Les archives gardent leurs identifiants et preuves ; seul le texte rendu adopte le nom public.
+const displayName = s => String(s ?? "").replace(/\b(?:the |The |la |La )?Vigie\b/g, "KRYS").replace(/Banque Horizon/g, "ARGUS");
+const esc = s => displayName(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 // Camera presets, to get back to a simple view after orbiting: where the camera looks from, how far, and what it looks at.
 const VIEWS = { "3/4": { dir: [0.5, 13.2, 24.5], dist: 37 }, Top: { dir: [0, 1, 0.02], dist: 43 }, Front: { dir: [0, 0.25, 1], dist: 40 }, Agents: { dir: [0, 1.3, 1], dist: 28, on: "agents" } };
 
@@ -55,9 +57,9 @@ sec.innerHTML = `<div class="settings"><div class="fold">
       ${row("View", choice("view", Object.keys(VIEWS).map(k => [k, k])), "Puts the camera back on a preset view (3D only)")}
       ${row("Speed", choice("speed", SPEEDS.map(s => [s, s + "×"])), "1× is a tick every 1.3 s")}
       ${row("Scenario", `<select id="sim-sc" aria-label="Scenario">${Object.keys(F.scenarios).map(n => `<option value="${esc(n)}">${esc(n.replaceAll("_", " "))}</option>`).join("")}</select>`, "The scenario of the bench replayed: its film comes from make metrics")}
-      ${row("Vigie", choice("world", Object.entries(WHY).map(([w, why]) => [w, w === "ours" ? "Ours" : "Theirs", why])), `Ours: ${WHY.ours} Theirs: ${WHY.theirs}`)}
-      ${row("Stop on a problem", choice("stopBad", OFF_ON), "Pauses when a service is compromised, an agent acts on compromised data, money leaves to a rerouted IBAN, the bank light turns orange or red, a CVE is published, a trader stops or the Vigie's heartbeat is lost")}
-      ${row("Stop on an action", choice("stopGood", OFF_ON), "Pauses when the gate or the executor refuses, the Vigie raises a level, isolates a service or turns the bank red, compliance blocks, or a forged signature is rejected")}
+      ${row("KRYS", choice("world", Object.entries(WHY).map(([w, why]) => [w, w === "ours" ? "Ours" : "Theirs", why])), `Ours: ${WHY.ours} Theirs: ${WHY.theirs}`)}
+      ${row("Stop on a problem", choice("stopBad", OFF_ON), "Pauses when a service is compromised, an agent acts on compromised data, money leaves to a rerouted IBAN, the bank light turns orange or red, a CVE is published, a trader stops or KRYS's heartbeat is lost")}
+      ${row("Stop on an action", choice("stopGood", OFF_ON), "Pauses when the gate or the executor refuses, KRYS raises a level, isolates a service or turns the bank red, compliance blocks, or a forged signature is rejected")}
       ${row("Focus on a stop", choice("focus", OFF_ON), "When the replay stops, the camera flies to whoever caused it")}
       ${row("Background reads", choice("reads", OFF_ON), "The dots of the agents' routine reads of the services; off, only their messages fly")}
       ${row("Bubbles", choice("bubbles", OFF_ON), "What each agent says, over its head")}
@@ -199,7 +201,7 @@ function blob(id, profile, role = id) {
   const glass = mesh(ball, new THREE.MeshPhysicalMaterial({ color: 0xbae6fd, transparent: true, opacity: 0.22, roughness: 0, clearcoat: 1, depthWrite: false }), [0, 0.95, 0]);
   halo.castShadow = glass.castShadow = false;
   glass.scale.setScalar(0.001);
-  g.add(halo, glass, tag(id === "vigie" ? "Vigie" : profile ? `${esc(id)}<small>${esc(profile)}</small>` : esc(id), [0, -0.1, 1.45]));
+  g.add(halo, glass, tag(id === "vigie" ? "KRYS" : profile ? `${esc(id)}<small>${esc(profile)}</small>` : esc(id), [0, -0.1, 1.45]));
   return (nodes[id] = { id, g, hop, body, skin, base: new THREE.Color(SKIN[role] ?? 0x94a3b8), eyes, mouth, halo, glass, top: 2.9,
     phase: Math.random() * 7, blinkAt: Math.random() * 4, hopAt: -9, gulpAt: -9, shakeAt: -9, look: null, lookUntil: 0, sick: false, asleep: false, level: null });
 }
@@ -293,7 +295,7 @@ function pick(x, y) {
 // screen; over nothing, the tick itself: what happened at it, the trading result and the money lost to fraud so far
 const WORD = { VERT: "green", ORANGE: "orange", ROUGE: "red", QUARANTAINE: "quarantine" };
 const RING_SAYS = {
-  ROUGE: "Red ring: it acts on compromised data, or the Vigie put it on red.",
+  ROUGE: "Red ring: it acts on compromised data, or KRYS put it on red.",
   ORANGE: "Orange ring: it reads a compromised service, or got a message built on one.",
   VERT: "Green ring: no problem has reached it.",
 };
@@ -310,20 +312,20 @@ window.simHelp = (x, y) => {
     return { name: `${p.role} pad`, what: `The ${p.n} ${p.role}s of the bank: one role, one block in the other tabs.` };
   }
   if (id === "vigie")
-    return { name: "Vigie", what: `Watches every agent and service, and its gate checks each execution. Bank light: ${WORD[light] ?? light}.${n.asleep ? " Its heartbeat is lost." : ""}`, details: then(lastOf("vigie")) };
+    return { name: "KRYS", what: `Watches every agent and service, and its gate checks each execution. Bank light: ${WORD[light] ?? light}.${n.asleep ? " Its heartbeat is lost." : ""}`, details: then(lastOf("vigie")) };
   if (n?.leds) {
     const by = sc.reads.filter(r => r[1] === id), seen = by.filter(r => !r[3]).map(r => r[0]), hid = by.filter(r => r[3]).map(r => r[0]);
-    return { name: id, what: `A service of the bank. ${MODE_SAYS[n.mode] ?? n.mode}${n.iso ? " The Vigie isolated it: whatever it fed is refused." : ""}`,
+    return { name: id, what: `A service of the bank. ${MODE_SAYS[n.mode] ?? n.mode}${n.iso ? " KRYS isolated it: whatever it fed is refused." : ""}`,
       details: [...(seen.length ? [`Read by ${seen.join(", ")}.`] : []), ...(hid.length ? [`Called without being declared by ${hid.join(", ")}.`] : []), ...said, ...then(lastOf(id))] };
   }
   if (n) {
     const a = sc.agents.find(a => a.id === id), reads = sc.reads.filter(r => r[0] === id);
-    return { name: id, what: `${ROLES[a.role] ?? a.role}${a.profile ? ` Trades on ${a.profile}.` : ""} ${RING_SAYS[n.alert] ?? ""}${n.asleep ? " It has stopped." : ""}${ours && n.level && n.level !== "VERT" ? ` The Vigie has it on ${WORD[n.level]}.` : ""}`,
+    return { name: id, what: `${ROLES[a.role] ?? a.role}${a.profile ? ` Trades on ${a.profile}.` : ""} ${RING_SAYS[n.alert] ?? ""}${n.asleep ? " It has stopped." : ""}${ours && n.level && n.level !== "VERT" ? ` KRYS has it on ${WORD[n.level]}.` : ""}`,
       details: [...(reads.length ? [`Reads ${reads.map(([, s, , hidden]) => s + (hidden ? " (never declared)" : "")).join(", ")}.`] : []), ...said, ...then(lastOf(id))] };
   }
   const now = (W.evAt[tick] ?? []).map(e => e[2] + "."), before = W.events.findLast(e => e[0] < tick);
   return { name: `Tick ${tick} of ${sc.ticks - 1}`,
-    what: `${ui.sc.value.replaceAll("_", " ")}, ${ours ? "with our Vigie" : "without the Vigie"}${playing ? "" : ", paused"}. Bank light: ${WORD[light] ?? light}.`,
+    what: `${ui.sc.value.replaceAll("_", " ")}, ${ours ? "with our KRYS" : "without KRYS"}${playing ? "" : ", paused"}. Bank light: ${WORD[light] ?? light}.`,
     click: set.display === "2D" ? "Space plays or pauses." : "Drag to turn the scene, scroll to zoom. Space plays or pauses.",
     details: [...(now.length ? now : [`Nothing new at this tick.${before ? ` Last at tick ${before[0]}: ${before[2]}.` : ""}`]),
       `Trading result so far: ${eur(W.pnl[tick])}.`, ...(W.fraud[tick] ? [`Lost to fraud so far: ${eur(W.fraud[tick])}.`] : [])] };
@@ -388,7 +390,7 @@ function arrive(p) {
 }
 
 function actor(text) {
-  if (/^(the Vigie|the gate|bank light|a message signed)/.test(text)) return "vigie";
+  if (/^(KRYS|the Vigie|the gate|bank light|a message signed)/.test(text)) return "vigie";
   if (/^the executor/.test(text)) return "executor";
   if (/rerouted IBAN/.test(text)) return "payment-gateway";
   if (/^real market news/.test(text)) return "market-feed";
@@ -401,7 +403,7 @@ function say([, kind, text]) {
   n.bubble?.removeFromParent();
   const d = document.createElement("div");
   d.className = "sim-bubble k-" + kind;
-  d.textContent = (text.startsWith(id + " ") ? text.slice(id.length + 1) : text.replace(/^the (Vigie|executor) /, "")).split(":")[0];
+  d.textContent = displayName((text.startsWith(id + " ") ? text.slice(id.length + 1) : text.replace(/^(KRYS|the Vigie|the executor) /, "")).split(":")[0]);
   n.bubble = new CSS2DObject(d);
   n.bubble.position.set(0, n.top, 0);
   n.g.add(n.bubble);
@@ -421,8 +423,8 @@ function show(t) {
     const b = nodes[a.id];
     if (!b) continue;
     Object.assign(b, { sick: st["c:" + a.id] === 1, asleep: st["z:" + a.id] === 1, level: ours ? st["v:" + a.id] ?? "VERT" : null });
-    // the ring shows the agent's problem in both worlds: red once it acts on compromised data (or the Vigie says red),
-    // orange while it only reads a compromised service or got a message built on one (or the Vigie says orange)
+    // the ring shows the agent's problem in both worlds: red once it acts on compromised data (or KRYS says red),
+    // orange while it only reads a compromised service or got a message built on one (or KRYS says orange)
     const exposed = live.length && (W.hit[a.id] <= t || sc.reads.some(([r, s]) => r === a.id && live.includes(s)));
     b.alert = b.sick || b.level === "ROUGE" || b.level === "QUARANTAINE" ? "ROUGE" : exposed || b.level === "ORANGE" ? "ORANGE" : "VERT";
   }
@@ -431,7 +433,7 @@ function show(t) {
     if (!n) continue;
     n.mode = st["s:" + s] ?? "normal";
     n.iso = iso.includes(s);
-    const html = esc(s) + (n.mode !== "normal" ? `<small class="m-${esc(n.mode)}">${esc(n.mode)}</small>` : "") + (n.iso ? `<small class="m-iso">isolated by the Vigie</small>` : "");
+    const html = esc(s) + (n.mode !== "normal" ? `<small class="m-${esc(n.mode)}">${esc(n.mode)}</small>` : "") + (n.iso ? `<small class="m-iso">isolated by KRYS</small>` : "");
     if (n.html !== html) n.div.innerHTML = n.html = html;
   }
   nodes.vigie.asleep = !st.vigie;
@@ -809,7 +811,7 @@ function draw2d() {
       g2.setLineDash([]);
     }
     const profile = sc.agents.find(a => a.id === n.id)?.profile;
-    text2(vigie ? "Vigie" : n.id, x, y + 1.3 * s2 + 14, 12, ink);
+    text2(vigie ? "KRYS" : n.id, x, y + 1.3 * s2 + 14, 12, ink);
     if (profile) text2(profile.toUpperCase(), x, y + 1.3 * s2 + 27, 10.5, "#ABB3BF", 700);
   }
   g2.restore();
@@ -839,7 +841,7 @@ function hover(id) {
   id = nodes[id] ? id : null;
   if (id === hovered) return;
   hovered = id;
-  // the nodes linked to it stay lit, and their names and its white links take its colour (Marius, 23-10); the Vigie's
+  // the nodes linked to it stay lit, and their names and its white links take its colour (Marius, 23-10); KRYS's
   // white and a service's grey would not show, so they lend a sky blue
   near = new Set(id ? [...links].filter(([key, l]) => l.g.visible && key.split("|").includes(id)).flatMap(([key]) => key.split("|")) : []);
   near.delete(id);

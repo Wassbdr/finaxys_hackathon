@@ -210,3 +210,26 @@ def test_drift_confines_orders_and_preserves_healthy_payments(tmp_path,cfg,seed)
         assert frame['banks']['A']['pnl_eur']==frame['banks']['B']['pnl_eur']
         assert runner.worlds['A'].scenario_log==runner.worlds['B'].scenario_log==runner.worlds['C'].scenario_log
     finally:runner.close()
+
+
+def test_argus_krys_display_names_preserve_bus_contract(tmp_path, cfg):
+    expected = {'A': 'Sans Krys', 'B': 'Contrôles classiques', 'C': 'Krys'}
+    runner = DemoRunner(cfg, {'duration': '1s', 'steps': []}, tmp_path/'names')
+    try:
+        frame = runner.step()
+        assert {name: bank['label'] for name, bank in frame['banks'].items()} == expected
+        example = json.loads(Path('vigie/demo_api_example.json').read_text())
+        assert {name: bank['label'] for name, bank in example['banks'].items()} == expected
+        page = Path('vigie/demo_page.html').read_text()
+        assert '<title>Argus — trois banques, une journée</title>' in page
+        assert '<h1>Argus — trois banques, une journée</h1>' in page
+        assert all(label in page for label in expected.values())
+        assert '<title>KRYS · ARGUS</title>' in Path('vigie/dashboard.html').read_text()
+        assert 'Krys, couche 3' in Path('vigie/DEMO_API.md').read_text()
+        assert 'Krys, couche 3' in Path('vigie/ANNEXE_INVARIANT.md').read_text()
+        # Le nom commercial ne change ni l'identité authentifiée ni les preuves.
+        messages = runner.messages['C']
+        assert any(m['from'] == 'vigie' for m in runner.messages['C'])
+        assert all(runner.worlds['C'].keyring.verify(m) for m in messages)
+    finally:
+        runner.close()

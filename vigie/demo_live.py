@@ -1,4 +1,4 @@
-"""Trois banques synchronisées : simulation, affichage et notation hors des Vigies."""
+"""Trois banques synchronisées : simulation, affichage et notation hors des instances KRYS."""
 from __future__ import annotations
 import argparse
 import copy
@@ -86,7 +86,7 @@ class Remote:
                 return
             if raw['channel']==self.prefix+'bus' and data.get('from')=='vigie' and self.ls.keyring.verify(data):
                 outputs.append(data)
-        raise TimeoutError(f'{self.prefix} Vigie muette : arrêt du direct, aucun accord inventé')
+        raise TimeoutError(f'{self.prefix} KRYS muette : arrêt du direct, aucun accord inventé')
 
     def close(self): self.sub.close()
 
@@ -150,7 +150,7 @@ class DemoRunner:
                 ls.bus.tap(lambda msg,name=name:self._record_message(name,msg))
                 schedule_scenario(ls,day)
             (self.directory/'manifest.json').write_text(json.dumps({
-                'scenario':day,'seed':cfg['seed'],'variants':{'A':'sans Vigie','B':'Vigie classique','C':'couche 3 + gel'},
+                'scenario':day,'seed':cfg['seed'],'variants':{'A':'Sans Krys','B':'Contrôles classiques','C':'Krys'},
                 'remote_controllers':remote,'clock':cfg['clock']},ensure_ascii=False,indent=2)+'\n')
         except BaseException:
             self.close();raise
@@ -213,7 +213,7 @@ class DemoRunner:
         first=self.first_detection[name]
         gate_blocked=sum(m['payload'].get('decided_by','').startswith('vigie') for m in refused)
         # Ces mesures sont réservées à l'affichage et à l'arbitre, jamais aux contrôleurs.
-        return {'label':{'A':'Sans Vigie','B':'Vigie classique','C':'Couche 3 + gel'}[name],
+        return {'label':{'A':'Sans Krys','B':'Contrôles classiques','C':'Krys'}[name],
                 'pnl_eur':pnl,'loss_eur':max(0,-pnl),'fraud_eur':-state['pnl']['payment_fraud_eur'],
                 'light':state['light']['light'],'executed':len(executed),'blocked':len(refused),'gate_blocked':gate_blocked,
                 'executed_after_detection':sum(m['tick']>first for m in executed) if first is not None else None,

@@ -4,7 +4,7 @@
   "seed": 42,
   "banks": {
     "A": {
-      "label": "Sans Vigie",
+      "label": "Sans Krys",
       "pnl_eur": -8076.76,
       "loss_eur": 8076.76,
       "fraud_eur": 0,
@@ -24,7 +24,7 @@
       "last_decisions": []
     },
     "B": {
-      "label": "Vigie classique",
+      "label": "Contrôles classiques",
       "pnl_eur": -8076.76,
       "loss_eur": 8076.76,
       "fraud_eur": 0,
@@ -44,7 +44,7 @@
       "last_decisions": []
     },
     "C": {
-      "label": "Couche 3 + gel",
+      "label": "Krys",
       "pnl_eur": -8076.76,
       "loss_eur": 8076.76,
       "fraud_eur": 0,

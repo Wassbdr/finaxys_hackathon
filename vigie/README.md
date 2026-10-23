@@ -1,4 +1,4 @@
-# Vigie commune — proposition de fusion
+# KRYS dans ARGUS — proposition de fusion
 
 Sources : Dev 1 `801cd70`, Dev 2 `94e7aa7`. Le mode intégré conserve les décisions,
 les feux et le tableau de bord de Marius ; les constats de couche 3 les alimentent.
@@ -42,7 +42,7 @@ L'extension de présentation `detail` du Dev 1 reste accessible et apparaît dan
 
 `contagion.py`, `herding.py`, `analytics.py`, `injection.py`, `freeze.py`,
 `admission.py`, `validation.py`, les propositions humaines et les essais du Dev 2
-sont conservés. `main.Runtime` reste disponible comme portique de couche 3 seule.
+sont conservés. `main.Runtime` reste disponible comme portique « Krys, couche 3 » seul.
 Le contrôleur intégré partage sa fabrique de messages signés avec cette couche,
 qui fournit ses constats, ses preuves et ses refus ciblés. Une réponse d'injection
 suspecte n'isole pas toutes les réponses saines du même service.
