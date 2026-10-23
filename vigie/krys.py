@@ -19,6 +19,7 @@ from bus.message import canonical
 from journal.writer import GENESIS, entry_hash
 from vigie.injection import instruction_signals
 from vigie.validation import valid_message
+from vigie.krys_reference import Reference, journal_question
 
 
 def plain(text):
@@ -153,21 +154,29 @@ class Chat:
     }
     def __init__(self, knowledge, *, audit=None):
         self.book = knowledge
+        self.reference = Reference.load()
         # Aucun texte, identité personnelle, adresse réseau ni empreinte de la
         # question ne sont conservés ; seulement des compteurs de fonctionnement.
         self.audit = audit if audit is not None else deque(maxlen=128)
 
-    def answer(self, text, ids=(), *, outcome='answer', intent='state'):
+    def answer(self, text, ids=(), *, outcome='answer', intent='state', section_id=None):
         ids = list(dict.fromkeys(mid for mid in ids if mid in self.book.messages))[:64]
-        if outcome == 'answer' and not ids:
+        section = self.reference.sections.get(section_id)
+        if outcome == 'answer' and not ids and section is None:
             text, outcome = 'Je ne peux pas confirmer cette information sans source signée disponible.', 'no_source'
         citations = [{'message_id': mid, 'tick': self.book.messages[mid]['tick'],
                       'source': self.book.messages[mid]['from']} for mid in ids]
         if outcome == 'answer':
-            text += '\nPreuves : ' + ', '.join(ids) + '.'
-            if not self.book.complete:
+            if section is not None:
+                # Le texte vient exclusivement du corpus local approuvé, jamais
+                # d'une interpolation de la question ou d'un chiffre du direct.
+                text = section.text + '\nSource : [' + section.identifier + '].'
+                citations = [{'section_id': section.identifier, 'source': 'KRYS_EXPLICATIONS.md'}]
+            else:
+                text += '\nPreuves : ' + ', '.join(ids) + '.'
+            if section is None and not self.book.complete:
                 text += '\nJournal incomplet : cette réponse ne couvre que les preuves disponibles.'
-        self.audit.append({'outcome': outcome, 'intent': intent, 'sources': len(ids)})
+        self.audit.append({'outcome': outcome, 'intent': intent, 'sources': len(citations)})
         return {'text': text, 'citations': citations, 'outcome': outcome, 'intent': intent}
 
     def incidents(self):
@@ -222,6 +231,11 @@ class Chat:
             return self.answer('Cette demande tente de modifier les consignes ou de divulguer des informations internes. Reformulez une question sur les preuves de Krys.', outcome='guardrail')
         if re.search(r'confirm|degel|leve.*gel|debloq|repren|reprendre|reprise|(?:sortir|sors|sortez).*quarantaine|libere', q):
             return self.answer('Un texte dans le chat ne signe aucune action. Utilisez le formulaire humain : préparer, lire le récapitulatif, puis Confirmer. La sortie de quarantaine d’un agent n’est pas implémentée par le contrôleur actuel.', outcome='human_required')
+        if not journal_question(question):
+            section = self.reference.search(question)
+            if section is not None:
+                return self.answer('', intent='reference', section_id=section.identifier)
+            return self.answer("je n'ai pas de source pour répondre à cela", outcome='out_of_scope', intent='reference')
         status = self.book.latest_status()
         ids = [status['message_id']] if status else []
         p = status['payload'] if status else {}

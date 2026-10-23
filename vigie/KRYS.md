@@ -12,6 +12,22 @@ Exemples : « Les alertes ? », « Quel est le R0 ? », « Qui est en quarantain
 Les réponses sont des modèles de phrases sans LLM, sans recherche distante,
 sans dépendance supplémentaire. Aucun appel Mistral n’est implémenté.
 
+Les questions générales (« Présente Argus », « Que se passe-t-il en cas de panne ? »)
+recherchent les mots-clés des sections de [KRYS_EXPLICATIONS.md](KRYS_EXPLICATIONS.md),
+texte de référence approuvé et conservé tel quel. Krys rend le texte de la section
+et cite son identifiant, par exemple `[argus]` ou `[panne]`. La recherche exige
+au moins la moitié des mots utiles couverts par les mots-clés ; une égalité ou
+une faible différence de scores entraîne un refus. Aucun texte n’est généré ni
+chiffre calculé à partir de cette source. Les résultats historiques cités restent
+ceux du texte, sans devenir des résultats du direct.
+
+Les questions sur les alertes, l’état, les propositions et « Pourquoi message_id ? »
+gardent la priorité et exigent leurs preuves signées ; leur absence n’est jamais
+compensée par le texte général. Les demandes explicites de définition passent
+par le texte (par exemple « Définition d’un tick »). Sans correspondance suffisante,
+le chat répond « je n'ai pas de source pour répondre à cela ». Les garde-fous
+d’injection et d’exfiltration s’appliquent avant toute recherche.
+
 Pour autoriser l’opérateur local à envoyer les commandes existantes :
 
 ```sh

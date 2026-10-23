@@ -62,5 +62,12 @@ async function main() {
   get('krys-question').value = 'R0';
   await get('krys-question-form').listeners.submit({preventDefault() {}});
   assert.equal(requests.length, before);
+  location.origin = 'http://127.0.0.1:8010';
+  delayed = false;
+  replies.push({text: 'Texte de référence [panne]', citations: [{section_id: attack, source: 'KRYS_EXPLICATIONS.md'}]});
+  get('krys-question').value = 'Que se passe-t-il en cas de panne ?';
+  await get('krys-question-form').listeners.submit({preventDefault() {}});
+  assert.equal(get('krys-log').children.at(-1).children[1].textContent, '[' + attack + ']');
+  assert.equal(context.pwned, undefined);
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

@@ -22,7 +22,8 @@
     item.appendChild(paragraph);
     for (const source of citations || []) {
       const evidence = document.createElement('code');
-      evidence.textContent = String(source.message_id) + ' · tick ' + String(source.tick);
+      evidence.textContent = source.section_id ? '[' + String(source.section_id) + ']'
+        : String(source.message_id) + ' · tick ' + String(source.tick);
       item.appendChild(evidence);
       item.appendChild(document.createElement('br'));
     }
