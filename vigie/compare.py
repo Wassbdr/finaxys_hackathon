@@ -32,6 +32,21 @@ def until(predicate, timeout=5):
     raise TimeoutError("Vigie : barrière Redis non acquittée")
 
 
+class TimedGate(BusGate):
+    """BusGate that keeps each decision's wall-clock latency for the bench's p50/p99."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.latency_ms = []
+
+    def request_approval(self, msg):
+        start = time.perf_counter()
+        try:
+            return super().request_approval(msg)
+        finally:
+            self.latency_ms.append(round((time.perf_counter() - start) * 1000, 3))
+
+
 def learn_reference(cfg, ticks, directory):
     from vigie.statistics import calibrate
 
@@ -58,7 +73,7 @@ class ProtectedWorld:
         cfg["vigie"].update(enabled=True, stub=False)
         self.ls = Lockstep(cfg, store=client, no_llm=True, run_dir=directory)
         self.client = client
-        self.gate = BusGate(client, "B:", 0.2, "reject")
+        self.gate = TimedGate(client, "B:", 0.2, "reject")
         self.ls.cfg["gate"]["impl"] = "bus"
         self.ls.gate = self.ls.world.gate = self.ls.world.executor.gate = self.gate
         self.sub = client.pubsub(ignore_subscribe_messages=True)
@@ -100,7 +115,12 @@ class ProtectedWorld:
             self.barrier()
 
     def pump(self):
-        while (raw := self.sub.get_message(timeout=0)) is not None:
+        # redis-py 8 reads a message split across packets with the poll timeout:
+        # with 0, a large vigie_state heartbeat raised TimeoutError under load.
+        while self.sub.connection.can_read(timeout=0):
+            raw = self.sub.get_message(timeout=None)
+            if raw is None:
+                continue
             msg = json.loads(raw["data"])
             if msg.get("from") == "vigie":
                 self.ls.publish(msg)
@@ -148,10 +168,11 @@ def metrics(state):
     }
 
 
-def compare(cfg, scenario, directory, ticks=None):
+def compare(cfg, scenario, directory, ticks=None, profiles=None):
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=False)
-    profiles = learn_reference(cfg, 300, directory / "reference")
+    if profiles is None:
+        profiles = learn_reference(cfg, 300, directory / "reference")
     profile_path = directory / "profiles.json"
     profile_path.write_text(canonical(profiles))
     server = fakeredis.TcpFakeServer(("127.0.0.1", 0), server_type="redis")
@@ -184,6 +205,7 @@ def compare(cfg, scenario, directory, ticks=None):
             "B": metrics(sb),
             "vigie": status,
             "gate_decisions": decisions,
+            "gate_latency_ms": b.gate.latency_ms,
             "vigie_pid": b.process.pid,
             "vigie_disconnected": b.process.poll() is not None,
         }
@@ -211,12 +233,14 @@ def main():
     parser.add_argument("--scenario", default="scenarios/php2shell_day.yaml")
     parser.add_argument("--ticks", type=int)
     parser.add_argument("--out")
+    parser.add_argument("--profiles", help="clean reference calibrated elsewhere (another seed)")
     args = parser.parse_args()
     cfg = load_config(overrides={"llm": {"enabled": False, "cache": False}})
     directory = args.out or str(
         Path(cfg["runs_dir"]) / f"vigie-compare-{time.time_ns()}"
     )
-    result = compare(cfg, load_scenario(args.scenario), directory, args.ticks)
+    profiles = json.loads(Path(args.profiles).read_text()) if args.profiles else None
+    result = compare(cfg, load_scenario(args.scenario), directory, args.ticks, profiles)
     for key in ("A", "B"):
         m = result[key]
         print(

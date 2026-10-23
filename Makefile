@@ -8,7 +8,7 @@ T0 ?= 0
 T1 ?= 300
 FLAGS = $(if $(NO_LLM),--no-llm) $(if $(NO_VIGIE),--no-vigie)
 
-.PHONY: install keys run run-honcho run-no-llm run-no-vigie test lockstep scenario inject report verify replay compare procfile
+.PHONY: install keys run run-honcho run-no-llm run-no-vigie test lockstep scenario inject report verify replay compare metrics procfile
 
 install:
 	python3 -m venv --without-pip .venv
@@ -53,3 +53,7 @@ replay:
 
 compare:
 	$(PY) -m vigie.compare --scenario $(SCENARIO) $(if $(TICKS),--ticks $(TICKS))
+
+# Banc A/B de tous les scénarios et de 10 journées propres : improvements.json (clé metrics) et vigie/METRIQUES.md
+metrics:
+	HORIZON_NO_LLM=1 $(PY) -m vigie.eval
