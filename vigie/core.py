@@ -40,7 +40,7 @@ class VigieState:
                 "human_decision": ("action", "target"),
                 "order_proposal": ("asset", "side", "notional_eur", "signals", "trader", "quant_confidence", "news_refs", "justification"),
                 "payment_proposal": ("amount_eur", "beneficiary_id"),
-                "llm_trace": ("task", "output", "external", "response"),
+                "llm_trace": ("task", "output", "external", "response", "prompt_excerpt"),
             }
             record = {k: copy.deepcopy(msg[k]) for k in ("message_id", "tick", "from", "to", "type", "depends_on")}
             record["payload"] = {k: copy.deepcopy(msg["payload"][k]) for k in fields.get(msg["type"], ()) if k in msg["payload"]}

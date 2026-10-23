@@ -4,6 +4,7 @@ import math
 
 from sim.config import trader_ids
 from vigie.core import Finding
+from vigie.injection import Injection
 
 
 def version(value):
@@ -29,6 +30,7 @@ class Contagion:
         self.radius_ticks = {}
         self.quarantine_ticks = {}
         self.blocked = set()
+        self.injection = Injection(state)
 
     def suspect(self, sid, kind, evidence):
         if sid in self.suspects:
@@ -45,7 +47,9 @@ class Contagion:
             return []
         self.processed.add(id_)
         p, kind, sender = msg["payload"], msg["type"], msg["from"]
-        findings = []
+        findings = self.injection.on_message(msg)
+        for finding in findings:
+            self.suspects[finding.target] = finding
         if kind == "tick" and sender == "clock":
             self.ledger_clock = max(self.ledger_clock, msg["tick"])
             self.cash_samples.append((msg["tick"], self.cash))
@@ -164,6 +168,9 @@ class Contagion:
             if id_ in visited:
                 continue
             visited.add(id_)
+            for target in self.injection.targets(current):
+                if target not in chains:
+                    chains[target] = list(reversed(path)) + self.suspects[target].evidence
             for entry in current.get("data_provenance", []):
                 sid = entry.get("service")
                 if sid in self.suspects and sid not in chains:
@@ -199,7 +206,7 @@ class Contagion:
                 marked_agents.add(msg["from"])
             for sid in chains:
                 self.radius_ticks.setdefault(sid, self.state.tick)
-            direct = any(e.get("service") in self.suspects for e in msg["data_provenance"])
+            direct = bool(self.injection.targets(msg)) or any(e.get("service") in self.suspects for e in msg["data_provenance"])
             # Une racine n'hérite pas déjà d'un parent marqué : les montants
             # décision/compliance/exécution d'une même opération ne s'additionnent pas.
             inherited = any(self.trace(self.state.messages[parent]) for parent in msg["depends_on"] if parent in self.state.messages)
