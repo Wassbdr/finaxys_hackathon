@@ -637,9 +637,10 @@ function animateServer(n, k) {
 // a true orange for the ring: the bank light's amber reads yellow on the dark floor
 const RING = { VERT: LIGHT.VERT, ORANGE: 0xf97316, ROUGE: 0xef4444 };
 
-// How far the problem has spread: a red zone on the floor around each compromised service and each agent whose ring is
-// red, merged into one shape where they stand close (a metaball field), with a striped cordon on its edge.
-const ZONE_R = 2.8, zonePts = Array.from({ length: 24 }, () => new THREE.Vector3());
+// The problem spreading: a red zone on the floor swells around a service as it is compromised and an agent as its ring
+// turns red, then fades after ZONE_HOLD seconds, leaving the rings to say who is hit (Marius, 24-10); zones that overlap
+// merge into one shape (a metaball field), with a striped cordon on its edge.
+const ZONE_R = 2.8, ZONE_HOLD = 2, zonePts = Array.from({ length: 24 }, () => new THREE.Vector3());
 const cordon = turn(new THREE.Mesh(new THREE.PlaneGeometry(46, 46), new THREE.ShaderMaterial({
   transparent: true, depthWrite: false,
   uniforms: { pts: { value: zonePts }, n: { value: 0 }, time: { value: 0 }, color: { value: new THREE.Color(0xef4444) } },
@@ -667,7 +668,10 @@ for (const n of Object.values(nodes)) if (n.halo) n.halo.renderOrder = 2;
 function spread(k) {
   let i = 0;
   for (const n of Object.values(nodes)) {
-    n.zr = THREE.MathUtils.lerp(n.zr ?? 0, (n.eyes ? n.alert === "ROUGE" : n.mode === "compromised") ? ZONE_R : 0, k);
+    const red = n.eyes ? n.alert === "ROUGE" : n.mode === "compromised";
+    if (red && !n.red) n.redAt = time;
+    n.red = red;
+    n.zr = THREE.MathUtils.lerp(n.zr ?? 0, red && time - n.redAt < ZONE_HOLD ? ZONE_R : 0, k);
     if (n.zr < 0.05 || i === zonePts.length) continue;
     world.worldToLocal(n.g.getWorldPosition(tmp));
     zonePts[i++].set(tmp.x, -tmp.z, n.zr);
