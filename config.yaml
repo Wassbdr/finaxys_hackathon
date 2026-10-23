@@ -44,6 +44,7 @@ services:
   core-ledger:     {port: 8105, php_version: "5.6", patchable: false, owner_team: "Back-office", criticite: critique, version: "0.9.7"}
 
 chaos:
+  # make couche3 impose announce_compromised: false ; le mode historique reste compatible.
   slow_latency_ms: 2500          # latence en mode slow
   client_timeout_ms: 1500        # délai d'attente des agents
   market_feed_drift_pct: -3.0    # BOREAL dérive de -3 % par tick en mode compromised

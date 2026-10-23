@@ -41,6 +41,8 @@ def procfile(cfg: dict, no_llm: bool, no_vigie: bool) -> str:
     lines += [f"{a}: {py} -m agents.{a}{agent_flags}" for a in ("compliance", "risk", "payment")]
     if not no_vigie and cfg["vigie"]["stub"]:
         lines.append(f"vigie_stub: {py} -m bus.vigie_stub")
+    elif not no_vigie and cfg["vigie"]["enabled"]:
+        lines.append(f"vigie: {py} -m vigie.main")
     return "\n".join(lines) + "\n"
 
 

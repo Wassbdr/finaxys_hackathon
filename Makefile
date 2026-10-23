@@ -34,7 +34,7 @@ run-no-vigie:
 	$(MAKE) run NO_VIGIE=1
 
 test:
-	$(PY) -m pytest
+	$(PY) -m vigie.testing
 
 lockstep:
 	$(PY) -m sim.lockstep $(if $(NO_VIGIE),--no-vigie)
@@ -53,3 +53,10 @@ replay:
 
 compare:
 	$(PY) -m sim.compare
+
+.PHONY: couche3 eval-couche3
+couche3:
+	$(PY) -m vigie.main launch $(if $(NO_LLM),--no-llm)
+
+eval-couche3:
+	HORIZON_NO_LLM=1 $(PY) -m vigie.eval
