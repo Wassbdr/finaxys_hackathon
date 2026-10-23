@@ -111,3 +111,17 @@ n'étiquette pas ces ordres comme des données de service piégées : un marquag
 contamination nul ne signifie donc pas que le trader corrompu est reconnu.
 La description historique du scénario évoque orange/quarantaine ; la couche 3
 seule ne reprend aucune des anciennes politiques de couches 1/2.
+
+## Démo triple en direct (sans page)
+
+`make demo-live SCENARIO=vigie/scenarios/jour_noir.yaml` expose l'API locale
+sur `127.0.0.1:8010` : A sans Vigie, B classique, C couche 3 + gel livré.
+La page est fournie par le Dev 1. Le contrat exact, les exemples et le replay
+sont dans [DEMO_API.md](DEMO_API.md). `make demo-measure` rejoue les trois
+variantes hors ligne sur les graines 42 et 43. Aucune règle de B n'est affaiblie.
+Le lanceur classique exclut le processus couche 3 ajouté au Procfile de cette
+base ; les contrôles classiques restent identiques au patch original.
+
+Dans ce scénario, C évite toute fraude mais ne reprend aucune opération après
+la suspicion du ledger : sa dépendance est commune à toutes les décisions Risk.
+Un feu VERT et des heartbeats actifs ne prouvent pas une continuité métier.
