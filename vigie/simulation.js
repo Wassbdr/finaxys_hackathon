@@ -50,7 +50,7 @@ sec.innerHTML = `<div class="settings"><div class="fold">
     <span class="fold-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>Settings</span>
     <button type="button" class="fold-pin" aria-label="Keep Settings open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></button>
     <div class="fold-body"><div class="fold-in">
-      <span class="opt" data-help="Play|Plays or pauses the replay; the slider moves it to any tick|Space plays or pauses"><span class="choice"><button type="button" id="sim-play"></button></span><input type="range" id="sim-t" min="0" step="1" aria-label="Tick"><span id="sim-tick"></span></span>
+      <span class="opt" data-help="Play|Plays or pauses the replay; the slider moves it to any tick|P plays or pauses, Space fits everything on screen"><span class="choice"><button type="button" id="sim-play"></button></span><input type="range" id="sim-t" min="0" step="1" aria-label="Tick"><span id="sim-tick"></span></span>
       ${row("Display", choice("display", [["3D", "3D"], ["2D", "2D"]]), "The 3D scene, or the same replay as a flat map seen from above")}
       ${row("View", choice("view", Object.keys(VIEWS).map(k => [k, k])), "Puts the camera back on a preset view (3D only)")}
       ${row("Speed", choice("speed", SPEEDS.map(s => [s, s + "×"])), "1× is a tick every 1.3 s")}
@@ -84,7 +84,7 @@ scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnviron
 scene.environmentIntensity = 0.6;
 const camera = new THREE.PerspectiveCamera(36, 2, 0.1, 200);
 const controls = new OrbitControls(camera, renderer.domElement);
-Object.assign(controls, { enableDamping: true, enablePan: false, minDistance: 10, maxDistance: 55, maxPolarAngle: 1.4 });
+Object.assign(controls, { enableDamping: true, enablePan: false, minDistance: 10, maxDistance: 80, maxPolarAngle: 1.4 });
 scene.add(new THREE.HemisphereLight(0xc7d2fe, 0x1e1b4b, 1.2));
 const sun = new THREE.DirectionalLight(0xffffff, 2.4);
 sun.position.set(8, 18, 12);
@@ -325,7 +325,7 @@ window.simHelp = (x, y) => {
   const now = (W.evAt[tick] ?? []).map(e => e[2] + "."), before = W.events.findLast(e => e[0] < tick);
   return { name: `Tick ${tick} of ${sc.ticks - 1}`,
     what: `${ui.sc.value.replaceAll("_", " ")}, ${ours ? "with our Vigie" : "without the Vigie"}${playing ? "" : ", paused"}. Bank light: ${WORD[light] ?? light}.`,
-    click: set.display === "2D" ? "Space plays or pauses." : "Drag to turn the scene, scroll to zoom. Space plays or pauses.",
+    click: set.display === "2D" ? "P plays or pauses, Space fits everything on screen." : "Drag to turn the scene, scroll to zoom. P plays or pauses, Space fits everything on screen.",
     details: [...(now.length ? now : [`Nothing new at this tick.${before ? ` Last at tick ${before[0]}: ${before[2]}.` : ""}`]),
       `Trading result so far: ${eur(W.pnl[tick])}.`, ...(W.fraud[tick] ? [`Lost to fraud so far: ${eur(W.fraud[tick])}.`] : [])] };
 };
@@ -477,7 +477,7 @@ function hud() {
   ui.play.textContent = playing ? "Pause" : tick >= sc.ticks - 1 ? "Replay" : "Play";
   if (playing) halted = null;
   ui.stop.hidden = !halted;
-  if (halted) ui.stop.textContent = `Stopped at tick ${halted[0]}: ${halted[2]} · Space resumes`;
+  if (halted) ui.stop.textContent = `Stopped at tick ${halted[0]}: ${halted[2]} · P resumes`;
 }
 
 let goal = null, fit = 1, halted = null;
@@ -557,10 +557,34 @@ ui.play.onclick = () => {
 };
 ui.t.oninput = () => seek(+ui.t.value);
 addEventListener("keydown", e => {
-  if (sec.hidden || e.code !== "Space" || e.target.closest("input, select, button, textarea")) return;
+  if (sec.hidden || !["KeyP", "Space"].includes(e.code) || e.target.closest("input, select, button, textarea")) return;
   e.preventDefault();
-  ui.play.click();
+  if (e.code === "KeyP") ui.play.click();
+  else frameAll();
 });
+// Space fits every agent and service on the screen, the camera keeping its angle, the 2D map refitted to them (Marius, 24-10)
+function frameAll() {
+  const ids = Object.keys(POS).filter(id => nodes[id] && (id !== "vigie" || worldName === "ours"));
+  if (set.display === "2D") {
+    const xs = ids.map(id => POS[id][0]), zs = ids.map(id => POS[id][1]);
+    Object.assign(MAP, { x0: Math.min(...xs) - 3, x1: Math.max(...xs.map(x => x + 3), ...pads.map(p => p.x + p.r + 3.5)), z0: Math.min(...zs) - 2.5, z1: Math.max(...zs) + 3 });
+    return fit2d(stage.clientWidth, stage.clientHeight);
+  }
+  const pts = ids.flatMap(id => [[-1.5, 0, 0], [1.5, 0, 0], [0, 0, -1.5], [0, 0, 1.5], [0, id === "vigie" ? 4.5 : 2.5, 0]]
+    .map(([x, y, z]) => world.localToWorld(v(POS[id][0] + x, y, POS[id][1] + z))));
+  const c = new THREE.Box3().setFromPoints(pts).getCenter(v(0, 0, 0)), dir = camera.position.clone().sub(controls.target).normalize(), cam = camera.clone();
+  let d = 40;
+  // the distance at which the farthest point lands at 90% of the screen's edge, found in a few steps
+  for (let i = 0; i < 4; i++) {
+    cam.position.copy(dir).multiplyScalar(d).add(c);
+    cam.lookAt(c);
+    cam.updateMatrixWorld();
+    d *= Math.max(...pts.map(p => p.clone().project(cam)).map(q => Math.max(Math.abs(q.x), Math.abs(q.y)))) / 0.9;
+  }
+  goal = { target: c, pos: dir.multiplyScalar(d).add(c) };
+  set.view = null;
+  paint();
+}
 controls.addEventListener("start", () => ((goal = null), (set.view = null), paint()));
 if (set.sc in F.scenarios) ui.sc.value = set.sc;
 load(ui.sc.value);
