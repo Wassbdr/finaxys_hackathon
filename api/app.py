@@ -13,7 +13,8 @@
     GET  /vigie/findings latest Findings of every layer
     GET  /improvements dernier rapport de `python -m vigie.improve`
     GET  /guardrails  the limits of each agent and the Vigie's settings, from config.yaml
-    GET  /dashboard   tableau de bord de la Vigie (7 onglets)
+    GET  /            page de présentation de la Vigie (le récit en 9 fiches, les chiffres du banc A/B)
+    GET  /dashboard   tableau de bord de la Vigie (7 onglets) ; ?embed=<onglet> montre l'onglet seul, sans menu
     GET  /dashboard/{dashboard.js,dashboard-demo.json}  its script and the sample data it shows when no run is live
     GET  /dashboard/{simulation.js,dashboard-sim.json}  the Simulation tab's 3D scene and the bench replays it plays
     GET  /dashboard/sim-layout.json  where its nodes stand, once saved; POST /dashboard/sim-layout {"quant": [x, z], …} saves it
@@ -171,6 +172,10 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
         cfg = load_config()
         return {"agents": cfg["agents"], "vigie": cfg["vigie"], "gate": cfg["gate"],
                 "llm": {"enabled": cfg["llm"]["enabled"], "guardrails": cfg["llm"]["guardrails"]}}
+
+    @app.get("/")
+    def landing():
+        return FileResponse(ROOT / "vigie" / "landing.html")
 
     @app.get("/dashboard")
     def dashboard():
