@@ -39,21 +39,17 @@
   .tabs a:focus-visible { text-decoration: underline; }
   .tabs .line { position: absolute; bottom: 0; left: 0; width: 1px; height: 2px; background: #fff; transform-origin: left; transition: transform .3s ease-out; pointer-events: none; }
 
-  /* three columns of one fixed width: a title stays put when the value under it grows (Marius, 23-10) */
-  .bar { display: grid; grid-template-columns: repeat(3, minmax(0, 18rem)); justify-content: center; column-gap: 32px; max-width: calc(100vw * 2 / 3); margin: 0 auto; align-items: start; padding: 16px 24px 12px; }
-  .bar .col { display: grid; gap: 8px; justify-items: center; font-size: 24px; font-weight: 600; letter-spacing: -.025em; }
-  .bar .name { margin-bottom: -.39em; }
-  .bar .box { display: inline-flex; align-items: center; gap: 10px; min-height: 1.65em; padding: 0 12px; border: 1px solid #383E47; border-radius: 12px; font-variant-numeric: tabular-nums; }
-  .bar .under { font-size: 13px; font-weight: 400; letter-spacing: 0; color: var(--dim); text-align: center; }
-  .bar .under b { color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
-  .bar .under.warn { color: var(--orange); font-weight: 500; }
+  /* only the bank's light stays of the old Bank / Tick / P&L row: tick, P&L and prices are the market's, not the Vigie's (Marius, 23-10) */
+  .bank { position: absolute; right: 16px; top: 0; height: 100%; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); }
+  .bank .box { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1px solid #383E47; border-radius: 999px; font-weight: 600; }
+  .bank .warn { color: var(--orange); font-weight: 500; }
   .lamp { color: var(--c); }
   .lamp::before { content: ""; width: .42em; height: .42em; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
   .lamp.calm { color: var(--text); } .lamp.calm::before { display: none; }
   .s-red.lamp::before, .s-red .pastille::before { animation: beat 1.6s ease-out infinite; }
   @keyframes beat { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 70%, transparent); } 100% { box-shadow: 0 0 0 8px transparent; } }
   /* the simulation stopped: what stays on screen is its last state, greyed */
-  body.stale main > :not(#simulation), body.stale .bar .box, body.stale #prices { filter: grayscale(1); opacity: .5; }
+  body.stale main > :not(#simulation), body.stale #light { filter: grayscale(1); opacity: .5; }
 
   main { max-width: calc(100vw * 2 / 3); margin: 0 auto; padding: 16px 24px 64px; }
   h2 { font-size: 15px; font-weight: 600; color: rgb(255 255 255 / .88); margin: 30px 0 10px; }
@@ -158,9 +154,9 @@
 
   .toast { position: fixed; bottom: 20px; right: 20px; z-index: 30; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line); background: rgb(37 42 49 / .92); backdrop-filter: blur(12px); }
   /* The Simulation tab: a replay of the bench as a 3D scene (simulation.js) filling the tab, its settings top left;
-     the header row is the live bank's, not the replay's, so it goes (Marius, 23-10) */
+     the bank's light is the live bank's, not the replay's, so it goes (Marius, 23-10) */
   main:has(> #simulation:not([hidden])) { max-width: none; padding: 0; }
-  body:has(#simulation:not([hidden])) .bar { display: none; }
+  body:has(#simulation:not([hidden])) .bank { display: none; }
 
   /* The recon dashboard's Settings box (recon-v3-mr/web: helper.tsx Settings and Choice, map.tsx Fold, globals.css
      .fold): over the menu and under the popups; 100 px folded, 236 px under the pointer, with the keyboard in it or
@@ -221,7 +217,7 @@
   @media (hover: none) { .helper { display: none; } }
   @media (prefers-reduced-motion: reduce) { .hp-box, .hp-mark, .hp-body { transition: none; } }
   @media (prefers-reduced-motion: reduce) { .sky i { animation: none; opacity: var(--e); } .tabs .line, dialog.glass[open] { transition: none; animation: none; } .lamp::before, .pastille::before { animation: none !important; } }
-  @media (max-width: 760px) { main, .bar { max-width: none; } .menu { padding: 0; justify-content: flex-start; } .bar { grid-template-columns: 1fr; row-gap: 12px; } .bar .col { margin: 0 !important; } .grid.three { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { main { max-width: none; } .menu { padding: 0; justify-content: flex-start; } .grid.three { grid-template-columns: 1fr; } }
 </style>
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.min.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/" } }</script>
 </head>
@@ -236,12 +232,8 @@
     <a href="#improve" data-tab="improve" data-name="Improvements">Improvements</a>
     <span class="line" aria-hidden="true"></span>
   </div>
+  <div class="bank"><span id="conn"></span>Bank<span class="box lamp calm" id="light">-</span></div>
 </nav>
-<header class="bar">
-  <div class="col"><span class="name">Bank</span><span class="box lamp calm" id="light">-</span><span class="under" id="conn"></span></div>
-  <div class="col"><span class="name">Tick</span><span class="box" id="tick">-</span><span class="under" id="prices"></span></div>
-  <div class="col"><span class="name">P&amp;L today</span><span class="box" id="pnl">-</span></div>
-</header>
 <main>
   <section id="agents"></section>
   <section id="actions" hidden></section>

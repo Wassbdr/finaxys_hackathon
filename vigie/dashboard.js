@@ -122,12 +122,9 @@ function renderBar() {
   const [c, word] = STATE[bankLight()] || ["grey", bankLight()], lamp = $("light");
   // no green pastille anywhere (Marius): a green bank shows a plain "normal", the lamp lights only for orange and red
   lamp.className = c === "green" ? "box lamp calm" : `box lamp s-${c}`; lamp.textContent = c === "green" ? "normal" : word;
-  $("tick").textContent = D.S.tick ?? "-";
-  put("prices", Object.entries(D.S.prices || {}).map(([a, p]) => `${esc(a)} <b>${(+p).toFixed(2)}</b>`).join(" · "));
-  $("pnl").textContent = eur(D.S.pnl?.day_eur);
   const conn = $("conn");
   conn.textContent = !live ? "demo data, no simulation running" : stale ? `simulation stopped at tick ${S.tick}` : "";
-  conn.className = "under" + (!live || stale ? " warn" : "");
+  conn.className = !live || stale ? "warn" : "";
   document.body.classList.toggle("stale", stale);
 }
 
