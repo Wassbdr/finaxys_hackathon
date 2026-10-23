@@ -744,6 +744,10 @@ function draw2d() {
   }
   for (const n of Object.values(nodes)) {
     if (n.id === "vigie" && !ours) continue;
+    // a fresh state per node, not just globalAlpha: WebKit stops applying a globalAlpha below 1 after text2's shadowed text
+    g2.restore();
+    g2.save();
+    g2.globalAlpha = hovered && n.id !== hovered ? FADE : 1;
     const [x, y] = to2(...POS[n.id]);
     if (n.leds) {
       const w = 1.7 * s2, h = 1.3 * s2, led = n.mode === "down" ? "#334155" : hex(LED[n.mode] ?? LED.normal);
@@ -797,6 +801,7 @@ function draw2d() {
     text2(vigie ? "Vigie" : n.id, x, y + 1.3 * s2 + 14);
     if (profile) text2(profile.toUpperCase(), x, y + 1.3 * s2 + 27, 10.5, "#ABB3BF", 700);
   }
+  g2.restore();
   // what each agent says, in its bubble's colours, over it
   for (const n of Object.values(nodes)) {
     if (!n.bubble) continue;
@@ -811,6 +816,41 @@ function draw2d() {
     g2.fillStyle = ink;
     g2.fillText(t, x, top + 15, w - 14);
   }
+}
+
+// Hovering a blob or a service fades the others and lights its links (Marius, 23-10). The opacities are changed
+// for the frame's drawing only and put back after it, so show() and the animations keep their own.
+const FADE = 0.4;
+let hovered = null, dim = new Set();
+stage.addEventListener("pointermove", e => hover(pick(e.clientX, e.clientY)));
+stage.addEventListener("pointerleave", () => hover(null));
+function hover(id) {
+  id = nodes[id] ? id : null;
+  if (id === hovered) return;
+  hovered = id;
+  // a material one node shares with anything else (INK, GOLD, the tower's STEEL) gets a copy of its own, so it fades alone
+  const of = new Map(Object.values(nodes).map(n => [n.g, n])), owner = o => (of.has(o) || !o.parent ? o : owner(o.parent));
+  const users = new Map();
+  scene.traverse(o => o.material && users.set(o.material, (users.get(o.material) ?? new Set()).add(owner(o))));
+  dim = new Set();
+  for (const n of Object.values(nodes)) {
+    const fade = !!id && n.id !== id, copy = new Map();
+    n.g.traverse(o => {
+      if (o.isCSS2DObject) o.element.style.opacity = fade ? FADE : "";
+      if (!o.material) return;
+      if (users.get(o.material).size > 1) o.material = copy.get(o.material) ?? copy.set(o.material, o.material.clone()).get(o.material);
+      const m = o.material, solid = !(m.userData.transparent ??= m.transparent);
+      if (solid && m.transparent !== fade) (m.transparent = fade), (m.needsUpdate = true);
+      if (fade) dim.add(m);
+    });
+  }
+}
+function hoverPaint() {
+  if (!hovered) return () => {};
+  const was = [];
+  for (const m of dim) was.push([m, m.opacity]), (m.opacity *= FADE);
+  for (const [key, l] of links) was.push([l.material, l.material.opacity]), (l.material.opacity = key.split("|").includes(hovered) ? 0.95 : l.material.opacity * FADE);
+  return () => was.forEach(([m, o]) => (m.opacity = o));
 }
 
 let last = performance.now();
@@ -874,6 +914,8 @@ renderer.setAnimationLoop(now => {
     if (camera.position.distanceTo(goal.pos) < 0.05) goal = null;
   }
   controls.update();
+  const unpaint = hoverPaint();
   if (set.display === "2D") draw2d();
   else renderer.render(scene, camera), labels.render(scene, camera);
+  unpaint();
 });
