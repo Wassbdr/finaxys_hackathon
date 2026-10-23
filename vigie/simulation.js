@@ -15,10 +15,12 @@ if (!F) {
 
 // The film is timed at 3 ticks/s; 1× plays it 4 times slower, flights included (Marius found 3 ticks/s far too fast).
 const TPS = 3, SPEEDS = [0.25, 0.5, 1, 2, 4], SLOW = 0.25;
+// Placed so the links cross as few others as they can (22 crossings against 43, most of them the traders' own fans,
+// which no layout avoids): each service by the agents that use it, the Vigie by the executor, its only link (Marius, 23-10)
 const POS = {
-  "market-feed": [-13, -7], "news-wire": [-13, -3.5], "payment-gateway": [-13, 0], "core-ledger": [-13, 3.5], "kyc-docs": [-13, 7],
-  quant: [-8.5, -8.6], "trader-1": [-4.6, -6], "trader-2": [-4.6, -1.5], "trader-3": [-4.6, 3], payment: [-4.6, 7.9],
-  compliance: [3, 1], risk: [7, -4], executor: [10.5, 3], vigie: [2, -9],
+  "market-feed": [-13, -9], "news-wire": [2, -10], "payment-gateway": [7.5, -6], "core-ledger": [-13, 5], "kyc-docs": [-5, 8.5],
+  quant: [-6.5, -7], "trader-1": [-2.5, -8.5], "trader-2": [-2.5, -4], "trader-3": [-2.5, 0.5], payment: [8, 7],
+  compliance: [-7.5, 3.5], risk: [-10, 0], executor: [2, 3.5], vigie: [6, 3],
 };
 const SKIN = { quant: 0xa78bfa, trader: 0x60a5fa, payment: 0x34d399, compliance: 0xfb923c, risk: 0xf472b6, executor: 0x2dd4bf, vigie: 0xf8fafc };
 const LIGHT = { VERT: 0x34d399, ORANGE: 0xfbbf24, ROUGE: 0xf87171, QUARANTAINE: 0xf87171 };
