@@ -86,3 +86,10 @@ propositions:
 .PHONY: surete-utilite
 surete-utilite:
 	HORIZON_NO_LLM=1 $(PY) -m vigie.surete_utilite
+
+# Comparateur facultatif E, hors tableau principal et hors démo.
+.PHONY: invariant compare-invariant
+invariant:
+	$(PY) -m vigie.invariant_guard --launch
+compare-invariant:
+	$(PY) -m vigie.invariant_compare --out $(RUN)

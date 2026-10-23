@@ -1,0 +1,3 @@
+# Dépendances facultatives des comparateurs, isolées de celles de l'équipe.
+-r requirements.txt
+invariant-ai @ git+https://github.com/invariantlabs-ai/invariant.git@2340fe2d9cd619f73d5b67fa05bf8a08c7cad515
