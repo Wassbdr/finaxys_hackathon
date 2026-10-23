@@ -39,6 +39,11 @@ class Risk(Agent):
             self.balances = None
             return False
         self.balances, self.balances_prov, self.balances_tick = result.data, result.provenance, self.tick
+        # Le portique exige un témoin public antérieur : une décision ne doit
+        # pas certifier elle-même les nouvelles données qu'elle veut utiliser.
+        self.emit('heartbeat', '*', {'agent':self.id, 'role':self.role,
+            'view':{'cash_eur':self.balances['cash_eur'], 'as_of_tick':self.balances['as_of_tick']}},
+            provenance=[self.balances_prov])
         return True
 
     def positions_eur(self, extra: dict[str, float] | None = None) -> dict[str, float]:

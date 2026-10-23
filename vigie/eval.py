@@ -147,6 +147,8 @@ def play(cfg, scenario, ticks, enabled, *, capture_frames=False):
                 "freeze_transitions": list(runtime.freeze.transitions),
                 "freeze_active": copy.deepcopy(runtime.freeze.active),
                 "freeze_uncertain": sorted(runtime.freeze.uncertain),
+                "unanalysed_operations": sum(d.get("unanalysed",False) for d in runtime.decisions),
+                "input_rejections": {source:dict(counts) for source,counts in runtime.admission.rejected.items()},
                 "freeze_guard_refusals": sum(d.get('freeze_guard',False) for d in runtime.decisions),
                 **({"freeze_frames": list(runtime.freeze.frames)} if capture_frames else {}),
                 "injected_orders": len(injected_ids),

@@ -86,12 +86,14 @@ class Runtime(Gate):
             self.admission.reject(sender,'signature')
             return None
         if not valid_message(msg,self.assets):
+            self.admission.reject_provenance(msg,self.freeze.logical_tick())
             self.admission.reject(sender,'malformed',True)
             return None
         # La taille JSON sérialisée borne aussi le futur checkpoint, y compris
         # les caractères de contrôle qui grossissent à l'échappement.
         size=max(size,len(json.dumps(msg,ensure_ascii=False).encode()))
         if size>MAX_MESSAGE_BYTES:
+            self.admission.reject_provenance(msg,self.freeze.logical_tick())
             self.admission.reject(sender,'malformed',True)
             return None
         return size
@@ -117,6 +119,7 @@ class Runtime(Gate):
 
     def reject_input(self,msg,reason,*,gap=False):
         self.admission.reject(msg['from'],reason,True)
+        self.admission.reject_provenance(msg,self.freeze.logical_tick())
         if gap:
             self.admission.gap(msg['from'],self.freeze.logical_tick(),self.freeze.window)
             if msg['from']=='executor' and msg['type']=='execution' and msg['payload'].get('status')=='executed':
@@ -129,7 +132,10 @@ class Runtime(Gate):
         size=self.authenticate(msg)
         if size is None: return []
         if msg['from']=='vigie': return []
-        if msg['message_id'] in self.state.messages: return []
+        if msg['message_id'] in self.state.messages:
+            if not self.admission.same_message(msg):
+                return self.reject_input(msg,'identity_conflict')
+            return []
         clock=self.freeze.clock if self.freeze.clock is not None else 0
         is_clock=msg['from']=='clock' and msg['type']=='tick'
         if self.admission_clock!=self.freeze.clock:
@@ -158,6 +164,9 @@ class Runtime(Gate):
             return self.reject_input(msg,'projection')
         self.admitted_bytes+=size
         self.admission.commit(msg,size,clock)
+        if not self.admission.record(msg,self.state,clock):
+            self.reject_input(msg,'unanalysed_input')
+            return self.diagnostics()
         findings = []
         try:
             self.analytics.observe(msg)
@@ -205,13 +214,18 @@ class Runtime(Gate):
         if (self.freeze.clock is not None and msg['tick']>self.freeze.clock):
             self.reject_input(msg,'future_request')
             return Decision(False,'UNANALYSED_OPERATION','vigie-layer3')
+        if msg['message_id'] in self.state.messages and not self.admission.same_message(msg):
+            self.reject_input(msg,'identity_conflict')
+            return Decision(False,canonical({'kind':'identity_conflict','evidence':[msg['message_id']]}),'vigie-layer3')
         self.approval_out=self.on_message(msg)
         if (msg['message_id'] not in self.state.messages or
                 self.admission.affected(msg,self.state,self.freeze.logical_tick())):
+            evidence=list(dict.fromkeys([msg['message_id'],*self.admission.last_evidence]))[:64]
             self.decisions.append({'tick':self.state.tick,'message_id':msg['message_id'],
-                'approved':False,'evidence':[], 'herding_frozen':False,'freeze_guard':False,
+                'approved':False,'evidence':evidence, 'herding_frozen':False,'freeze_guard':False,
                 'unanalysed':True})
-            return Decision(False,'UNANALYSED_OPERATION','vigie-layer3')
+            return Decision(False,canonical({'kind':'unanalysed_operation','reason':self.admission.last_reason,
+                'evidence':evidence}),'vigie-layer3')
         if self.checkpoint is not None and self.freeze.clock is None:
             self.reject_input(msg,'no_clock')
             return Decision(False,'UNANALYSED_OPERATION','vigie-layer3')

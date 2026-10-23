@@ -15,3 +15,7 @@ Une exécution signée exécutée mais non admise rend la somme du ledger fantô
 Les ticks aberrants reçus sont rejetés à la source ; ils ne remplacent pas l'horloge interne. Avant le premier tick signé, seuls les messages datés zéro sont admissibles. Un portique persistant sans horloge établie refuse sa demande sans panne globale. Un désaccord entre les deux copies internes de l'horloge, un bail perdu/divergent, une référence interne manquante, un checkpoint réellement absent/corrompu ou une panne réelle de disque restent des défauts internes conservateurs. Le démarrage et la reprise gardent les exigences de `SECURITY.md`.
 
 L'isolation de l'admission ne garantit pas la disponibilité du transport Redis sous une inondation de bande passante ou contre la compromission des autorités HMAC. Un service commun réellement invérifiable peut toucher de nombreuses opérations qui en dépendent ; ce refus découle de leurs données manquantes, sans état global de refus. Aucun état du simulateur n'est consulté par ces contrôles.
+
+## Complément après 1aaa2d9
+
+Voir `FAILOPEN.md` : identité immuable du cache, preuves de provenance antérieures aux opérations et refus persistant des entrées non analysées. La fin d'une fenêtre ne certifie plus une opération précédemment refusée. Les lectures inconnues ou rejetées ne sont plus ignorées quand il manque un lien `depends_on` mais que leur hash est déclaré.
