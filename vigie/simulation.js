@@ -473,9 +473,13 @@ function show(t) {
   hud();
 }
 
-function seek(t) {
+// pausing drops the dots on their way, they do not finish their path (Marius, 24-10)
+function unfly() {
   for (const p of flying) world.remove(p.m);
   flying = [];
+}
+function seek(t) {
+  unfly();
   for (const n of Object.values(nodes)) n.bubble?.removeFromParent(), (n.bubble = null);
   halted = null;
   show(t);
@@ -514,6 +518,7 @@ goal = null;
 const stopAt = t => (W.evAt[t] ?? []).find(([, k]) => Object.entries(STOPS).some(([s, kinds]) => set[s] && kinds.includes(k)));
 function halt(e) {
   playing = false;
+  unfly();
   acc = 0;
   halted = e;
   const id = actor(e[2]), n = nodes[id];
@@ -572,6 +577,7 @@ ui.sc.onchange = () => ((set.sc = ui.sc.value), keep(), load(ui.sc.value));
 ui.play.onclick = () => {
   if (tick >= sc.ticks - 1) seek(0), (playing = true);
   else playing = !playing;
+  if (!playing) unfly();
   hud();
 };
 ui.t.oninput = () => seek(+ui.t.value);
