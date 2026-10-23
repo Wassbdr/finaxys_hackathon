@@ -27,7 +27,9 @@ const POS = {
 const SKIN = { quant: 0xa78bfa, trader: 0x60a5fa, payment: 0x34d399, compliance: 0xfb923c, risk: 0xf472b6, executor: 0x2dd4bf, vigie: 0xf8fafc };
 const LIGHT = { VERT: 0x34d399, ORANGE: 0xfbbf24, ROUGE: 0xf87171, QUARANTAINE: 0xf87171 };
 const LED = { normal: 0x34d399, compromised: 0xef4444, down: 0x1e293b, stale: 0xfbbf24, slow: 0xfbbf24 };
-const DOT = { read: 0x7dd3fc, hidden: 0xfbbf24, bad: 0xf87171, price: 0x67e8f9, order: 0x60a5fa, payment: 0x34d399, decision: 0xc4b5fd, brake: 0xfb923c, exec: 0x86efac, approve: 0x34d399, refuse: 0xef4444, wire: 0xfacc15, fraud: 0xef4444 };
+const DOT = { read: 0x6aa6ff, hidden: 0xf59e0b, bad: 0xef4444, price: 0x2b6bff, order: 0x1446c8, payment: 0x16a34a, decision: 0x8b5cf6, brake: 0xf97316, exec: 0x22c55e, approve: 0x16a34a, refuse: 0xef4444, wire: 0xeab308, fraud: 0xef4444 };
+// a clean link is drawn in the page's ink, faint, on the pale floor; a hovered node's links take its colour
+const PLAIN = 0x0e1726, SKY = 0x2b6bff;
 const WHY = { ours: "With our Vigie: one view of every agent and service, and a gate before each execution.", theirs: "Without it: each agent checks only its own rules, nothing watches the whole bank." };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 // Camera presets, to get back to a simple view after orbiting: where the camera looks from, how far, and what it looks at.
@@ -85,7 +87,7 @@ scene.environmentIntensity = 0.6;
 const camera = new THREE.PerspectiveCamera(36, 2, 0.1, 200);
 const controls = new OrbitControls(camera, renderer.domElement);
 Object.assign(controls, { enableDamping: true, enablePan: false, minDistance: 10, maxDistance: 80, maxPolarAngle: 1.4 });
-scene.add(new THREE.HemisphereLight(0xc7d2fe, 0x1e1b4b, 1.2));
+scene.add(new THREE.HemisphereLight(0xffffff, 0xc9d6ee, 1.5));
 const sun = new THREE.DirectionalLight(0xffffff, 2.4);
 sun.position.set(8, 18, 12);
 sun.castShadow = true;
@@ -353,8 +355,8 @@ const links = new Map();
 function link(a, b, hidden) {
   const key = [a, b].sort().join("|");
   if (links.has(key) || ![a, b].every(id => nodes[id] || pads.some(p => p.id === id))) return links.get(key);
-  const material = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.16, depthWrite: false });
-  const redMat = new THREE.MeshBasicMaterial({ color: 0xf87171, transparent: true, opacity: 0.85, depthWrite: false });
+  const material = new THREE.MeshBasicMaterial({ color: PLAIN, transparent: true, opacity: 0.16, depthWrite: false });
+  const redMat = new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.85, depthWrite: false });
   const l = { a, b, g: new THREE.Group(), curve: new THREE.QuadraticBezierCurve3(), material, redMat, fill: 0, redFrom: null, hidden: !!hidden, vigie: a === "vigie" || b === "vigie", svc: nodes[a]?.leds ? a : nodes[b]?.leds ? b : null };
   shape(l);
   world.add(l.g);
@@ -490,7 +492,7 @@ function show(t) {
   for (const l of links.values()) {
     const s = l.svc && nodes[l.svc], from = [l.a, l.b].filter(red).sort((x, y) => first(x) - first(y))[0];
     l.g.visible = !l.vigie || ours;
-    l.material.color.setHex(s?.iso ? 0x22d3ee : l.hidden ? 0xfbbf24 : 0xffffff);
+    l.material.color.setHex(s?.iso ? 0x0891b2 : l.hidden ? 0xf59e0b : PLAIN);
     l.material.opacity = s?.iso ? 0.45 : l.hidden ? 0.7 : 0.16;
     l.redFrom = from && hit(from === l.a ? l.b : l.a) ? from : null;
   }
@@ -754,11 +756,11 @@ function pick2d(x, y) {
 // a material's colour as the screen shows it (getHexString turns three.js's linear colour back to sRGB), and its opacity
 const rgb = (c, a = 1) => "#" + c.getHexString() + Math.round(a * 255).toString(16).padStart(2, "0");
 const hex = h => "#" + h.toString(16).padStart(6, "0");
-const BUBBLE = { "k-bad": ["#fee2e2", "#7f1d1d"], "k-good": ["#dcfce7", "#14532d"], "k-warn": ["#ffedd5", "#7c2d12"] };
-function text2(t, x, y, size = 12, color = "#F6F7F9", weight = 600) {
-  g2.font = `${weight} ${size}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
+const BUBBLE = { "k-bad": ["#FBE0DC", "#7f1d1d"], "k-good": ["#DCF5E3", "#14532d"], "k-warn": ["#FDEBD3", "#7c2d12"] };
+function text2(t, x, y, size = 12, color = "#0E1726", weight = 500) {
+  g2.font = `${weight} ${size}px Geist, "Helvetica Neue", Arial, sans-serif`;
   g2.fillStyle = color;
-  g2.shadowColor = "#000";
+  g2.shadowColor = "#fff";
   g2.shadowBlur = 4;
   g2.fillText(t, x, y);
   g2.shadowBlur = 0;
@@ -778,7 +780,7 @@ function draw2d() {
     g2.stroke(), alpha();
     const [lx, ly] = to2(p.x + p.hx + p.r + 1.6, p.z);
     text2(p.role.toUpperCase(), lx, ly, 15, p.c);
-    text2(`${p.n} AGENTS`, lx, ly + 15, 10.5, "#ABB3BF", 700);
+    text2(`${p.n} AGENTS`, lx, ly + 15, 10.5, "#455064", 500);
   }
   for (const l of links.values()) {
     if (!l.g.visible) continue;
@@ -803,7 +805,7 @@ function draw2d() {
     g2.beginPath();
     g2.moveTo(...to2(...spot(held)));
     g2.lineTo(...to2(...POS[o]));
-    g2.strokeStyle = "#7dd3fc";
+    g2.strokeStyle = hex(SKY);
     g2.setLineDash([5, 4]);
     g2.stroke();
   }
@@ -825,7 +827,7 @@ function draw2d() {
     g2.globalAlpha = hovered && n.id !== hovered && !near.has(n.id) ? FADE : 1;
     const [x, y] = to2(...POS[n.id]), ink = near.has(n.id) ? tint : undefined;
     if (n.leds) {
-      const w = 1.7 * s2, h = 1.3 * s2, led = n.mode === "down" ? "#334155" : hex(LED[n.mode] ?? LED.normal);
+      const w = 1.7 * s2, h = 1.3 * s2, led = n.mode === "down" ? "#94a3b8" : hex(LED[n.mode] ?? LED.normal);
       if (n.iso) {
         g2.beginPath();
         g2.arc(x, y, 1.55 * s2, 0, 7);
@@ -837,7 +839,7 @@ function draw2d() {
       }
       g2.beginPath();
       g2.roundRect(x - w / 2, y - h / 2, w, h, 0.18 * s2);
-      g2.fillStyle = "#1e293b";
+      g2.fillStyle = "#ffffff";
       g2.shadowColor = "#ef4444";
       g2.shadowBlur = n.mode === "compromised" ? 18 : 0;
       g2.fill();
@@ -874,15 +876,15 @@ function draw2d() {
     }
     const profile = sc.agents.find(a => a.id === n.id)?.profile;
     text2(vigie ? "Vigie" : n.id, x, y + 1.3 * s2 + 14, 12, ink);
-    if (profile) text2(profile.toUpperCase(), x, y + 1.3 * s2 + 27, 10.5, "#ABB3BF", 700);
+    if (profile) text2(profile.toUpperCase(), x, y + 1.3 * s2 + 27, 10.5, "#455064", 500);
   }
   g2.restore();
   // what each agent says, in its bubble's colours, over it
   for (const n of Object.values(nodes)) {
     if (!n.bubble) continue;
-    const t = n.bubble.element.textContent, [bg, ink] = BUBBLE[n.bubble.element.classList[1]] ?? ["#ffffff", "#1C2127"];
+    const t = n.bubble.element.textContent, [bg, ink] = BUBBLE[n.bubble.element.classList[1]] ?? ["#ffffff", "#0E1726"];
     const [x, y] = to2(...POS[n.id]);
-    g2.font = "500 12px Inter, -apple-system, BlinkMacSystemFont, sans-serif";
+    g2.font = '500 12px Geist, "Helvetica Neue", Arial, sans-serif';
     const w = Math.min(240, g2.measureText(t).width + 18), top = y - 1.3 * s2 - 30;
     g2.beginPath();
     g2.roundRect(x - w / 2, top, w, 22, 10);
@@ -903,11 +905,11 @@ function hover(id) {
   id = nodes[id] ? id : null;
   if (id === hovered) return;
   hovered = id;
-  // the nodes linked to it stay lit, and their names and its white links take its colour (Marius, 23-10); the Vigie's
-  // white and a service's grey would not show, so they lend a sky blue
+  // the nodes linked to it stay lit, and their names and its plain links take its colour (Marius, 23-10); the Vigie's
+  // white and a service's grey would not show, so they lend the brand's blue
   near = new Set(id ? [...links.values()].filter(l => l.g.visible).flatMap(l => (members(l.a).includes(id) ? members(l.b) : members(l.b).includes(id) ? members(l.a) : [])) : []);
   near.delete(id);
-  tint = id && nodes[id].base && id !== "vigie" ? "#" + nodes[id].base.getHexString() : "#7dd3fc";
+  tint = id && nodes[id].base && id !== "vigie" ? "#" + nodes[id].base.getHexString() : hex(SKY);
   // a material one node shares with anything else (INK, GOLD, the tower's STEEL) gets a copy of its own, so it fades alone
   const of = new Map(Object.values(nodes).map(n => [n.g, n])), owner = o => (of.has(o) || !o.parent ? o : owner(o.parent));
   const users = new Map();
@@ -934,7 +936,7 @@ function hoverPaint() {
     was.push([m, m.opacity, m.color.getHex()], [l.redMat, l.redMat.opacity]);
     m.opacity = on ? 0.95 : m.opacity * FADE;
     if (!on) l.redMat.opacity *= FADE;
-    if (on && m.color.getHex() === 0xffffff) m.color.set(tint);
+    if (on && m.color.getHex() === PLAIN) m.color.set(tint);
   }
   return () => was.forEach(([m, o, c]) => ((m.opacity = o), c !== undefined && m.color.setHex(c)));
 }
@@ -948,7 +950,7 @@ let held = null, grip = [0, 0], moved = false;
 addEventListener("beforeunload", e => moved && (e.preventDefault(), (e.returnValue = "")));
 // its centre snaps onto the column or the row of a thing it comes within SNAP of, the nearest such thing, and a guide
 // line joins the two centres (Marius, 24-10)
-const SNAP = 0.7, guideMat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc, depthTest: false }), guides = [0, 1].map(() => new THREE.Group());
+const SNAP = 0.7, guideMat = new THREE.MeshBasicMaterial({ color: SKY, depthTest: false }), guides = [0, 1].map(() => new THREE.Group());
 let snaps = [];
 world.add(...guides);
 const spot = id => (p => (p ? [p.x, p.z] : POS[id]))(pads.find(p => p.id === id));
