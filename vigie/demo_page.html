@@ -6,7 +6,7 @@
 <title>Argus — trois banques, une journée</title>
 <style>
 /* Page autonome de la démo : aucun chargement extérieur, lisible au vidéoprojecteur.
-   Elle ne fait que LIRE le flux /demo/stream ; elle n'envoie aucune commande. */
+   Le panneau Krys possède un circuit de commandes humaines explicite. */
 :root {
   --bg: #f4f6f9; --surface: #ffffff; --fg: #121a26; --muted: #5a6677; --line: #d5dbe4;
   --a: #7a8494; --b: #b5651d; --c: #1f5fae;
@@ -92,6 +92,34 @@ canvas { width: 100%; height: 260px; display: block; }
   </section>
 
   <section class="final" id="final" hidden></section>
+
+  <section class="chart" aria-labelledby="krys-heading">
+    <h2 id="krys-heading">Demandez à Krys</h2>
+    <p>Réponses déterministes sur les preuves signées de la couche 3. Aucun LLM.
+      Les chiffres du simulateur affichés au-dessus ne sont pas des sources du chat.</p>
+    <label for="krys-token">Jeton de lancement de la démo (conservé uniquement dans cette page)</label>
+    <input id="krys-token" type="password" autocomplete="off" spellcheck="false">
+    <form id="krys-question-form">
+      <label for="krys-question">Question : alertes, R0, gels, propositions, pourquoi message_id…</label>
+      <input id="krys-question" maxlength="1000" required autocomplete="off" style="width:100%">
+      <button type="submit">Demander à Krys</button>
+    </form>
+    <ol id="krys-log" role="log" aria-live="polite" aria-label="Réponses et preuves de Krys" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:24rem;overflow:auto"></ol>
+    <details>
+      <summary>Commandes humaines — autorisation distincte, confirmation en deux temps</summary>
+      <p>Lecture seule par défaut. Un message dans le chat ne confirme rien.
+        La sortie de quarantaine d’agent n’est pas implémentée.</p>
+      <form id="krys-action-form">
+        <label for="krys-action">Action</label>
+        <select id="krys-action"><option value="unfreeze">Lever un gel</option><option value="resume">Reprendre après un rouge</option></select>
+        <label for="krys-target">Actif gelé ou * pour la reprise</label>
+        <input id="krys-target" maxlength="128" required autocomplete="off">
+        <button type="submit">Préparer le récapitulatif</button>
+      </form>
+      <p id="krys-recap" aria-live="polite"></p>
+      <button id="krys-confirm" type="button" disabled>Confirmer</button>
+    </details>
+  </section>
 
   <p class="note">Même journée, même graine, mêmes attaques pour les trois banques. Les pertes réelles ne servent qu'à afficher et noter :
   aucune KRYS ne les lit. « Bloquées » compte les refus explicites du portique ; une banque en rouge ne propose plus d'opérations,
@@ -250,5 +278,6 @@ $("replay").addEventListener("click", replayLocal);
 window.addEventListener("resize", () => drawChart(lastShown));
 connect();
 </script>
+<script src="/demo/krys.js"></script>
 </body>
 </html>
