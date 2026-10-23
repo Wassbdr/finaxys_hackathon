@@ -32,8 +32,8 @@ const table = (head, rows, foot = "") => `<div class="frame"><table><thead><tr>$
 const chip = (c, text) => `<span class="chip s-${c}">${esc(text)}</span>`;
 const count = (n, name, fill) => `<div class="count ${n ? "f-" + fill : "f-grey"}"><b>${n}</b><span>${esc(name)}</span></div>`;
 const big = (value, name, fill, under = "") => `<div class="count big f-${fill}"><b>${value}</b><span>${esc(name)}</span>${under ? `<small>${under}</small>` : ""}</div>`;
-// no pastille that only says "green": the border already does (Marius, 23-10)
-const pastille = word => word === "green" ? "" : `<span class="pastille">${esc(word)}</span>`;
+// no pastille that only says a colour: the border already does (Marius, 23-10)
+const pastille = word => ["green", "orange", "red"].includes(word) ? "" : `<span class="pastille">${esc(word)}</span>`;
 const block = (kind, id, [c, word], text, title = id) => `<button type="button" class="block s-${c}" data-open="${kind}:${esc(id)}">${pastille(word)}<h3>${esc(title)}</h3><p>${text}</p></button>`;
 const head = (title, [c, word]) => `<div class="dlg-head s-${c}"><h3>${esc(title)}</h3>${pastille(word)}</div>`;
 const order = id => ORDER.indexOf(id.split("-")[0]) * 10 + (+id.split("-")[1] || 0);
@@ -85,6 +85,7 @@ function agentState(id) {
 // red: the Vigie distrusts it; orange: layer 1 reports it exposed (a CVE, a large impact radius) but it is still trusted
 const serviceState = id => suspects()[id] ? ["red", "suspect"] : (D.st.graph?.suspects || []).some(s => s.service === id) ? ["orange", "exposed"] : ["green", "trusted"];
 const agentIds = () => Object.keys(D.S.agents || {}).sort((x, y) => order(x) - order(y));
+const roleOf = id => D.S.agents?.[id]?.role || id.split("-")[0];
 const bankLight = () => D.S.light?.light || D.st.light || "VERT";
 const actionsOf = id => (D.st.actions || []).filter(x => x.agent === id && x.action !== "green");
 function ledgerGroups(filter = () => true) {
@@ -134,7 +135,11 @@ function renderAgents() {
   const ids = agentIds(), sus = suspects();
   const red = ids.filter(id => agentState(id)[0] === "red").length, nSus = Object.keys(sus).length;
   let html = `<p class="lead"><b>${red} agent${red === 1 ? "" : "s"} of ${ids.length}</b> red · <b>${nSus}</b> suspect service${nSus === 1 ? "" : "s"} · click a block for its checks</p>`;
-  html += `<div class="grid three">${ids.map(id => block("agent", id, agentState(id), esc(ROLES[D.S.agents[id].role || id.split("-")[0]] || ""))).join("")}</div>`;
+  // agents of one role are one block, their count in its pastille and the worst of their colours on its border (Marius, 23-10)
+  const roles = Map.groupBy(ids, roleOf), worst = ["green", "grey", "orange", "red"];
+  html += `<div class="grid three">${[...roles].map(([role, members]) => members.length === 1
+    ? block("agent", members[0], agentState(members[0]), esc(ROLES[role] || ""))
+    : block("role", role, [members.map(id => agentState(id)[0]).reduce((x, y) => worst.indexOf(y) > worst.indexOf(x) ? y : x), String(members.length)], esc(ROLES[role] || ""))).join("")}</div>`;
   html += `<h2>Who feeds whom<span class="hint">a node turns red once data from a suspect service reached it</span>${sample("contamination_graph")}</h2>${graph()}`;
   put("agents", html);
 }
@@ -377,6 +382,7 @@ const dlg = $("dlg");
 function renderDetail() {
   if (!detail) return;
   const html = detail.kind === "agent" ? agentDetail(detail.id) : detail.kind === "service" ? serviceDetail(detail.id)
+    : detail.kind === "role" ? agentIds().filter(id => roleOf(id) === detail.id).map(agentDetail).join("")
     : (m => head(m.title, m.state) + `<p>${m.text}</p>` + m.detail())(METRICS[detail.id]());
   put("detail", html);
 }
