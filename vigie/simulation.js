@@ -230,28 +230,39 @@ const SAVED = await fetch("/dashboard/sim-layout.json").then(r => (r.ok ? r.json
 for (const id in SAVED) if (POS[id]) POS[id] = SAVED[id];
 for (const s of first.services) if (POS[s]) world.add(server(s).g);
 for (const a of first.agents) if (POS[a.id]) world.add(blob(a.id, a.profile, a.role).g);
-// agents of one role stand in a column on one pad named after the role, as the other tabs make them one block; its name
-// stands on its right, clear of the agents' own names (Marius, 23-10)
+// agents of one role stand on one pad named after the role, as the other tabs make them one block; its name stands on
+// its right, clear of the agents' own names (Marius, 23-10); the pad is a rounded box around its agents, fitted again
+// whenever one of them moves (Marius, 24-10)
 const pads = [];
-const stadium = (w, r) => new THREE.Shape().absarc(-w, 0, r, Math.PI / 2, Math.PI * 1.5).absarc(w, 0, r, -Math.PI / 2, Math.PI / 2);
+const pill = (hx, hz, r) => new THREE.Shape().absarc(hx, -hz, r, -Math.PI / 2, 0).absarc(hx, hz, r, 0, Math.PI / 2)
+  .absarc(-hx, hz, r, Math.PI / 2, Math.PI).absarc(-hx, -hz, r, Math.PI, Math.PI * 1.5);
+function fitPad(p) {
+  const xs = p.ids.map(id => POS[id][0]), zs = p.ids.map(id => POS[id][1]);
+  p.hx = (Math.max(...xs) - Math.min(...xs)) / 2;
+  p.hz = (Math.max(...zs) - Math.min(...zs)) / 2;
+  p.x = Math.min(...xs) + p.hx;
+  p.z = Math.min(...zs) + p.hz;
+  const rim = pill(p.hx, p.hz, p.r);
+  rim.holes.push(pill(p.hx, p.hz, p.r - 0.14));
+  p.zone.children.forEach((m, i) => (m.geometry.dispose(), (m.geometry = new THREE.ShapeGeometry(i ? rim : pill(p.hx, p.hz, p.r), 24))));
+  p.zone.position.set(p.x, 0, p.z);
+  p.label.position.set(p.x + p.hx + p.r + 1.6, 0, p.z);
+}
 for (const [role, members] of Object.entries(Object.groupBy(first.agents.filter(a => POS[a.id]), a => a.role))) {
   if (members.length < 2) continue;
-  const zs = members.map(a => POS[a.id][1]), w = (Math.max(...zs) - Math.min(...zs)) / 2, r = 2.4, c = SKIN[role] ?? 0x94a3b8;
-  const zone = new THREE.Group(), rim = stadium(w, r);
-  rim.holes.push(stadium(w, r - 0.14));
-  for (const [shape, opacity] of [[stadium(w, r), 0.16], [rim, 0.9]]) {
-    const m = turn(new THREE.Mesh(new THREE.ShapeGeometry(shape, 24), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity, depthWrite: false, toneMapped: false })), -Math.PI / 2);
+  const c = SKIN[role] ?? 0x94a3b8, zone = new THREE.Group();
+  for (const opacity of [0.16, 0.9]) {
+    const m = turn(new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity, depthWrite: false, toneMapped: false })), -Math.PI / 2);
     m.position.y = 0.015;
     m.renderOrder = 1;
     zone.add(m);
   }
-  const x = POS[members[0].id][0], z = Math.min(...zs) + w;
-  const label = tag(`${esc(role)}<small>${members.length} agents</small>`, [x + r + 1.6, 0, z]);
+  const label = tag(`${esc(role)}<small>${members.length} agents</small>`, [0, 0, 0]);
   Object.assign(label.element.style, { color: "#" + new THREE.Color(c).getHexString(), fontSize: "15px", letterSpacing: ".12em", textTransform: "uppercase" });
-  zone.position.set(x, 0, z);
-  zone.rotation.y = Math.PI / 2;
   zone.userData.pick = "pad:" + role;
-  pads.push({ role, x, z, w, r, c: label.element.style.color, n: members.length, ids: members.map(a => a.id), zone, label });
+  const p = { id: "pad:" + role, role, r: 2.4, c: label.element.style.color, n: members.length, ids: members.map(a => a.id), zone, label };
+  fitPad(p);
+  pads.push(p);
   world.add(zone, label);
 }
 const tower = new THREE.Group(), lamp = mesh(ball, new THREE.MeshStandardMaterial({ color: 0x0b0d12, emissive: LIGHT.VERT, emissiveIntensity: 2 }), [0, 6.15, -1.15], 0.26);
@@ -271,6 +282,15 @@ for (const n of Object.values(nodes)) if (n.g.parent === world) n.g.position.set
 tower.position.set(POS.vigie[0], 0, POS.vigie[1]);
 
 const at = id => v(POS[id][0], id === "vigie" ? 4.4 : nodes[id].leds ? 0.8 : 1, POS[id][1]);
+// the agents a link's end stands for: a pad's, or the one node
+const members = id => pads.find(p => p.id === id)?.ids ?? [id];
+// a pad's end of a link is the point of its rim nearest the link's other end
+function end(id, other) {
+  const p = pads.find(q => q.id === id);
+  if (!p) return at(id);
+  const o = at(other), x = THREE.MathUtils.clamp(o.x, p.x - p.hx, p.x + p.hx), z = THREE.MathUtils.clamp(o.z, p.z - p.hz, p.z + p.hz), d = Math.hypot(o.x - x, o.z - z) || 1;
+  return v(x + ((o.x - x) / d) * p.r, 0.3, z + ((o.z - z) / d) * p.r);
+}
 
 // What stands under a point of the window (clientX, clientY): the id of an agent, a service or "vigie", "pad:<role>"
 // for a role's pad, or null. A ray from the camera, the first visible thing it meets that belongs to one of them.
@@ -332,10 +352,10 @@ window.simHelp = (x, y) => {
 const links = new Map();
 function link(a, b, hidden) {
   const key = [a, b].sort().join("|");
-  if (links.has(key) || !nodes[a] || !nodes[b]) return links.get(key);
+  if (links.has(key) || ![a, b].every(id => nodes[id] || pads.some(p => p.id === id))) return links.get(key);
   const material = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.16, depthWrite: false });
   const redMat = new THREE.MeshBasicMaterial({ color: 0xf87171, transparent: true, opacity: 0.85, depthWrite: false });
-  const l = { a, b, g: new THREE.Group(), curve: new THREE.QuadraticBezierCurve3(), material, redMat, fill: 0, redFrom: null, hidden: !!hidden, vigie: a === "vigie" || b === "vigie", svc: nodes[a].leds ? a : nodes[b].leds ? b : null };
+  const l = { a, b, g: new THREE.Group(), curve: new THREE.QuadraticBezierCurve3(), material, redMat, fill: 0, redFrom: null, hidden: !!hidden, vigie: a === "vigie" || b === "vigie", svc: nodes[a]?.leds ? a : nodes[b]?.leds ? b : null };
   shape(l);
   world.add(l.g);
   links.set(key, l);
@@ -344,8 +364,8 @@ function link(a, b, hidden) {
 // a link's arc between its two ends and the tube or the dashes along it, drawn again while a drop is carried
 function shape(l) {
   const { curve, g } = l;
-  curve.v0.copy(at(l.a));
-  curve.v2.copy(at(l.b));
+  curve.v0.copy(end(l.a, l.b));
+  curve.v2.copy(end(l.b, l.a));
   curve.v1.lerpVectors(curve.v0, curve.v2, 0.5).y += 1 + curve.v0.distanceTo(curve.v2) * 0.08;
   curve.needsUpdate = true;
   for (const o of g.children) o.geometry.dispose();
@@ -372,14 +392,17 @@ const glow = {};
 const shine = c => (glow[c] ??= new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.9, roughness: 0.4 }));
 let flying = [], fx = [], sc, W, worldName = set.world, tick = 0, acc = 0, playing = true, light = "VERT", time = 0;
 
+// a message to or from an agent of a pad rides the pad's link when the pad stands for it
+const team = id => pads.find(p => p.ids.includes(id))?.id;
+const wire = (a, b) => [[a, b], [team(a), b], [a, team(b)]].map(k => links.get(k.sort().join("|"))).find(Boolean);
 function send(from, to, kind, bad, delay) {
-  const l = link(from, to);
+  const l = wire(from, to);
   if (!l || (l.vigie && worldName !== "ours")) return;
   const shape = kind === "wire" || kind === "fraud" ? "coin" : kind === "order" || kind === "payment" ? "box" : "dot";
   const m = mesh(GEO[shape], shine(bad && shape !== "coin" ? DOT.bad : DOT[kind]));
   m.visible = false;
   world.add(m);
-  flying.push({ m, l, back: from !== l.a, from, to, kind, at: -delay, dur: Math.min(1.1, 0.35 + l.curve.getLength() / 30) });
+  flying.push({ m, l, back: from !== l.a && team(from) !== l.a, from, to, kind, at: -delay, dur: Math.min(1.1, 0.35 + l.curve.getLength() / 30) });
 }
 
 function burst(id, color, size = 2) {
@@ -459,10 +482,10 @@ function show(t) {
   nodes.vigie.asleep = !st.vigie;
   light = st.light ?? "VERT";
   // a link turns red from its red end (a compromised service, or the agent whose ring went red first) once the other
-  // end is hit too (Marius, 24-10)
-  const red = id => (nodes[id].leds ? nodes[id].mode === "compromised" : nodes[id].alert === "ROUGE");
-  const hit = id => red(id) || (!nodes[id].leds && nodes[id].alert === "ORANGE");
-  const first = id => (nodes[id].leds ? -1 : W.hit[id] ?? 1e9);
+  // end is hit too (Marius, 24-10); a pad's end is red or hit once one of its agents is
+  const red = id => members(id).some(m => (nodes[m].leds ? nodes[m].mode === "compromised" : nodes[m].alert === "ROUGE"));
+  const hit = id => red(id) || members(id).some(m => !nodes[m].leds && nodes[m].alert === "ORANGE");
+  const first = id => Math.min(...members(id).map(m => (nodes[m].leds ? -1 : W.hit[m] ?? 1e9)));
   for (const l of links.values()) {
     const s = l.svc && nodes[l.svc], from = [l.a, l.b].filter(red).sort((x, y) => first(x) - first(y))[0];
     l.g.visible = !l.vigie || ours;
@@ -565,8 +588,19 @@ function load(n) {
   }
   for (const l of links.values()) world.remove(l.g);
   links.clear();
-  for (const [a, s, , hidden] of sc.reads) link(s, a, hidden);
-  for (const w of Object.values(sc.worlds)) for (const [, a, b] of w.msgs) link(a, b);
+  const edges = new Map(), key = (a, b) => [a, b].sort().join("|");
+  const edge = (a, b, hidden) => edges.has(key(a, b)) || edges.set(key(a, b), [a, b, !!hidden]);
+  for (const [a, s, , hidden] of sc.reads) edge(s, a, hidden);
+  for (const w of Object.values(sc.worlds)) for (const [, a, b] of w.msgs) edge(a, b);
+  // what is linked to every agent of a pad, the same way, is linked to the pad once: fewer links (Marius, 24-10)
+  for (const p of pads)
+    for (const x of Object.keys(nodes)) {
+      const ks = p.ids.map(m => key(x, m));
+      if (p.ids.includes(x) || !ks.every(k => edges.has(k)) || new Set(ks.map(k => edges.get(k)[2])).size > 1) continue;
+      edges.set(key(x, p.id), [x, p.id, edges.get(ks[0])[2]]);
+      ks.forEach(k => edges.delete(k));
+    }
+  for (const [a, b, hidden] of edges.values()) link(a, b, hidden);
   W = sc.worlds[worldName];
   ui.t.max = sc.ticks - 1;
   playing = true;
@@ -592,7 +626,7 @@ function frameAll() {
   const ids = Object.keys(POS).filter(id => nodes[id] && (id !== "vigie" || worldName === "ours"));
   if (set.display === "2D") {
     const xs = ids.map(id => POS[id][0]), zs = ids.map(id => POS[id][1]);
-    Object.assign(MAP, { x0: Math.min(...xs) - 3, x1: Math.max(...xs.map(x => x + 3), ...pads.map(p => p.x + p.r + 3.5)), z0: Math.min(...zs) - 4, z1: Math.max(...zs) + 4.5 });
+    Object.assign(MAP, { x0: Math.min(...xs) - 3, x1: Math.max(...xs.map(x => x + 3), ...pads.map(p => p.x + p.hx + p.r + 3.5)), z0: Math.min(...zs) - 4, z1: Math.max(...zs) + 4.5 });
     return fit2d(stage.clientWidth, stage.clientHeight);
   }
   const pts = ids.flatMap(id => [[-1.5, 0, 0], [1.5, 0, 0], [0, 0, -1.5], [0, 0, 1.5], [0, id === "vigie" ? 4.5 : 2.5, 0]]
@@ -714,7 +748,7 @@ function pick2d(x, y) {
     const [nx, ny] = to2(...POS[n.id]), e = Math.hypot(px - nx, py - ny);
     if (e < d) (best = n.id), (d = e);
   }
-  const pad = pads.find(p => Math.abs(px - to2(p.x, 0)[0]) < p.r * s2 && Math.abs(py - to2(0, p.z)[1]) < (p.w + p.r) * s2);
+  const pad = pads.find(p => Math.abs(px - to2(p.x, 0)[0]) < (p.hx + p.r) * s2 && Math.abs(py - to2(0, p.z)[1]) < (p.hz + p.r) * s2);
   return best ?? (pad ? "pad:" + pad.role : null);
 }
 // a material's colour as the screen shows it (getHexString turns three.js's linear colour back to sRGB), and its opacity
@@ -734,15 +768,15 @@ function draw2d() {
   g2.clearRect(0, 0, flat.width, flat.height);
   g2.textAlign = "center";
   for (const p of pads) {
-    const [x, y] = to2(p.x - p.r, p.z - p.w - p.r);
+    const [x, y] = to2(p.x - p.hx - p.r, p.z - p.hz - p.r);
     g2.beginPath();
-    g2.roundRect(x, y, 2 * p.r * s2, 2 * (p.w + p.r) * s2, p.r * s2);
+    g2.roundRect(x, y, 2 * (p.hx + p.r) * s2, 2 * (p.hz + p.r) * s2, p.r * s2);
     g2.fillStyle = p.c;
     alpha(0.16), g2.fill(), alpha(0.9);
     g2.strokeStyle = p.c;
     g2.lineWidth = 2;
     g2.stroke(), alpha();
-    const [lx, ly] = to2(p.x + p.r + 1.6, p.z);
+    const [lx, ly] = to2(p.x + p.hx + p.r + 1.6, p.z);
     text2(p.role.toUpperCase(), lx, ly, 15, p.c);
     text2(`${p.n} AGENTS`, lx, ly + 15, 10.5, "#ABB3BF", 700);
   }
@@ -767,7 +801,7 @@ function draw2d() {
   for (const o of held ? snaps : []) {
     if (!o) continue;
     g2.beginPath();
-    g2.moveTo(...to2(...POS[held]));
+    g2.moveTo(...to2(...spot(held)));
     g2.lineTo(...to2(...POS[o]));
     g2.strokeStyle = "#7dd3fc";
     g2.setLineDash([5, 4]);
@@ -871,7 +905,7 @@ function hover(id) {
   hovered = id;
   // the nodes linked to it stay lit, and their names and its white links take its colour (Marius, 23-10); the Vigie's
   // white and a service's grey would not show, so they lend a sky blue
-  near = new Set(id ? [...links].filter(([key, l]) => l.g.visible && key.split("|").includes(id)).flatMap(([key]) => key.split("|")) : []);
+  near = new Set(id ? [...links.values()].filter(l => l.g.visible).flatMap(l => (members(l.a).includes(id) ? members(l.b) : members(l.b).includes(id) ? members(l.a) : [])) : []);
   near.delete(id);
   tint = id && nodes[id].base && id !== "vigie" ? "#" + nodes[id].base.getHexString() : "#7dd3fc";
   // a material one node shares with anything else (INK, GOLD, the tower's STEEL) gets a copy of its own, so it fades alone
@@ -895,8 +929,8 @@ function hoverPaint() {
   if (!hovered) return () => {};
   const was = [];
   for (const m of dim) was.push([m, m.opacity]), (m.opacity *= FADE);
-  for (const [key, l] of links) {
-    const m = l.material, on = key.split("|").includes(hovered);
+  for (const l of links.values()) {
+    const m = l.material, on = members(l.a).includes(hovered) || members(l.b).includes(hovered);
     was.push([m, m.opacity, m.color.getHex()], [l.redMat, l.redMat.opacity]);
     m.opacity = on ? 0.95 : m.opacity * FADE;
     if (!on) l.redMat.opacity *= FADE;
@@ -905,8 +939,9 @@ function hoverPaint() {
   return () => was.forEach(([m, o, c]) => ((m.opacity = o), c !== undefined && m.color.setHex(c)));
 }
 
-// Holding Option over a drop or a service picks it up: it follows the pointer on the floor until Option is let go, a role's pad and
-// all its agents with it, its links redrawn as it goes; Layout › Save as default keeps where everything stands (Marius, 24-10)
+// Holding Option over a drop, a service or a role's pad picks it up: it follows the pointer on the floor until Option is let go,
+// a pad with all its agents, an agent of a pad alone with its pad fitted around it again, its links redrawn as it goes;
+// Layout › Save as default keeps where everything stands (Marius, 24-10)
 const ground = new THREE.Plane(v(0, 1, 0), 0), hit = new THREE.Vector3();
 let held = null, grip = [0, 0], moved = false;
 // leaving or reloading the page with moves not saved as the default asks first (Marius, 24-10)
@@ -916,13 +951,14 @@ addEventListener("beforeunload", e => moved && (e.preventDefault(), (e.returnVal
 const SNAP = 0.7, guideMat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc, depthTest: false }), guides = [0, 1].map(() => new THREE.Group());
 let snaps = [];
 world.add(...guides);
+const spot = id => (p => (p ? [p.x, p.z] : POS[id]))(pads.find(p => p.id === id));
 addEventListener("keyup", e => e.key === "Alt" && held && ((held = null), guide()));
 function guide() {
   guides.forEach((g, axis) => {
     for (const o of g.children) o.geometry.dispose();
     g.clear();
     const o = held && snaps[axis];
-    if (o) g.add(stick(v(POS[held][0], 0.08, POS[held][1]), v(POS[o][0], 0.08, POS[o][1]), 0.05, guideMat)).children[0].castShadow = false;
+    if (o) g.add(stick(v(spot(held)[0], 0.08, spot(held)[1]), v(POS[o][0], 0.08, POS[o][1]), 0.05, guideMat)).children[0].castShadow = false;
   });
 }
 function floorAt(x, y) {
@@ -942,23 +978,25 @@ function carry(e) {
   if (!p) return;
   if (!held) {
     const id = pick(e.clientX, e.clientY);
-    if (!nodes[id]) return;
+    if (!nodes[id] && !pads.some(q => q.id === id)) return;
     held = id;
-    grip = [POS[id][0] - p[0], POS[id][1] - p[1]];
+    grip = [spot(id)[0] - p[0], spot(id)[1] - p[1]];
   }
-  const pad = pads.find(q => q.ids.includes(held)), ids = pad ? pad.ids : [held];
+  const ids = members(held);
   const t = [p[0] + grip[0], p[1] + grip[1]], others = Object.keys(POS).filter(o => nodes[o] && !ids.includes(o));
   snaps = [0, 1].map(axis => others.filter(o => Math.abs(POS[o][axis] - t[axis]) < SNAP)
     .sort((a, b) => Math.hypot(POS[a][0] - t[0], POS[a][1] - t[1]) - Math.hypot(POS[b][0] - t[0], POS[b][1] - t[1]))[0]);
   snaps.forEach((o, axis) => o && (t[axis] = POS[o][axis]));
-  const dx = t[0] - POS[held][0], dz = t[1] - POS[held][1];
+  const dx = t[0] - spot(held)[0], dz = t[1] - spot(held)[1];
   moved ||= dx !== 0 || dz !== 0;
   for (const id of ids) {
     POS[id] = [POS[id][0] + dx, POS[id][1] + dz];
     (id === "vigie" ? tower : nodes[id].g).position.set(POS[id][0], 0, POS[id][1]);
   }
-  if (pad) (pad.x += dx), (pad.z += dz), pad.zone.position.set(pad.x, 0, pad.z), pad.label.position.set(pad.x + pad.r + 1.6, 0, pad.z);
-  for (const l of links.values()) if (ids.includes(l.a) || ids.includes(l.b)) shape(l);
+  const fitted = pads.filter(q => q.ids.some(id => ids.includes(id)));
+  fitted.forEach(fitPad);
+  const ends = [...ids, ...fitted.map(q => q.id)];
+  for (const l of links.values()) if (ends.includes(l.a) || ends.includes(l.b)) shape(l);
   guide();
 }
 sec.querySelector("#sim-save").onclick = async e => {
