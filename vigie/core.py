@@ -37,7 +37,8 @@ class VigieState:
                 "execution": ("status", "exec_id", "kind", "qty", "fill_price", "amount_eur", "notional_eur",
                               "trader", "asset", "side", "iban_requested", "iban_credited"),
                 "alert": ("kind", "cve", "asset", "pct"),
-                "order_proposal": ("asset", "side", "notional_eur", "signals", "trader", "quant_confidence"),
+                "human_decision": ("action", "target"),
+                "order_proposal": ("asset", "side", "notional_eur", "signals", "trader", "quant_confidence", "news_refs", "justification"),
                 "payment_proposal": ("amount_eur", "beneficiary_id"),
                 "llm_trace": ("task", "output", "external", "response"),
             }

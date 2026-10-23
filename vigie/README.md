@@ -27,9 +27,10 @@ L'interface de phase 0 doit encore être figée ensemble.
 `main.Runtime` reçoit les messages signés et `/meta`. La couche 3 n'a ni client
 Redis, ni objet World. Le processus ne consulte aucune clé de simulation. Les
 champs d'oracle ajoutés aux exécutions sont exclus de `VigieState`. Le processus
-émet un heartbeat signé chaque tick et des alertes de constats. Sans couche 2,
-le portique refuse uniquement les opérations marquées, avec les message_id en
-preuve ; une signature de requête invalide est rejetée avant l'analyse.
+émet un heartbeat signé chaque tick et des alertes de constats. Le portique conserve le refus des opérations marquées, avec les message_id en
+preuve. Une règle provisoire de gel herding ciblé est ajoutée
+([FREEZE.md](FREEZE.md)). Une signature de requête invalide est rejetée avant
+l’analyse.
 
 Le module herding livré est intégré par défaut : `Runtime.analytics` reçoit les
 messages signés, `Analytics` observe le bus et ses `Herding.findings(tick)` sont
@@ -42,9 +43,11 @@ récente du lot a retiré `pdg.py` ; aucun ancien module PDG n'est réintroduit.
 Herding mesure l'alignement, le nombre effectif d'agents, la similarité des
 justifications et les séquences réflexives, avec leurs preuves. Les traces LLM
 sont observées si elles existent ; aucun LLM n'est appelé pour ces calculs.
-Sans référence propre explicite, `herding_excess` reste inconnu. Les constats
-herding seuls ne modifient pas le portique provisoire : leur politique appartient
-au Dev 1. D'autres producteurs `on_message(msg) -> list[Finding]` restent
+Sans référence propre explicite, `herding_excess` reste inconnu. Les mesures
+herding restent inchangées. Une règle PROVISOIRE de couche 3 gèle
+les seuls ordres alignés sur un actif lorsque le signal dépasse sa référence
+apprise et possède un témoin. Le Dev 1 peut remplacer cette règle par sa politique
+([FREEZE.md](FREEZE.md)). D'autres producteurs `on_message(msg) -> list[Finding]` restent
 injectables via `runtime.layers`.
 
 ## Ce qui est mesuré et ses limites
@@ -90,7 +93,7 @@ et peuvent être négatives. Les deux bras A/B reçoivent la même graine et les
 mêmes injections, pas une vérité cachée dans le détecteur.
 
 L’évaluation livre les cinq cas demandés, avec et sans couche 3.
-Herding est une mesure ; il ne décide pas seul de bloquer une opération.
+Le gel herding exige une anomalie persistante et une preuve supplémentaire.
 News-wire peut rester non détecté dans php2shell_day. Aucun contrôle d’identité
 ou de règle financière des anciennes couches 1/2 n’est ajouté. Le service `/meta` indisponible au démarrage ne bénéficie pas
 du croisement CVE ; le processus l'annonce, sans inventer sa version. Le runtime

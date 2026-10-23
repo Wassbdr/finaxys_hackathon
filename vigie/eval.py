@@ -85,7 +85,7 @@ def schedule_evaluation(ls, scenario):
     return duration, injected
 
 
-def play(cfg, scenario, ticks, enabled):
+def play(cfg, scenario, ticks, enabled, *, capture_frames=False):
     cfg = couche3_config(cfg)
     # L'injection du portique reste locale à l'évaluation ; le moteur de l'équipe
     # et son comportement par défaut ne sont pas modifiés.
@@ -93,6 +93,7 @@ def play(cfg, scenario, ticks, enabled):
     ls = Lockstep(cfg, no_llm=True, no_vigie=not enabled)
     meta = {sid: core.meta() for sid, core in ls.cores.items()}
     runtime = Runtime(cfg, ls.keyring, meta=meta)
+    runtime.freeze.record = capture_frames
     ls.vigie = None
     if enabled:
         from bus.gate import Decision
@@ -141,6 +142,11 @@ def play(cfg, scenario, ticks, enabled):
                 "detections": detected, "undetected_attacks": sorted(set(attacks) - set(detected)),
                 "cve_seen": bool(runtime.contagion.cve_ticks),
                 "blocked_operations": len(runtime.contagion.blocked),
+                "freeze_starts": sum(t["event"] == "start" for t in runtime.freeze.transitions),
+                "freeze_blocked_operations": len(runtime.freeze.blocked),
+                "freeze_transitions": runtime.freeze.transitions,
+                "freeze_active": copy.deepcopy(runtime.freeze.active),
+                **({"freeze_frames": runtime.freeze.frames} if capture_frames else {}),
                 "injected_orders": len(injected_ids),
                 "injected_blocked_operations": sum(not d["approved"] and injected_labels.get(d["message_id"], False)
                     for d in runtime.decisions),
@@ -155,11 +161,13 @@ def play(cfg, scenario, ticks, enabled):
         ls.close()
 
 
-def evaluate(name, ticks=None, seed=42):
+def evaluate(name, ticks=None, seed=42, *, freeze_profile="default"):
     if name not in SCENARIOS:
         raise ValueError(f"Scénario hors périmètre couche 3 : {name}")
     started = time.perf_counter()
     cfg = load_config(overrides={"seed": seed, "llm": {"enabled": False, "cache": False}})
+    if freeze_profile != "default":
+        cfg["vigie"]["freeze_profile"] = freeze_profile
     if name == "clean":
         scenario = {"name": "clean", "duration": "180s", "steps": []}
     else:

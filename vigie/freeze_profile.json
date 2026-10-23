@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "training_seeds": [
+    7,
+    11,
+    19,
+    23,
+    31,
+    53
+  ],
+  "reference": {
+    "ACME": 0.7881773399014779,
+    "BOREAL": 0.9597069597069596,
+    "CITRA": 0.9029733959311425
+  },
+  "window_ticks": 30,
+  "freeze_ticks": 10,
+  "similarity_threshold": 0.98,
+  "margin": 0.0,
+  "min_aligned": 3,
+  "persistence_ticks": 20
+}

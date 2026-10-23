@@ -8,10 +8,11 @@ import time
 
 from bus.gate import Decision, Gate
 from bus.message import Keyring, MessageFactory, canonical
-from sim.config import known_senders, load_config
+from sim.config import known_senders, load_config, trader_ids
 from vigie.core import VigieState
 from vigie.contagion import Contagion
 from vigie.analytics import Analytics
+from vigie.freeze import Freeze, load_profile
 
 
 class Runtime(Gate):
@@ -19,7 +20,9 @@ class Runtime(Gate):
         self.keyring = keyring
         self.state = VigieState(meta=meta or {})
         self.contagion = Contagion(cfg, self.state)
-        self.layers = [self.contagion, *layers]
+        profile = cfg["vigie"]["freeze_profile"] if "freeze_profile" in cfg["vigie"] else load_profile()
+        self.freeze = Freeze(self.state, trader_ids(cfg), profile)
+        self.layers = [self.contagion, self.freeze, *layers]
         # L'adaptateur livré conserve ses calculs ; seules les versions publiques
         # effectivement disponibles lui sont transmises pour son estimation R0.
         self.analytics = Analytics({**cfg, "services": self.state.meta}, keyring)
@@ -46,8 +49,8 @@ class Runtime(Gate):
         return out
 
     def request_approval(self, msg):
-        # La politique de feux, seuils et scores appartient au Dev 1. En phase 0,
-        # seule une opération marquée est refusée, avec sa chaîne de preuves.
+        # Le gel est une règle PROVISOIRE de couche 3, remplaçable par le Dev 1.
+        # Les feux, scores et autres politiques restent de son périmètre.
         # L'authentification ci-dessous n'est pas une nouvelle règle métier.
         try:
             valid = self.keyring.verify(msg)
@@ -57,10 +60,13 @@ class Runtime(Gate):
             return Decision(False, "INVALID_SIGNATURE", "vigie-layer3")
         self.on_message(msg)
         marked, evidence = self.contagion.quarantine(msg)
+        frozen, freeze_evidence = self.freeze.refusal(msg)
+        evidence = list(dict.fromkeys([*evidence, *freeze_evidence]))
+        refused = marked or frozen
         self.decisions.append({"tick": self.state.tick, "message_id": msg["message_id"],
-                               "approved": not marked, "evidence": evidence})
-        reason = canonical({"kind": "marked_operation", "evidence": evidence}) if marked else "unmarked_operation"
-        return Decision(not marked, reason, "vigie-layer3")
+                               "approved": not refused, "evidence": evidence, "herding_frozen": frozen})
+        reason = canonical({"kind": "herding_freeze" if frozen else "marked_operation", "evidence": evidence}) if refused else "unmarked_operation"
+        return Decision(not refused, reason, "vigie-layer3")
 
 
 def serve(cfg, client, *, stop=None, meta=None, layers=()):
