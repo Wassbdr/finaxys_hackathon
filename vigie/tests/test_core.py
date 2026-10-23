@@ -85,7 +85,8 @@ def test_valid_portique_and_summary_to_human(setup):
     c, k, s = setup
     m = chain(c, k)
     assert c.approve(m, s).approved
-    assert any(m["to"] == "human" and m["type"] == "alert" for m in c.drain())
+    assert c.policy.layers["trader-1"]["2"] == "VERT"
+    assert not any(m["to"] == "human" and m["type"] == "alert" for m in c.drain())
 
 
 @pytest.mark.parametrize(
@@ -186,7 +187,13 @@ def test_missing_or_forged_ancestry_and_replay_are_rejected(setup):
 def test_cumulative_orange_then_only_trader_quarantined(setup):
     c, k, s = setup
     c.profiles = {
-        "trader-1": {"mean_order_eur": 100000, "frequency": 0.1, "assets": ["BOREAL"]}
+        "trader-1": {
+            "mean_order_eur": 100000,
+            "frequency": 0.1,
+            "assets": ["BOREAL"],
+            "clean": True,
+            "reference_ticks": 300,
+        }
     }
     for tick in (10, 11):
         s["tick"] = tick
@@ -197,6 +204,8 @@ def test_cumulative_orange_then_only_trader_quarantined(setup):
         c, k, 12, 4900000, justification="Vente motivée par la faillite de BOREAL"
     )
     assert not c.approve(m, s).approved
+    assert not c.quarantined
+    c.summary("trader-1", "slow", "BEHAVIOR_CUSUM", 3, [m["message_id"]])
     assert c.quarantined == {"trader-1"}
     assert not c.registry["trader-1"]["tools"]
     s["tick"] = 13

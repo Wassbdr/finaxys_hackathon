@@ -14,7 +14,7 @@ make run
 
 `make run` / `make procfile` génèrent `runs/vigie-config.yaml` avec
 `gate.impl: bus`, `gate.default_on_timeout: reject`, `vigie.stub: false` et
-`llm.enabled: false`. Ils apprennent d'abord le profil habituel sur 120 ticks de
+`llm.enabled: false`. Ils apprennent d'abord le profil habituel sur 300 ticks de
 référence sans attaque, même graine, et enregistrent le journal et les profils
 sous `runs/vigie-reference-*`. Le Procfile généré et le Procfile statique utilisent
 ce profil effectif ; générer celui-ci avec `make procfile` avant honcho.
@@ -38,21 +38,38 @@ existants utilisent leurs doubles fournis par l'équipe, sans appel extérieur.
 2. Règles fixes : deux visas signés (Compliance et Risk), proposition originale
    retrouvée dans le trafic, anti-rejeu, montants, positions, exposition globale,
    VaR historique recalculée, liquidité, perte, KYC et changement d'IBAN.
-   La source est l'état réel utilisé par `/state`, complété par `world:ledger`,
-   `world:prices` et les exécutions signées du tick courant, jamais la vue de Risk.
+   La Vigie reconstruit un grand livre fantôme depuis la configuration initiale et
+   les seules exécutions signées. Elle confronte les soldes déclarés à cet invariant,
+   isole le ledger menteur et utilise ses propres quantités/cash avec les prix
+   réels comme ancre. Ni le solde de core-ledger ni la vue de Risk ne font foi.
    En cas d'état absent/périmé ou de bail périmé, le portique refuse.
-3. Comportement : profils gelés du run de référence, cumul de grosses tranches
-   sous le seuil individuel sur dix ticks, suspicion par agent qui baisse avec
-   le temps. Le ralentissement est un feu orange adressé au seul agent concerné.
+3. Comportement : D3-A mesure les tranches entre 0,9 et 1 fois la limite, et
+   leur cumul sur vingt ticks, au-delà du maximum de référence. D3-B applique
+   le z robuste MAD (plancher obligatoire) et un CUSUM plafonné, calibrés sur
+   300 ticks propres. La suspicion a une demi-vie de trente ticks ; orange à 20,
+   retour sous 10. La quarantaine exige au moins 50 et deux familles distinctes
+   en trente ticks. Sans référence mature, le comportement ne peut mettre en
+   quarantaine pendant les cinquante premiers ticks. Le ralentissement est un
+   feu orange adressé au seul agent, avec plafond divisé par deux et cadence
+   d'une approbation par cinq ticks au portique.
 4. Cohérence : remontée transitive des `depends_on` et union des provenances
    originales. Un parent inconnu, un service compromis/figé/indisponible, une
    mauvaise version ou une réponse historiquement contaminée bloque l'action.
-   Une confiance contredisant Quant ou une faillite non corroborée par les vraies
-   dépêches déclenche une quarantaine ciblée. Les news injectées du scénario
-   indiquent source et fiabilité ; une affirmation de l'agent ne fait pas preuve.
+   Une confiance contredisant Quant ou une faillite non corroborée ajoute un
+   témoin de cohérence ; la quarantaine exige aussi le seuil et une autre famille.
+   Un paiement exige un visa Compliance signé, favorable, lié à la même proposition
+   et au même client (`beneficiary_id` dans le contrat de l'équipe), dans ses
+   dépendances transitives. Les news injectées indiquent source et fiabilité ;
+   une affirmation de l'agent ne fait pas preuve.
 
 La Vigie observe aussi les propositions refusées avant le portique. Elle publie
-un résumé signé vers `human` pour chaque décision. Elle renouvelle son heartbeat
+des notifications signées vers `human` aux changements de niveau, regroupées
+par racine causale. Le compteur brut → incidents → notifications est exporté.
+Une donnée contaminée bloque l'action et isole sa source ; elle ne pénalise
+jamais le score de l'agent trompé. Une signature invalide bloque son message et
+notifie l'humain ; son émetteur déclaré n'est pas une attribution prouvée. Une
+empreinte modifiée sous une identité vérifiée déclenche la quarantaine immédiate.
+Elle renouvelle son heartbeat
 et son `light_change` signé avec `expires_at_tick` à chaque tick. Rouge reste
 verrouillé jusqu'à `human_decision` signé `human` avec `action: resume`.
 Quarantaine révoque la clé au portique et les outils du registre, et adresse un
@@ -115,3 +132,5 @@ délai de heartbeat et ne lisent pas eux-mêmes `expires_at_tick`.
 L'auditeur LLM est désactivé et ne fait aucun appel API. La fonction d'avis
 éventuelle ne peut qu'augmenter une suspicion et refuse le même modèle que celui
 des agents ; elle ne donne aucun pouvoir d'exécution.
+
+Contrat de données pour l’autre équipe : voir [DASHBOARD.md](DASHBOARD.md). Aucun écran ni route de leur API n’est modifié.

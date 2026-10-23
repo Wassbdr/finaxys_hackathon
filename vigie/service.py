@@ -16,7 +16,17 @@ def serve(cfg, client, stop=None, profiles=None):
     )
     previous = json.loads(client.get(prefix + "vigie:status") or "{}")
     controller.light = previous.get("light", "VERT")
+    saved_policy = client.get(prefix + "vigie:policy")
+    if saved_policy:
+        controller.policy.restore(json.loads(saved_policy))
+    controller.tick = previous.get("tick", 0)
+    controller.policy.last_tick = controller.tick
     controller.suspicion.update(previous.get("suspicion", {}))
+    controller.policy.layers.update(previous.get("indicators", {}))
+    controller.policy.levels.update(previous.get("levels", {}))
+    controller.isolated_services.update(previous.get("isolated_services", []))
+    for sid in controller.isolated_services:
+        controller.causality.isolate(sid, previous.get("tick", 0))
     controller.approved_proposals.update(
         client.smembers(prefix + "vigie:approved_proposals")
     )
@@ -24,7 +34,7 @@ def serve(cfg, client, stop=None, profiles=None):
         if agent in controller.registry:
             controller.quarantined.add(agent)
             controller.registry[agent]["tools"] = set()
-    truth = RedisTruth(client, prefix)
+    truth = RedisTruth(client, prefix, cfg)
     pubsub = client.pubsub(ignore_subscribe_messages=False)
     pubsub.subscribe(prefix + "bus", prefix + "vigie.approval_requests")
     # L'acquittement de souscription précède ready : aucune première requête perdue.
@@ -50,6 +60,8 @@ def serve(cfg, client, stop=None, profiles=None):
             try:
                 data = json.loads(raw["data"])
                 if raw["channel"] == prefix + "bus":
+                    if isinstance(data, dict) and data.get("from") == "vigie":
+                        continue
                     truth.observe(data, controller.keyring)
                     controller.observe(data, truth.read())
                     if data.get("from") == "clock":
@@ -88,7 +100,58 @@ def serve(cfg, client, stop=None, profiles=None):
                 controller.summary("bus", "block", "INVALID_ENVELOPE", 1)
             for out in controller.drain():
                 client.publish(prefix + "bus", canonical(out))
-            client.set(prefix + "vigie:status", canonical(controller.status()))
+            if (
+                raw["channel"] == prefix + "vigie.approval_requests"
+                or isinstance(data, dict)
+                and data.get("from") == "clock"
+            ):
+                status = controller.status()
+                client.set(prefix + "vigie:status", canonical(status))
+                client.set(
+                    prefix + "vigie:policy", canonical(controller.policy.checkpoint())
+                )
+                if isinstance(data, dict) and data.get("from") == "clock":
+                    snapshot = controller.factory.make(
+                        controller.tick,
+                        "heartbeat",
+                        "dashboard",
+                        {
+                            "agent": "vigie",
+                            "role": "vigie",
+                            "stub": False,
+                            "kind": "vigie_state",
+                            "notification": False,
+                            "state": status,
+                        },
+                    )
+                    client.publish(prefix + "bus", canonical(snapshot))
+                    summary = {
+                        k: status[k]
+                        for k in (
+                            "schema_version",
+                            "tick",
+                            "light",
+                            "agents",
+                            "counters",
+                            "isolated_services",
+                        )
+                    }
+                    client.publish(
+                        prefix + "bus",
+                        canonical(
+                            controller.factory.make(
+                                controller.tick,
+                                "alert",
+                                "dashboard",
+                                {
+                                    "kind": "vigie_summary",
+                                    "notification": False,
+                                    "state": summary,
+                                },
+                            )
+                        ),
+                    )
+
             if (
                 isinstance(data, dict)
                 and data.get("message_id")

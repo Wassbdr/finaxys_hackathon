@@ -105,3 +105,48 @@ def test_restart_cannot_clear_red_quarantine_or_replay(cfg, setup):
         stop.set()
         worker.join(2)
     assert not worker.is_alive()
+
+
+def test_dashboard_snapshot_follows_existing_stream_contract(cfg, setup):
+    _, keys, state = setup
+    cfg["redis"]["prefix"] = "display:"
+    client = fakeredis.FakeRedis(decode_responses=True)
+    client.set("display:state", canonical(state))
+    stop = threading.Event()
+    worker = threading.Thread(target=serve, args=(cfg, client, stop), daemon=True)
+    sub = client.pubsub(ignore_subscribe_messages=True)
+    sub.subscribe("display:bus")
+    worker.start()
+    try:
+        wait_for(lambda: client.get("display:vigie:ready"))
+        clock = MessageFactory("clock", keys).make(10, "tick", "*", {"tick": 10})
+        client.publish("display:bus", canonical(clock))
+        frames = []
+
+        def snapshot():
+            raw = sub.get_message(timeout=0.01)
+            if raw:
+                m = json.loads(raw["data"])
+                if m.get("payload", {}).get("kind") == "vigie_state":
+                    frames.append(m)
+                    return True
+            return False
+
+        wait_for(snapshot)
+        frame = frames[0]
+        assert (
+            keys.verify(frame)
+            and frame["type"] == "heartbeat"
+            and frame["to"] == "dashboard"
+        )
+        assert frame["payload"]["notification"] is False
+        public = frame["payload"]["state"]
+        assert public["schema_version"] == 1
+        assert len(public["agents"]["trader-1"]["lights"]) == 4
+        assert set(public["counters"]) == {"raw_alerts", "incidents", "notifications"}
+        assert set(public["contamination_graph"]) == {"nodes", "edges"}
+        assert "signature" not in public["registry"]["trader-1"]
+    finally:
+        stop.set()
+        worker.join(2)
+        sub.close()

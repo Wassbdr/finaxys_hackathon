@@ -12,6 +12,21 @@ from bus.gate import Decision
 from bus.message import FIELDS, MessageFactory, canonical
 from sim.config import agent_ids, role_of
 from sim.ledger import historical_var
+from vigie.provenance import Provenance
+from vigie.policy import Policy
+from vigie.statistics import Behavior, structuring
+
+
+def kind_for_graph(msg):
+    return bool(msg.get("depends_on")) or msg["type"] in {
+        "price_update",
+        "order_proposal",
+        "payment_proposal",
+        "compliance_decision",
+        "risk_decision",
+        "execution",
+        "service_status",
+    }
 
 
 class Refused(ValueError):
@@ -28,15 +43,28 @@ class Controller:
         self.seen = {}
         self.profiles = profiles or {}
         self.orders = defaultdict(lambda: deque(maxlen=200))
-        self.suspicion = defaultdict(float)
+        self.policy = Policy()
+        for a in [*agent_ids(cfg), "executor"]:
+            self.policy.layers[a]
+        self.suspicion = self.policy.scores
+        self.detector = Behavior(self.profiles)
+        self.last_approved = {}
+        self.behavior_details = {}
+        self.known_bad_messages = set()
         self.quarantined = set()
         self.approved_proposals = set()
         self.out = []
         self.history = deque(maxlen=cfg["risk_metrics"]["var_window_ticks"] + 1)
         self.quant = None
+        self.clock_prices = {}
+        self.last_execution_tick = -1
         self.analyzed = set()
         self.propagation = {}
         self.contagion_blocked = 0
+        self.isolated_services = set()
+        self.causality = Provenance(cfg["services"])
+        self.ledger_evidence = []
+        self.claim_evidence = []
         self.auditor_enabled = False
         permissions = {
             "quant": {"price_update"},
@@ -118,36 +146,123 @@ class Controller:
             )
 
     def summary(self, agent, action, reason, layer, parents=()):
-        self.emit(
-            "alert",
-            "human",
-            {
-                "kind": "vigie_decision",
-                "severity": "critical"
-                if action in {"quarantine", "red"}
-                or reason in {"UNKNOWN_AGENT", "INVALID_SIGNATURE", "CONFIG_CHANGED"}
-                else "info"
-                if action == "green"
-                else "warning",
-                "agent": agent,
-                "action": action,
-                "reason": reason,
-                "layer": layer,
-                "suspicion": self.suspicion[agent],
-                "text": f"{agent} : {reason}. Couche {layer}, action {action}, suspicion {self.suspicion[agent]:.0f}/100.",
-            },
-            parents,
+        if action == "green" and agent != "human":
+            self.policy.layers[agent][str(layer)] = "VERT"
+            return
+        source = None
+        for id_ in parents:
+            contaminated, _ = self.causality.contaminated(id_)
+            if contaminated:
+                source = contaminated[0]
+                break
+        if agent in self.isolated_services:
+            source = agent
+        unverified = reason in {"UNKNOWN_AGENT", "INVALID_SIGNATURE"}
+        if unverified:
+            source = "unverified:" + agent
+        victim = source is not None and agent not in self.isolated_services
+        no_fault = {
+            "UNTRUSTED_PROVENANCE",
+            "QUARANTINED_SOURCE",
+            "LIGHT_BLOCKED",
+            "STALE_LEASE",
+            "STATE_UNAVAILABLE",
+            "AGENT_SLOWED",
+            "AGENT_RATE_LIMIT",
+            "QUARANTINED_AGENT",
+            "BEHAVIOR_CUMULATIVE",
+        }
+        weight = {
+            "BEHAVIOR_CUMULATIVE": 25,
+            "BEHAVIOR_CUSUM": 15,
+            "UNRELIABLE_NEWS": 20,
+            "INCOHERENT_CONFIDENCE": 20,
+            "MISSING_COMPLIANCE_PROOF": 30,
+        }.get(reason, 30 if layer == 2 and reason not in no_fault else 0)
+        forced = (
+            "ROUGE"
+            if unverified
+            else "QUARANTAINE"
+            if action == "quarantine"
+            else "ROUGE"
+            if action == "red" or agent in self.isolated_services
+            else None
         )
+        incident, notify = self.policy.record(
+            agent,
+            reason,
+            layer,
+            self.tick,
+            0 if victim else weight,
+            parents,
+            source,
+            victim,
+            forced,
+        )
+        if notify or agent == "human":
+            if agent == "human" and not notify:
+                self.policy.notifications += 1
+            self.emit(
+                "alert",
+                "human",
+                {
+                    "kind": "vigie_incident",
+                    "notification": True,
+                    "severity": "critical"
+                    if incident["level"] in {"ROUGE", "QUARANTAINE"}
+                    else "warning",
+                    "incident_id": incident["id"],
+                    "agent": agent,
+                    "action": action,
+                    "reason": reason,
+                    "layer": layer,
+                    "proof": list(parents),
+                    "source": source,
+                    "victim": victim,
+                    "attribution_verified": not unverified,
+                    "text": f"{agent} : {reason} ; preuves {', '.join(parents) or 'registre'} ; action {action} ; décision attendue : examiner l'incident.",
+                },
+                parents,
+            )
+        profile = self.profiles.get(agent, {})
+        warm = (
+            profile.get("clean")
+            and profile.get("reference_ticks", 0) >= 300
+            or self.tick >= 50
+        )
+        if (
+            action != "quarantine"
+            and not victim
+            and agent in self.registry
+            and agent not in self.quarantined
+            and warm
+            and self.policy.two_witnesses(agent, self.tick)
+        ):
+            self.quarantine(agent, "TWO_WITNESSES", parents)
 
     def drain(self):
         out, self.out = self.out, []
         return out
 
     def advance(self, tick):
-        elapsed = max(0, tick - self.tick)
-        for agent in self.suspicion:
-            self.suspicion[agent] = max(0, self.suspicion[agent] - elapsed)
+        previous = dict(self.policy.levels)
+        self.policy.advance(tick)
         self.tick = max(self.tick, tick)
+        for a, old in previous.items():
+            if old == "ORANGE" and self.policy.levels[a] == "VERT":
+                self.policy.notifications += 1
+                self.emit(
+                    "alert",
+                    "human",
+                    {
+                        "kind": "vigie_incident",
+                        "notification": True,
+                        "agent": a,
+                        "action": "green",
+                        "reason": "SUSPICION_DECAY",
+                        "text": f"{a} : suspicion revenue sous 10, reprise des limites normales.",
+                    },
+                )
 
     def identity(self, msg):
         if not isinstance(msg, dict) or msg.get("from") not in self.registry:
@@ -202,6 +317,8 @@ class Controller:
         try:
             self.identity(msg)
         except (Refused, OSError) as exc:
+            if isinstance(msg, dict):
+                self.causality.reject(msg.get("message_id"))
             if str(exc) == "CONFIG_CHANGED" and msg.get("from") in self.registry:
                 self.quarantine(msg["from"], str(exc))
             self.summary(
@@ -213,15 +330,35 @@ class Controller:
             return
         if state and msg["tick"] > self.tick and msg["tick"] == state.get("tick"):
             self.advance(msg["tick"])
+        self.policy.layers[msg["from"]]["1"] = "VERT"
         id_ = msg["message_id"]
         if id_ in self.seen:
             return
         self.seen[id_] = msg
+        if kind_for_graph(msg):
+            self.causality.add(msg)
+        if state:
+            for sid, status in state.get("services", {}).items():
+                if status.get("mode") in {"compromised", "stale", "down"}:
+                    self.isolate_service(sid, "UNTRUSTED_PROVENANCE", [id_])
         kind, p = msg["type"], msg["payload"]
         if kind == "tick" and msg["from"] == "clock":
             self.advance(msg["tick"])
             self.last_clock_tick = msg["tick"]
             self.last_clock_at = time.monotonic()
+            self.detector.profiles = self.profiles
+            if state:
+                self.clock_prices = dict(state["prices"])
+            for agent, orders in self.orders.items():
+                if agent not in self.quarantined and self.detector.tick(
+                    agent, list(orders), self.tick
+                ):
+                    # Le CUSUM garde ses preuves même après leur sortie de la fenêtre.
+                    proof = sorted(self.detector.evidence.get(agent, set()))
+                    if proof and not any(
+                        any(self.causality.contaminated(id_)) for id_ in proof
+                    ):
+                        self.summary(agent, "slow", "BEHAVIOR_CUSUM", 3, proof)
             self.emit(
                 "heartbeat",
                 "*",
@@ -237,6 +374,17 @@ class Controller:
                     + self.cfg["vigie"]["heartbeat_timeout_ticks"],
                 },
             )
+            for agent, level in list(self.policy.levels.items()):
+                if (
+                    level == "ORANGE"
+                    and agent in self.registry
+                    and agent not in self.quarantined
+                ):
+                    self.emit(
+                        "light_change",
+                        agent,
+                        {"light": "ORANGE", "reason": "SUSPICION"},
+                    )
             for agent in self.quarantined:
                 self.emit(
                     "light_change",
@@ -256,10 +404,26 @@ class Controller:
                     "*",
                     {"light": "VERT", "reason": "reprise humaine signée"},
                 )
+            if (
+                p.get("action") == "unblock"
+                and p.get("target") in self.isolated_services
+            ):
+                service = p["target"]
+                self.isolated_services.remove(service)
+                self.causality.release(service, self.tick)
+                self.policy.layers[service] = {str(i): "VERT" for i in range(1, 5)}
             if p.get("action") == "unblock" and p.get("target") in self.quarantined:
                 agent = p["target"]
                 self.quarantined.remove(agent)
                 self.registry[agent]["tools"] = set(self.registry[agent]["types"])
+                self.suspicion[agent] = 0.0
+                self.policy.witnesses[agent] = {}
+                self.policy.levels[agent] = "VERT"
+                self.policy.layers[agent] = {str(i): "VERT" for i in range(1, 5)}
+                incident = self.policy.incidents.get("agent:" + agent)
+                if incident:
+                    incident["status"] = "resolved"
+                    incident["level"] = "VERT"
                 self.emit(
                     "light_change",
                     agent,
@@ -269,8 +433,51 @@ class Controller:
                     },
                 )
             self.summary("human", "green", "HUMAN_DECISION", 0, [id_])
+        elif kind == "heartbeat" and msg["from"] == "risk" and state:
+            view = p.get("view", {})
+            cash = view.get("cash_eur")
+            history = state.get("shadow_cash_history", [])
+            if (
+                cash is not None
+                and history
+                and min(abs(float(cash) - v) for v in history) > 0.05
+            ):
+                self.isolate_service(
+                    "core-ledger",
+                    "LEDGER_CONSERVATION",
+                    [id_],
+                    {"claimed": cash, "expected": history[-1]},
+                )
+        elif (
+            kind == "execution"
+            and msg["from"] == "executor"
+            and p.get("status") == "executed"
+        ):
+            self.last_execution_tick = msg["tick"]
         elif kind == "price_update" and msg["from"] == "quant":
             self.quant = msg
+            if (
+                state
+                and self.last_execution_tick < msg["tick"]
+                and msg["tick"] == self.last_clock_tick
+            ):
+                for asset, estimate in p.get("assets", {}).items():
+                    anchor = self.clock_prices.get(asset)
+                    if (
+                        anchor
+                        and abs(float(estimate.get("price", anchor)) - anchor) / anchor
+                        > 0.02
+                    ):
+                        self.isolate_service(
+                            "market-feed",
+                            "ANCHOR_DIVERGENCE",
+                            [id_],
+                            {
+                                "asset": asset,
+                                "claimed": estimate.get("price"),
+                                "anchor": anchor,
+                            },
+                        )
         elif kind == "order_proposal":
             try:
                 amount = float(p["notional_eur"])
@@ -280,7 +487,7 @@ class Controller:
                 self.orders[msg["from"]].append(
                     (msg["tick"], amount, p.get("asset"), id_)
                 )
-                if state:
+                if state and not any(self.causality.contaminated(id_)):
                     self.analyze(msg, state)
         if kind in {
             "price_update",
@@ -307,10 +514,68 @@ class Controller:
                     record["agents"].add(msg["from"])
                     record["messages"].append(id_)
 
+    def isolate_service(self, service, reason, parents=(), evidence=None):
+        first = service not in self.isolated_services
+        self.isolated_services.add(service)
+        self.causality.isolate(service, self.tick, parents)
+        if evidence:
+            self.ledger_evidence.append(
+                {
+                    "service": service,
+                    "reason": reason,
+                    "proof": list(parents),
+                    **evidence,
+                }
+            )
+        critical = service == "core-ledger" and reason == "LEDGER_CONSERVATION"
+        bank_changed = critical and self.light != "ROUGE"
+        if bank_changed:
+            self.light = "ROUGE"
+            self.emit("light_change", "*", {"light": "ROUGE", "reason": reason})
+        if first or critical:
+            count = self.policy.notifications
+            self.summary(service, "red" if critical else "block", reason, 2, parents)
+            if bank_changed and self.policy.notifications == count:
+                self.policy.notifications += 1
+                incident = self.policy.incidents.get("source:" + service, {})
+                self.emit(
+                    "alert",
+                    "human",
+                    {
+                        "kind": "vigie_incident",
+                        "notification": True,
+                        "incident_id": incident.get("id"),
+                        "agent": service,
+                        "action": "red",
+                        "reason": reason,
+                        "layer": 2,
+                        "proof": list(parents),
+                        "source": service,
+                        "victim": False,
+                        "text": f"{service} : conservation violée, banque passée au rouge ; examiner les preuves avant reprise humaine.",
+                    },
+                    parents,
+                )
+
     def quarantine(self, agent, reason, parents=()):
         self.quarantined.add(agent)
         self.registry[agent]["tools"] = set()
-        self.suspicion[agent] = min(100, self.suspicion[agent] + 60)
+        if self.suspicion[agent] < 50:
+            self.suspicion[agent] = 100.0
+        self.policy.levels[agent] = "QUARANTAINE"
+        for family, tick in self.policy.witnesses[agent].items():
+            if self.tick - tick <= 30:
+                self.policy.layers[agent][str(family)] = "ROUGE"
+        if reason == "CONFIG_CHANGED":
+            self.policy.layers[agent]["1"] = "ROUGE"
+        if len(self.quarantined) >= 2 and self.light != "ROUGE":
+            self.light = "ROUGE"
+            self.emit(
+                "light_change",
+                "*",
+                {"light": "ROUGE", "reason": "MULTIPLE_QUARANTINES"},
+            )
+            self.summary("bank", "red", "MULTIPLE_QUARANTINES", 2, parents)
         self.emit(
             "light_change",
             agent,
@@ -351,9 +616,20 @@ class Controller:
             for k, v in source["payload"].items()
         ):
             raise Refused("INVALID_ANCESTRY")
-        if source["message_id"] not in msg["depends_on"]:
+        ancestors = {}
+        pending = list(msg["depends_on"])
+        while pending:
+            id_ = pending.pop()
+            if id_ in ancestors:
+                continue
+            parent = self.seen.get(id_)
+            if not parent:
+                raise Refused("INVALID_ANCESTRY")
+            ancestors[id_] = parent
+            pending.extend(parent["depends_on"])
+        if source["message_id"] not in ancestors:
             raise Refused("INVALID_ANCESTRY")
-        compliance = [self.seen.get(id_) for id_ in msg["depends_on"]]
+        compliance = list(ancestors.values())
         valid = [
             m
             for m in compliance
@@ -365,7 +641,11 @@ class Controller:
             == source["message_id"]
         ]
         if not valid:
-            raise Refused("INVALID_ANCESTRY")
+            raise Refused(
+                "MISSING_COMPLIANCE_PROOF"
+                if source["type"] == "payment_proposal"
+                else "INVALID_ANCESTRY"
+            )
         self.identity(valid[0])
         compliance_proposal = valid[0]["payload"]["proposal"]
         if (
@@ -377,6 +657,16 @@ class Controller:
             )
         ):
             raise Refused("INVALID_ANCESTRY")
+        if source["type"] == "payment_proposal" or source["payload"].get("client_id"):
+            client = source["payload"].get(
+                "client_id", source["payload"].get("beneficiary_id")
+            )
+            proof_client = compliance_proposal.get("payload", {}).get(
+                "client_id",
+                compliance_proposal.get("payload", {}).get("beneficiary_id"),
+            )
+            if not client or proof_client != client:
+                raise Refused("MISSING_COMPLIANCE_PROOF")
         if source["type"] == "order_proposal":
             parents = [self.seen.get(id_) for id_ in source["depends_on"]]
             if not any(
@@ -391,6 +681,19 @@ class Controller:
         return source
 
     def provenance(self, msg, state, source):
+        contaminated, invalid = self.causality.contaminated(msg["message_id"])
+        if contaminated:
+            for sid in contaminated:
+                if (
+                    sid not in self.isolated_services
+                    and sid in self.cfg["services"]
+                    and state.get("services", {}).get(sid, {}).get("mode") == "normal"
+                ):
+                    continue
+                self.isolate_service(sid, "UNTRUSTED_PROVENANCE", [msg["message_id"]])
+            raise Refused("UNTRUSTED_PROVENANCE")
+        if invalid:
+            raise Refused("INVALID_ANCESTRY")
         # L'union des parents empêche Risk de faire disparaître une provenance gênante.
         pending = [msg, source]
         visited = set()
@@ -421,11 +724,17 @@ class Controller:
             status = state.get("services", {}).get(sid)
             if (
                 not status
+                or sid in self.isolated_services
                 or status.get("mode") in {"compromised", "stale", "down"}
                 or entry.get("response_hash") in state.get("tainted_hashes", [])
             ):
+                if isinstance(sid, str):
+                    self.isolate_service(
+                        sid, "UNTRUSTED_PROVENANCE", [msg["message_id"]]
+                    )
                 raise Refused("UNTRUSTED_PROVENANCE")
             if entry.get("version") != self.cfg["services"][sid]["version"]:
+                self.isolate_service(sid, "UNTRUSTED_PROVENANCE", [msg["message_id"]])
                 raise Refused("UNTRUSTED_PROVENANCE")
             if type(entry.get("tick")) is not int or entry["tick"] > self.tick:
                 raise Refused("INVALID_PROVENANCE")
@@ -448,6 +757,21 @@ class Controller:
             raise Refused("INVALID_AMOUNT")
         if not math.isfinite(amount) or amount <= 0:
             raise Refused("INVALID_AMOUNT")
+        if self.policy.levels[source["from"]] == "ORANGE":
+            if (
+                amount
+                > self.cfg["agents"][
+                    "trader" if source["type"] == "order_proposal" else "payment"
+                ][
+                    "max_order_eur"
+                    if source["type"] == "order_proposal"
+                    else "max_transfer_eur"
+                ]
+                * 0.5
+            ):
+                raise Refused("AGENT_SLOWED")
+            if self.tick - self.last_approved.get(source["from"], -1000) < 5:
+                raise Refused("AGENT_RATE_LIMIT")
         if self.light != "VERT":
             raise Refused("LIGHT_BLOCKED")
         lease_seconds = (
@@ -466,6 +790,14 @@ class Controller:
             or not 0 <= self.tick - state["tick"] <= 1
         ):
             raise Refused("STATE_UNAVAILABLE")
+        if state.get("ledger_discrepancies"):
+            self.isolate_service(
+                "core-ledger",
+                "LEDGER_CONSERVATION",
+                [msg["message_id"]],
+                {"differences": state["ledger_discrepancies"]},
+            )
+            raise Refused("LEDGER_CONSERVATION")
         pnl = state.get("pnl", {})
         loss = float(pnl["day_eur"]) + float(pnl.get("payment_fraud_eur", 0))
         if loss < -r["max_daily_loss_eur"]:
@@ -520,7 +852,10 @@ class Controller:
             raise Refused("RESTRICTED_ASSET")
         if any(ref.get("confidential") for ref in order.get("news_refs", [])):
             raise Refused("CONFIDENTIAL_NEWS")
-        if float(order.get("quant_confidence", 0)) < t["min_confidence"]:
+        confidence = float(order.get("quant_confidence", 0))
+        if not math.isfinite(confidence) or not 0 <= confidence <= 1:
+            raise Refused("INVALID_CONFIDENCE")
+        if confidence < t["min_confidence"]:
             raise Refused("LOW_CONFIDENCE")
         side = 1 if order["side"] == "buy" else -1
         position = (
@@ -557,23 +892,34 @@ class Controller:
 
     def behavior(self, source):
         agent = source["from"]
-        recent = [
-            e
-            for e in self.orders[agent]
-            if self.tick - 10 <= e[0] <= self.tick
-            and e[1] >= self.cfg["agents"]["trader"]["max_order_eur"] * 0.95
-        ]
-        profile = self.profiles.get(agent, {})
-        return len(recent) >= 3 and sum(e[1] for e in recent) > max(
-            10_000_000, profile.get("mean_order_eur", 1_000_000) * 3
+        data = structuring(
+            list(self.orders[agent]),
+            self.tick,
+            self.cfg["agents"]["trader"]["max_order_eur"],
+            self.profiles.get(agent, {}),
         )
+        self.behavior_details[agent] = data
+        return data["alert"]
 
     def coherence(self, source, state):
         p = source["payload"]
         if source["type"] == "order_proposal":
-            est = (
-                (self.quant or {}).get("payload", {}).get("assets", {}).get(p["asset"])
+            quant = next(
+                (
+                    self.seen.get(id_)
+                    for id_ in source["depends_on"]
+                    if self.seen.get(id_, {}).get("from") == "quant"
+                    and self.seen.get(id_, {}).get("type") == "price_update"
+                ),
+                None,
             )
+            est = (quant or {}).get("payload", {}).get("assets", {}).get(p["asset"])
+            if est and abs(
+                float(p.get("quant_confidence", 0)) - float(est["confidence"])
+            ) > self.profiles.get(source["from"], {}).get(
+                "confidence_gap_threshold", 0.3
+            ):
+                return "INCOHERENT_CONFIDENCE"
             if (
                 est
                 and float(p.get("quant_confidence", 0))
@@ -600,7 +946,6 @@ class Controller:
         agent = source["from"]
         anomaly = self.behavior(source)
         if anomaly:
-            self.suspicion[agent] = min(100, self.suspicion[agent] + 30)
             self.summary(
                 agent, "slow", "BEHAVIOR_CUMULATIVE", 3, [source["message_id"]]
             )
@@ -615,7 +960,8 @@ class Controller:
             )
         mismatch = self.coherence(source, state)
         if mismatch:
-            self.quarantine(agent, mismatch, [source["message_id"]])
+            self.summary(agent, "block", mismatch, 4, [source["message_id"]])
+            self.known_bad_messages.add(source["message_id"])
             return mismatch
         return "BEHAVIOR_CUMULATIVE" if anomaly else None
 
@@ -639,6 +985,8 @@ class Controller:
             agent = source["from"]
             layer = 2
             self.fixed_rules(msg, source, state)
+            self.policy.layers[agent]["1"] = "VERT"
+            self.policy.layers[agent]["2"] = "VERT"
             layer = 4
             self.provenance(msg, state, source)
             if source["type"] == "order_proposal":
@@ -648,11 +996,34 @@ class Controller:
                     raise Refused(anomaly)
                 if self.behavior(source):
                     raise Refused("BEHAVIOR_CUMULATIVE")
+            if source["message_id"] in self.known_bad_messages:
+                raise Refused("INCOHERENT_DECISION")
             self.approved_proposals.add(source["message_id"])
+            self.last_approved[agent] = self.tick
             self.summary(agent, "green", "APPROVED", 2, [msg["message_id"]])
             return Decision(True, "APPROVED", "vigie")
         except (Refused, KeyError, TypeError, ValueError, OSError) as exc:
             reason = str(exc) if isinstance(exc, Refused) else "INVALID_SCHEMA"
+            if (
+                reason in {"MISSING_COMPLIANCE_PROOF", "INVALID_ANCESTRY"}
+                and isinstance(msg, dict)
+                and msg.get("payload", {}).get("kind") == "payment"
+            ):
+                proposal = msg["payload"].get("proposal", {})
+                p = proposal.get("payload", {})
+                self.claim_evidence.append(
+                    {
+                        "agent": agent,
+                        "client_id": p.get("client_id", p.get("beneficiary_id")),
+                        "assertion": p.get(
+                            "kyc_justification",
+                            p.get("justification", "client pré-validé annoncé"),
+                        ),
+                        "truth": "Aucune compliance_decision favorable, signée et liée à ce client dans les dépendances valides.",
+                        "message_id": msg.get("message_id"),
+                        "proof": list(msg.get("depends_on", [])),
+                    }
+                )
             if reason == "UNTRUSTED_PROVENANCE":
                 self.contagion_blocked += 1
             if reason in {"LOSS_LIMIT", "VAR_LIMIT", "EXPOSURE_LIMIT"}:
@@ -660,7 +1031,6 @@ class Controller:
                 self.emit("light_change", "*", {"light": "ROUGE", "reason": reason})
             if reason == "CONFIG_CHANGED" and agent in self.registry:
                 self.quarantine(agent, reason)
-            self.suspicion[agent] = min(100, self.suspicion[agent] + 10)
             self.summary(
                 agent,
                 "red"
@@ -682,12 +1052,44 @@ class Controller:
 
     def status(self):
         return {
+            "schema_version": 1,
             "tick": self.tick,
             "light": self.light,
+            "agents": {
+                a: {
+                    "role": role_of(a),
+                    "lights": dict(self.policy.layers[a]),
+                    "suspicion": self.suspicion[a],
+                    "level": "QUARANTAINE"
+                    if a in self.quarantined
+                    else self.policy.levels[a],
+                    "quarantined": a in self.quarantined,
+                }
+                for a in [*agent_ids(self.cfg), "executor"]
+            },
             "suspicion": dict(self.suspicion),
             "quarantined": sorted(self.quarantined),
             "contagion_blocked": self.contagion_blocked,
+            "isolated_services": sorted(self.isolated_services),
+            "ledger_evidence": self.ledger_evidence[-20:],
+            "claim_evidence": self.claim_evidence[-20:],
             "profiles": self.profiles,
+            **self.policy.status(),
+            "behavior": self.behavior_details,
+            "cusum": self.detector.observations,
+            "contamination_graph": self.causality.agent_graph(),
+            "orders": {
+                a: [
+                    {
+                        "tick": o[0],
+                        "notional_eur": o[1],
+                        "asset": o[2],
+                        "message_id": o[3],
+                    }
+                    for o in list(orders)[-20:]
+                ]
+                for a, orders in self.orders.items()
+            },
             "registry": {
                 a: {
                     "configuration_fingerprint": e["fingerprint"],
@@ -700,10 +1102,11 @@ class Controller:
             "propagation": {
                 key: {
                     **record,
+                    "messages": record["messages"][-8:],
                     "agents": sorted(record["agents"]),
                     "reaction_count": len(record["messages"]),
                 }
-                for key, record in self.propagation.items()
+                for key, record in list(self.propagation.items())[-50:]
             },
             "auditor_llm": False,
         }

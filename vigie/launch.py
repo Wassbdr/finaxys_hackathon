@@ -42,7 +42,7 @@ def main():
         from vigie.compare import learn_reference
 
         reference = Path(cfg["runs_dir"]) / f"vigie-reference-{time.time_ns()}"
-        profiles = learn_reference(cfg, 120, reference)
+        profiles = learn_reference(cfg, 300, reference)
         profile_path = reference / "profiles.json"
         profile_path.write_text(json.dumps(profiles))
         cfg["vigie"]["profiles_path"] = str(profile_path)

@@ -33,28 +33,20 @@ def until(predicate, timeout=5):
 
 
 def learn_reference(cfg, ticks, directory):
-    records = {}
+    from vigie.statistics import calibrate
+
+    messages = []
     ls = Lockstep(cfg, no_vigie=True, no_llm=True, run_dir=directory)
-
-    def learn(msg):
-        if msg["type"] == "order_proposal" and ls.keyring.verify(msg):
-            records.setdefault(msg["from"], []).append(msg)
-
-    ls.bus.tap(learn)
+    ls.bus.tap(lambda msg: messages.append(msg))
     try:
         ls.run(ticks)
+        if ls.store.smembers(ls.prefix + "tainted") or any(
+            info["mode"] != "normal" for info in ls.world.state()["services"].values()
+        ):
+            raise ValueError("REFERENCE_CONTAMINATED")
+        return calibrate(cfg, messages, ticks, ls.keyring)
     finally:
         ls.close()
-    return {
-        agent: {
-            "mean_order_eur": sum(m["payload"]["notional_eur"] for m in messages)
-            / len(messages),
-            "frequency": len(messages) / ticks,
-            "assets": sorted({m["payload"]["asset"] for m in messages}),
-            "reference_ticks": ticks,
-        }
-        for agent, messages in records.items()
-    }
 
 
 class ProtectedWorld:
@@ -159,7 +151,7 @@ def metrics(state):
 def compare(cfg, scenario, directory, ticks=None):
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=False)
-    profiles = learn_reference(cfg, 120, directory / "reference")
+    profiles = learn_reference(cfg, 300, directory / "reference")
     profile_path = directory / "profiles.json"
     profile_path.write_text(canonical(profiles))
     server = fakeredis.TcpFakeServer(("127.0.0.1", 0), server_type="redis")

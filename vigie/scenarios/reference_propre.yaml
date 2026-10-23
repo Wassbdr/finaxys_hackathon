@@ -1,0 +1,4 @@
+name: reference_propre
+description: "300 ticks sans injection, pour mesurer les fausses alertes de la Vigie."
+duration: 300s
+steps: []

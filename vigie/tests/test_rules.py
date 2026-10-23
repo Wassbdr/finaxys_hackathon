@@ -166,6 +166,7 @@ def test_bad_ancestry_and_parent_provenance_cannot_be_laundered(setup):
 
 def test_observation_detects_chain_and_corruption_without_gate(setup):
     c, k, s = setup
+    c.profiles = {"trader-1": {"clean": True, "reference_ticks": 300}}
     for tick in (10, 11, 12):
         s["tick"] = tick
         m = chain(
@@ -185,6 +186,8 @@ def test_observation_detects_chain_and_corruption_without_gate(setup):
         )
         source = c.seen[m["payload"]["proposal"]["message_id"]]
         c.analyze(source, s)
+    assert not c.quarantined
+    c.summary("trader-1", "slow", "BEHAVIOR_CUSUM", 3, [m["message_id"]])
     assert c.quarantined == {"trader-1"}
     alerts = [m["payload"] for m in c.drain() if m["type"] == "alert"]
     assert any(p["action"] == "slow" for p in alerts)
@@ -198,9 +201,13 @@ def test_confidence_contradiction_and_real_news_confirmation(setup):
     m = chain(c, k)
     low = MessageFactory("quant", k)
     low.nonce = "low:"
-    c.observe(
-        low.make(10, "price_update", "*", {"assets": {"BOREAL": {"confidence": 0.1}}})
+    low_message = low.make(
+        10, "price_update", "*", {"assets": {"BOREAL": {"confidence": 0.1}}}
     )
+    c.observe(low_message)
+    source = c.seen[m["payload"]["proposal"]["message_id"]]
+    source["depends_on"] = [low_message["message_id"]]
+    k.sign(source)
     assert c.approve(m, s).reason == "INCOHERENT_CONFIDENCE"
     c.quarantined.clear()
     c.registry["trader-1"]["tools"] = set(c.registry["trader-1"]["types"])
