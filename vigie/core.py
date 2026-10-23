@@ -1129,7 +1129,7 @@ class Controller:
                 }
                 for key, record in list(self.propagation.items())[-50:]
             },
-            "auditor_llm": False,
+            "auditor_llm": self.auditor_enabled,
             "metrics": self.detect.snapshot(),
             "herding": self.herding.snapshot(),
             "actions": list(self.actions)[-150:],

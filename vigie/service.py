@@ -7,6 +7,7 @@ from bus.message import Keyring, canonical
 from bus.redis_bus import next_message
 from sim.config import known_senders
 from sim.params import Params
+from vigie.auditor import Auditor
 from vigie.core import Controller
 from vigie.state import VigieState
 
@@ -40,6 +41,7 @@ def serve(cfg, client, stop=None, profiles=None):
     view = VigieState(
         cfg, Params(client, prefix, cfg), json.loads(saved_view) if saved_view else None
     )
+    auditor = Auditor(controller)
     pubsub = client.pubsub(ignore_subscribe_messages=False)
     pubsub.subscribe(prefix + "bus", prefix + "vigie.approval_requests")
     # L'acquittement de souscription précède ready : aucune première requête perdue.
@@ -112,6 +114,7 @@ def serve(cfg, client, stop=None, profiles=None):
                     )
             except (ValueError, KeyError, TypeError, AttributeError):
                 controller.summary("bus", "block", "INVALID_ENVELOPE", 1)
+            auditor.step()
             for out in controller.drain():
                 client.publish(prefix + "bus", canonical(out))
             if (
@@ -196,5 +199,5 @@ def main():
         cfg["redis"]["prefix"] = args.prefix
     profile_path = args.profiles or cfg["vigie"].get("profiles_path")
     profiles = json.loads(Path(profile_path).read_text()) if profile_path else None
-    print("[vigie] portique Redis actif ; auditeur LLM désactivé", flush=True)
+    print(f"[vigie] portique Redis actif ; auditeur LLM {'Mistral actif' if os.environ.get('MISTRAL_API_KEY') else 'désactivé (MISTRAL_API_KEY absente)'}", flush=True)
     serve(cfg, connect(cfg["redis"]["url"]), profiles=profiles)
