@@ -586,19 +586,20 @@ function frameAll() {
   const ids = Object.keys(POS).filter(id => nodes[id] && (id !== "vigie" || worldName === "ours"));
   if (set.display === "2D") {
     const xs = ids.map(id => POS[id][0]), zs = ids.map(id => POS[id][1]);
-    Object.assign(MAP, { x0: Math.min(...xs) - 3, x1: Math.max(...xs.map(x => x + 3), ...pads.map(p => p.x + p.r + 3.5)), z0: Math.min(...zs) - 2.5, z1: Math.max(...zs) + 3 });
+    Object.assign(MAP, { x0: Math.min(...xs) - 3, x1: Math.max(...xs.map(x => x + 3), ...pads.map(p => p.x + p.r + 3.5)), z0: Math.min(...zs) - 4, z1: Math.max(...zs) + 4.5 });
     return fit2d(stage.clientWidth, stage.clientHeight);
   }
   const pts = ids.flatMap(id => [[-1.5, 0, 0], [1.5, 0, 0], [0, 0, -1.5], [0, 0, 1.5], [0, id === "vigie" ? 4.5 : 2.5, 0]]
     .map(([x, y, z]) => world.localToWorld(v(POS[id][0] + x, y, POS[id][1] + z))));
   const c = new THREE.Box3().setFromPoints(pts).getCenter(v(0, 0, 0)), dir = camera.position.clone().sub(controls.target).normalize(), cam = camera.clone();
   let d = 40;
-  // the distance at which the farthest point lands at 90% of the screen's edge, found in a few steps
+  // the distance at which the farthest point lands at 90% of the screen's side edges and 78% of its top and bottom
+  // ones, the top and bottom agents getting more room (Marius, 24-10), found in a few steps
   for (let i = 0; i < 4; i++) {
     cam.position.copy(dir).multiplyScalar(d).add(c);
     cam.lookAt(c);
     cam.updateMatrixWorld();
-    d *= Math.max(...pts.map(p => p.clone().project(cam)).map(q => Math.max(Math.abs(q.x), Math.abs(q.y)))) / 0.9;
+    d *= Math.max(...pts.map(p => p.clone().project(cam)).map(q => Math.max(Math.abs(q.x) / 0.9, Math.abs(q.y) / 0.78)));
   }
   goal = { target: c, pos: dir.multiplyScalar(d).add(c) };
   set.view = null;
@@ -684,7 +685,7 @@ for (const n of Object.values(nodes)) if (n.halo) n.halo.renderOrder = 2;
 const flat = document.createElement("canvas"), g2 = flat.getContext("2d");
 flat.className = "sim-2d";
 stage.append(flat);
-const MAP = { x0: -17.5, x1: 17, z0: -14.5, z1: 13.5 };  // the part of the floor the map shows
+const MAP = { x0: -17.5, x1: 17, z0: -16, z1: 15 };  // the part of the floor the map shows
 let s2 = 1, o2 = [0, 0];
 const to2 = (x, z) => [o2[0] + x * s2, o2[1] + z * s2];
 function fit2d(w, h) {
