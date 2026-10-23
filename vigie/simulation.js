@@ -96,14 +96,11 @@ sun.shadow.camera.updateProjectionMatrix();
 scene.add(sun);
 const world = new THREE.Group();
 scene.add(world);
-const floor = new THREE.Mesh(new THREE.CircleGeometry(21, 72), new THREE.MeshStandardMaterial({ color: 0x0b1222, roughness: 0.9, transparent: true, opacity: 0.75 }));
+// no floor to see (Marius, 24-10), only the shadows the blobs cast on it
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), new THREE.ShadowMaterial({ opacity: 0.3 }));
 floor.rotation.x = -Math.PI / 2;
-floor.position.z = -1.5;
 floor.receiveShadow = true;
-const grid = new THREE.PolarGridHelper(20, 12, 8, 72, 0x334155, 0x1e293b);
-grid.position.set(0, 0.01, -1.5);
-Object.assign(grid.material, { transparent: true, opacity: 0.5 });
-world.add(floor, grid);
+world.add(floor);
 
 const ball = new THREE.SphereGeometry(1, 40, 28);
 const mat = (color, o) => new THREE.MeshPhysicalMaterial({ color, roughness: 0.35, clearcoat: 0.7, clearcoatRoughness: 0.2, ...o });
@@ -727,10 +724,6 @@ function draw2d() {
   const ours = worldName === "ours", alpha = (a = 1) => (g2.globalAlpha = a);
   g2.clearRect(0, 0, flat.width, flat.height);
   g2.textAlign = "center";
-  g2.beginPath();
-  g2.arc(...to2(0, -1.5), 21 * s2, 0, 7);
-  g2.fillStyle = "rgb(11 18 34 / .75)";
-  g2.fill();
   // how far the problem spread: one red shape over every zone, as the 3D floor's cordon
   g2.beginPath();
   for (const n of Object.values(nodes)) if (n.zr > 0.05) { const [x, y] = to2(...POS[n.id]); g2.moveTo(x + n.zr * s2, y); g2.arc(x, y, n.zr * s2, 0, 7); }
