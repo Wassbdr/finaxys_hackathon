@@ -71,33 +71,29 @@
     const panel = node(doc, 'div', null, 'conformite-draft');
     panel.append(node(doc, 'h2', 'Brouillon à valider par un humain'));
     panel.append(node(doc, 'p', 'Reprise du brouillon existant de Krys. Aucun envoi à une autorité. Qualification, dates, destinataire et délai restent à compléter.'));
-    const label = node(doc, 'label', 'Jeton de lancement de la démo ');
-    const token = node(doc, 'input'); token.type = 'password'; token.autocomplete = 'off'; token.maxLength = 256;
-    label.append(token);
     const button = node(doc, 'button', 'Préparer la notification DORA'); button.type = 'button';
     const output = node(doc, 'pre', '', 'conformite-output'); output.setAttribute('aria-live', 'polite');
     button.addEventListener('click', async () => {
       if (button.disabled) return;
       button.disabled = true;
-      try { await prepareDraft(output, token.value, globalThis.fetch.bind(globalThis)); }
+      try { await prepareDraft(output, globalThis.fetch.bind(globalThis)); }
       finally { button.disabled = false; }
     });
-    panel.append(label, button, output); return panel;
+    panel.append(button, output); return panel;
   }
-  async function prepareDraft(output, token, fetcher) {
+  async function prepareDraft(output, fetcher) {
     output.textContent = '';
-    if (!token || !token.trim()) { output.textContent = 'Jeton de lancement requis. Ouvrez la démo locale et utilisez son jeton.'; return; }
     try {
       // La question est constante ; ni les cases de couverture ni les mesures
       // du simulateur ne servent de connaissance au brouillon opérationnel.
       const response = await fetcher('/demo/krys/ask', {method: 'POST', credentials: 'same-origin', redirect: 'error',
-        headers: {'Content-Type': 'application/json', 'X-Demo-Token': token}, body: JSON.stringify({question: 'Brouillon DORA'})});
+        headers: {'Content-Type': 'application/json'}, body: JSON.stringify({question: 'Brouillon DORA'})});
       if (!response.ok) throw new Error('unavailable');
       const answer = await response.json();
       const citations = Array.isArray(answer.citations) ? answer.citations.map(c => c.message_id || c.section_id).filter(Boolean) : [];
       output.textContent = 'BROUILLON À VALIDER PAR UN HUMAIN\n' + String(answer.text || 'Aucune source disponible.')
         + (citations.length ? '\nPreuves : ' + citations.join(', ') : '\nAucune preuve opérationnelle disponible ; ne pas déclarer cet élément.');
-    } catch (_) { output.textContent = 'Brouillon indisponible. Ouvrez /demo/page, vérifiez le jeton et les sources signées. Aucun envoi effectué.'; }
+    } catch (_) { output.textContent = 'Brouillon indisponible. Ouvrez /demo/page, vérifiez l’origine autorisée et les sources signées. Aucun envoi effectué.'; }
   }
   function decorate(root, badges) {
     for (const row of root.querySelectorAll('tbody tr')) {

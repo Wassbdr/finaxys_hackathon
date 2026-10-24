@@ -13,10 +13,10 @@ incident majeur ni l’applicabilité d’un règlement. Le lexique est lisible 
 sur téléphone, sans dépendre exclusivement du survol.
 
 Le bouton « Préparer la notification DORA » appelle seulement `/demo/krys/ask`
-avec la question constante `Brouillon DORA`. Il exige le jeton de lancement et
-réutilise le garde CSRF de la démo. Les preuves sont celles du journal signé lu
+avec la question constante `Brouillon DORA`. Il réutilise le garde CSRF de la démo :
+origine exacte autorisée et contenu JSON, sans champ d’accès à saisir. Les preuves sont celles du journal signé lu
 par le chatbot ; les mesures affichées ne lui sont pas transmises. Sans API de
-démo, jeton ou preuve, le refus reste explicite. Aucun dépôt auprès d’une autorité,
+démo, origine autorisée ou preuve, le refus reste explicite. Aucun dépôt auprès d’une autorité,
 aucune commande humaine, aucun envoi de mail n’est ajouté.
 
 ## Preuves et mesures
@@ -49,5 +49,5 @@ texte applicable et calendrier restent à valider dans le dossier de la banque.
 ## Vérification
 
 `python -m vigie.testing -k conformite` : rendu DOM exécuté sous Node, contenus
-hostiles, preuves et dénominateurs, brouillon authentifié et routes en liste blanche.
+hostiles, preuves et dénominateurs, brouillon sous contrôle d’origine et routes en liste blanche.
 `make test` reste la suite complète ; aucune connexion ni appel LLM autorisé.

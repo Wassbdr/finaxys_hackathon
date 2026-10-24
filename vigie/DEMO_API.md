@@ -17,20 +17,18 @@ il reprend le dernier direct. Le replay ne relance ni les agents ni les instance
 
 ## Autorisation des commandes locales (direct et replay)
 
-Les lectures restent accessibles sans jeton sur `127.0.0.1` ; le CORS HTTP permet
+Les lectures restent accessibles sur `127.0.0.1` ; le CORS HTTP permet
 leur lecture depuis les seules origines configurées. Les flux WebSocket sont des
 lectures et ne reçoivent pas de commande. **Toute écriture HTTP**, y compris les
 routes historiques `/record` et `/inject`, exige simultanément :
 
 - `Origin` exactement dans la liste autorisée (sinon HTTP 403) ;
-- `X-Demo-Token` égal au jeton du lancement (absent ou incorrect : HTTP 403) ;
 - `Content-Type: application/json` (sinon HTTP 415 après les vérifications précédentes).
 
-Le terminal affiche les origines et un jeton aléatoire neuf à chaque lancement,
-également pour le replay. Le jeton ne figure ni dans les réponses de lecture ni
-dans les URL ; le copier du terminal dans la configuration mémoire de la page.
-Ne pas le publier ni le conserver dans un enregistrement. Un ancien jeton est
-invalide après redémarrage. Aucun cookie d'authentification n'est utilisé.
+Le terminal affiche les origines autorisées. Aucun secret de lancement n’est
+généré, affiché ou demandé dans la page. Une question au chatbot requiert
+seulement son texte. Aucun cookie d’authentification n’est utilisé ; l’écoute
+reste exclusivement sur `127.0.0.1`, dans le direct comme dans le replay.
 
 Par défaut, l'origine est `http://127.0.0.1:8010` (ou le `PORT` choisi).
 Configurer **l'origine exacte de la page du Dev 1**, par exemple :
@@ -45,13 +43,12 @@ Plusieurs origines se séparent par une virgule. L'option CLI répétable
 de chemin ni d'origine `null` : servir la page en HTTP local, plutôt qu'en `file:`.
 `localhost` et `127.0.0.1`, ports inclus, sont des origines différentes.
 Le navigateur envoie `Origin` ; le JavaScript ne doit pas essayer de le définir.
-Le prévol CORS autorise `Content-Type` et `X-Demo-Token` uniquement pour ces origines.
+Le prévol CORS autorise `Content-Type` uniquement pour ces origines.
 
 ```js
-// demoToken vient du jeton affiché dans le terminal, saisi par l'utilisateur.
 const response = await fetch('http://127.0.0.1:8010/demo/record', {
   method: 'POST',
-  headers: {'Content-Type': 'application/json', 'X-Demo-Token': demoToken},
+  headers: {'Content-Type': 'application/json'},
   body: JSON.stringify({})
 });
 if (!response.ok) throw new Error(`Enregistrement refusé : ${response.status}`);
@@ -59,9 +56,16 @@ const recording = await response.json();
 ```
 
 Les requêtes simples de formulaire ou `text/plain` sont refusées. CORS n'est pas
-l'autorisation : le contrôle d'origine **et** du jeton s'applique avant l'exécution
+l’autorisation : le contrôle d’origine et de contenu JSON s’applique avant l’exécution
 de la route, même à un client qui ignore CORS. Pour un client hors navigateur,
-fournir aussi `Origin` explicitement et le jeton en en-tête.
+fournir `Origin` explicitement et `Content-Type: application/json`. Les origines
+étrangères ou absentes restent refusées avec 403 ; `text/plain` avec une origine
+autorisée reste refusé avec 415, avant toute exécution de route.
+
+Les commandes humaines restent désactivées par défaut : activation explicite
+`--human-commands`, puis préparation et confirmation distinctes à usage unique
+(120 secondes). Le replay ne les active jamais. Le SMTP réel reste désactivé
+par défaut ; sa configuration explicite et ses limites d’envoi sont inchangées.
 
 ## Routes
 

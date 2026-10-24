@@ -60,11 +60,10 @@ async function main() {
   await all(root).find(e => e.tagName === 'button' && e.textContent === 'Actualiser').listeners.click();
   const send = all(root).find(e => e.tagName === 'button' && e.textContent.includes('Envoyer'));
   await send.listeners.click();
-  assert.equal(requests.length, 2); // Sans jeton, aucune écriture.
-  ids.get('krys-token').value = 'fixture-token';
-  await send.listeners.click();
+  assert.equal(requests.length, 3);
+  assert.equal(ids.has('krys-token'), false);
   assert.equal(requests.at(-1).url, '/console/mails-chat/send');
-  assert.equal(requests.at(-1).options.headers['X-Demo-Token'], 'fixture-token');
+  assert.deepEqual(Object.keys(requests.at(-1).options.headers), ['Content-Type']);
   assert.deepEqual(JSON.parse(requests.at(-1).options.body), {incident_id: 'safe'});
   assert.equal(requests.at(-1).options.redirect, 'error');
 }

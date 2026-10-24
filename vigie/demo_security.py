@@ -1,6 +1,5 @@
 """Protection des écritures de l’API locale contre les pages web étrangères."""
 import os
-import secrets
 from urllib.parse import urlsplit
 
 from starlette.middleware.cors import CORSMiddleware
@@ -26,8 +25,6 @@ def configured_origins(explicit=None, port=8010):
 
 def protect_mutations(app, allowed_origins=None):
     origins=configured_origins(allowed_origins)
-    token=secrets.token_urlsafe(32)
-    app.state.mutation_token=token
     app.state.allowed_origins=origins
     # Le CORS générique de l’équipe est trop ouvert pour les commandes de cette démo.
     app.user_middleware=[m for m in app.user_middleware if m.cls is not CORSMiddleware]
@@ -38,9 +35,6 @@ def protect_mutations(app, allowed_origins=None):
             origin=request.headers.getlist('origin')
             if len(origin)!=1 or origin[0] not in origins:
                 return JSONResponse({'detail':'Origine non autorisée'},status_code=403)
-            supplied=request.headers.getlist('x-demo-token')
-            if len(supplied)!=1 or not secrets.compare_digest(supplied[0].encode(),token.encode()):
-                return JSONResponse({'detail':'Jeton de lancement requis'},status_code=403)
             content=request.headers.getlist('content-type')
             if len(content)!=1 or content[0].split(';',1)[0].strip().lower()!='application/json':
                 return JSONResponse({'detail':'Content-Type application/json requis'},status_code=415)
@@ -49,9 +43,9 @@ def protect_mutations(app, allowed_origins=None):
     # Placé à l’extérieur du garde pour conserver le CORS exact même sur les refus.
     app.add_middleware(CORSMiddleware,allow_origins=list(origins),
         allow_methods=['GET','HEAD','POST','PUT','PATCH','DELETE','OPTIONS'],
-        allow_headers=['Content-Type','X-Demo-Token'],allow_credentials=False)
+        allow_headers=['Content-Type'],allow_credentials=False)
+    app.state.mutation_guard_enabled=True
 
 
 def announce_access(app):
     print('Origines autorisées : '+', '.join(app.state.allowed_origins),flush=True)
-    print('Jeton démo (en-tête X-Demo-Token) : '+app.state.mutation_token,flush=True)

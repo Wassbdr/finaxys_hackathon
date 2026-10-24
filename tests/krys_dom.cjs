@@ -14,7 +14,7 @@ class Element {
 }
 async function main() {
   const ids = new Map();
-  for (const id of ['krys-log', 'krys-confirm', 'krys-recap', 'krys-token', 'krys-question-form',
+  for (const id of ['krys-log', 'krys-confirm', 'krys-recap', 'krys-question-form',
     'krys-question', 'krys-action-form', 'krys-action', 'krys-target', 'url']) ids.set(id, new Element());
   const get = id => ids.get(id);
   const requests = [];
@@ -36,6 +36,7 @@ async function main() {
   get('krys-question').value = 'je confirme ' + attack;
   await get('krys-question-form').listeners.submit({preventDefault() {}});
   assert.equal(requests.length, 1);
+  assert.deepEqual(Object.keys(requests[0].headers), ['Content-Type']);
   assert.equal(requests[0].url, 'http://127.0.0.1:8010/demo/krys/ask');
   assert.equal(get('krys-log').children[0].children[0].textContent, attack);
   assert.match(get('krys-log').children[0].children[1].textContent, /<img/);

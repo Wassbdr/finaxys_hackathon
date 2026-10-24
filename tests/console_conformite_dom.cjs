@@ -40,15 +40,14 @@ const attack = '<img src=x onerror="globalThis.pwned=true"><script>boom()</scrip
   }
   const output = doc.createElement('pre'), calls = [];
   const fetcher = async (url, options) => { calls.push({url, options}); return {ok: true, json: async () => ({text: attack, citations: [{message_id: attack}]})}; };
-  await ui.prepareDraft(output, '', fetcher); assert.equal(calls.length, 0);
-  await ui.prepareDraft(output, 'fake-launch-token', fetcher);
+  await ui.prepareDraft(output, fetcher);
   assert.equal(calls.length, 1); assert.equal(calls[0].url, '/demo/krys/ask');
   assert.equal(calls[0].options.method, 'POST');
-  assert.equal(calls[0].options.headers['X-Demo-Token'], 'fake-launch-token');
+  assert.deepEqual(Object.keys(calls[0].options.headers), ['Content-Type']);
   assert.deepEqual(JSON.parse(calls[0].options.body), {question: 'Brouillon DORA'});
   assert(output.textContent.startsWith('BROUILLON À VALIDER PAR UN HUMAIN'));
   assert(output.textContent.includes(attack));
-  await ui.prepareDraft(output, 'fake', async () => ({ok: false}));
+  await ui.prepareDraft(output, async () => ({ok: false}));
   assert(output.textContent.includes('Aucun envoi effectué'));
   ids.conformite = root;
   const reads = [];

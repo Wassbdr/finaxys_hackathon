@@ -151,7 +151,7 @@ def attach_mailbox(app, knowledge, mailer=None):
     def send(body: SendRequest):
         # Le raccord exige le garde de la démo ; aucun corps utilisateur n’est
         # utilisé comme contenu de mail, destinataire ou preuve.
-        if not hasattr(app.state, 'mutation_token'):
+        if not getattr(app.state, 'mutation_guard_enabled', False):
             raise HTTPException(403, 'Garde des écritures indisponible')
         book = knowledge()
         if not book.complete:

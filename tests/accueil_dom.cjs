@@ -1,4 +1,4 @@
-// Les suggestions préparent une question ; le jeton absent interdit son départ.
+// Les suggestions ne bloquent pas le formulaire partagé, qui porte seul les requêtes du chat.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
@@ -13,7 +13,7 @@ class Element {
 async function run(impact) {
   const ids = new Map();
   for (const id of ['argus-phrase', 'krys-question', 'nav-toggle', 'console-nav', 'krys-question-form',
-    'krys-token', 'krys-access', 'krys-log', 'metrics-link', 'proof-status']) ids.set(id, new Element());
+    'krys-access', 'krys-log', 'metrics-link', 'proof-status']) ids.set(id, new Element());
   const get = id => ids.get(id);
   get('metrics-link').href = '/dashboard#metrics';
   get('proof-status').textContent = 'attente';
@@ -41,17 +41,7 @@ async function run(impact) {
   get('nav-toggle').listeners.click.listener();
   assert.equal(get('console-nav').hidden, false);
   assert.equal(get('nav-toggle').getAttribute('aria-expanded'), 'true');
-  let stopped = false;
-  const submit = get('krys-question-form').listeners.submit;
-  assert.equal(submit.capture, true);
-  submit.listener({preventDefault() {}, stopImmediatePropagation() { stopped = true; }});
-  assert.equal(stopped, true);
-  assert.equal(get('krys-access').open, true);
-  assert.equal(get('krys-token').focused, true);
-  stopped = false;
-  get('krys-token').value = 'test';
-  submit.listener({preventDefault() {}, stopImmediatePropagation() { stopped = true; }});
-  assert.equal(stopped, false);
+  assert.equal(get('krys-question-form').listeners.submit, undefined);
   assert.equal(get('metrics-link').href, impact ? '/dashboard#impact' : '/dashboard#metrics');
   assert.equal(get('proof-status').textContent, impact
     ? 'Démo active. Les réponses de Krys restent limitées aux preuves signées disponibles.' : 'attente');
