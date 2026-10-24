@@ -175,6 +175,7 @@ function tag(html, at) {
   d.innerHTML = html;
   const o = new CSS2DObject(d);
   o.position.set(...at);
+  o.center.set(0.5, 0);
   return o;
 }
 
@@ -199,8 +200,9 @@ function blob(id, profile, role = id) {
   const glass = mesh(ball, new THREE.MeshPhysicalMaterial({ color: 0xbae6fd, transparent: true, opacity: 0.22, roughness: 0, clearcoat: 1, depthWrite: false }), [0, 0.95, 0]);
   halo.castShadow = glass.castShadow = false;
   glass.scale.setScalar(0.001);
-  g.add(halo, glass, tag(id === "vigie" ? "Vigie" : profile ? `${esc(id)}<small>${esc(profile)}</small>` : esc(id), [0, -0.1, 1.45]));
-  return (nodes[id] = { id, g, hop, body, skin, base: new THREE.Color(SKIN[role] ?? 0x94a3b8), eyes, mouth, halo, glass, top: 2.9,
+  const label = tag(id === "vigie" ? "Vigie" : profile ? `${esc(id)}<small>${esc(profile)}</small>` : esc(id), [0, 0, 1.45]);
+  g.add(halo, glass, label);
+  return (nodes[id] = { id, g, hop, body, skin, label, base: new THREE.Color(SKIN[role] ?? 0x94a3b8), eyes, mouth, halo, glass, top: 2.9,
     phase: Math.random() * 7, blinkAt: Math.random() * 4, hopAt: -9, gulpAt: -9, shakeAt: -9, look: null, lookUntil: 0, sick: false, asleep: false, level: null });
 }
 
@@ -214,7 +216,8 @@ function server(id) {
     mesh(ball, new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.1, depthWrite: false }), null, 1.5));
   field.position.y = 0.72;
   field.scale.setScalar(0.001);
-  const label = tag(esc(id), [0, 1.8, 0]);
+  // under its front, which turns to the camera
+  const label = tag(esc(id), [0, 0, 0.75]);
   g.add(...leds, field, label);
   return (nodes[id] = { id, g, shell, leds, field, div: label.element, html: "", mode: "normal", iso: false, top: 2.8, phase: Math.random() * 7 });
 }
@@ -232,9 +235,8 @@ const SAVED = await fetch("/dashboard/sim-layout.json").then(r => (r.ok ? r.json
 for (const id in SAVED) if (POS[id]) POS[id] = SAVED[id];
 for (const s of first.services) if (POS[s]) world.add(server(s).g);
 for (const a of first.agents) if (POS[a.id]) world.add(blob(a.id, a.profile, a.role).g);
-// agents of one role stand on one pad named after the role, as the other tabs make them one block; its name stands on
-// its right, clear of the agents' own names (Marius, 23-10); the pad is a rounded box around its agents, fitted again
-// whenever one of them moves (Marius, 24-10)
+// agents of one role stand on one pad, as the other tabs make them one block (Marius, 23-10), with no name of its own
+// (Marius, 24-10); the pad is a rounded box around its agents, fitted again whenever one of them moves (Marius, 24-10)
 const pads = [];
 const pill = (hx, hz, r) => new THREE.Shape().absarc(hx, -hz, r, -Math.PI / 2, 0).absarc(hx, hz, r, 0, Math.PI / 2)
   .absarc(-hx, hz, r, Math.PI / 2, Math.PI).absarc(-hx, -hz, r, Math.PI, Math.PI * 1.5);
@@ -248,7 +250,6 @@ function fitPad(p) {
   rim.holes.push(pill(p.hx, p.hz, p.r - 0.14));
   p.zone.children.forEach((m, i) => (m.geometry.dispose(), (m.geometry = new THREE.ShapeGeometry(i ? rim : pill(p.hx, p.hz, p.r), 24))));
   p.zone.position.set(p.x, 0, p.z);
-  p.label.position.set(p.x + p.hx + p.r + 1.6, 0, p.z);
 }
 for (const [role, members] of Object.entries(Object.groupBy(first.agents.filter(a => POS[a.id]), a => a.role))) {
   if (members.length < 2) continue;
@@ -259,13 +260,11 @@ for (const [role, members] of Object.entries(Object.groupBy(first.agents.filter(
     m.renderOrder = 1;
     zone.add(m);
   }
-  const label = tag(`${esc(role)}<small>${members.length} agents</small>`, [0, 0, 0]);
-  Object.assign(label.element.style, { color: "#" + new THREE.Color(c).getHexString(), fontSize: "15px", letterSpacing: ".12em", textTransform: "uppercase" });
   zone.userData.pick = "pad:" + role;
-  const p = { id: "pad:" + role, role, r: 2.4, c: label.element.style.color, n: members.length, ids: members.map(a => a.id), zone, label };
+  const p = { id: "pad:" + role, role, r: 2.4, c: "#" + new THREE.Color(c).getHexString(), n: members.length, ids: members.map(a => a.id), zone };
   fitPad(p);
   pads.push(p);
-  world.add(zone, label);
+  world.add(zone);
 }
 const tower = new THREE.Group(), lamp = mesh(ball, new THREE.MeshStandardMaterial({ color: 0x0b0d12, emissive: LIGHT.VERT, emissiveIntensity: 2 }), [0, 6.15, -1.15], 0.26);
 const beam = new THREE.PointLight(LIGHT.VERT, 6, 7);
@@ -684,7 +683,12 @@ function animateBlob(b, dt, k) {
   b.hop.position.y = up * 0.5;
   b.body.scale.set(1 - breathe * 0.5 + gulp, 1 + breathe - gulp + up * 0.08, 1 - breathe * 0.5 + gulp);
   b.body.getWorldPosition(tmp);
-  b.body.rotation.y = Math.atan2(camera.position.x - tmp.x, camera.position.z - tmp.z) - world.rotation.y + (s < 0.5 ? Math.sin(s * 40) * 0.25 * (1 - s / 0.5) : 0);
+  const a = Math.atan2(camera.position.x - tmp.x, camera.position.z - tmp.z) - world.rotation.y;
+  b.body.rotation.y = a + (s < 0.5 ? Math.sin(s * 40) * 0.25 * (1 - s / 0.5) : 0);
+  // its name lies on the ground just past its ring on the camera's side, so it reads under it from any angle (Marius,
+  // 24-10); the Vigie's, at the foot of its tower
+  const r = b.id === "vigie" ? 0.9 : 1.45;
+  b.label.position.set(Math.sin(a) * r, b.id === "vigie" ? -b.g.position.y / b.g.scale.y : 0, Math.cos(a) * r);
 
   if (time > b.blinkAt + 0.15) b.blinkAt = time + 1.5 + Math.random() * 4;
   const shut = b.asleep || time >= b.blinkAt;
@@ -794,9 +798,6 @@ function draw2d() {
     g2.strokeStyle = p.c;
     g2.lineWidth = 2;
     g2.stroke(), alpha();
-    const [lx, ly] = to2(p.x + p.hx + p.r + 1.6, p.z);
-    text2(p.role.toUpperCase(), lx, ly, 15, p.c);
-    text2(`${p.n} AGENTS`, lx, ly + 15, 10.5, "#455064", 500);
   }
   for (const l of links.values()) {
     if (!l.g.visible) continue;
