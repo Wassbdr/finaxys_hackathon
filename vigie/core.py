@@ -1,9 +1,9 @@
 """Interface phase 0 proposée aux deux développeurs ; vue du bus uniquement."""
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 import copy
 
 
-@dataclass
+@dataclass(frozen=True, init=False)
 class Finding:
     tick: int
     layer: int
@@ -12,6 +12,21 @@ class Finding:
     severity: str
     evidence: list[str]
     score: float
+
+    def __init__(self, tick, layer, kind, target, severity, evidence=None, score=0.0, detail=None):
+        for name, value in zip(('tick', 'layer', 'kind', 'target', 'severity', 'evidence', 'score'),
+                               (tick, layer, kind, target, severity, evidence or [], score)):
+            object.__setattr__(self, name, value)
+        # Les détails du tableau de bord restent une extension de présentation ;
+        # les sept champs du contrat et leur sérialisation dataclass sont inchangés.
+        object.__setattr__(self, '_detail', detail or {})
+
+    @property
+    def detail(self):
+        return self._detail
+
+    def as_dict(self):
+        return {**asdict(self), 'detail': self.detail}
 
 
 @dataclass
@@ -40,7 +55,7 @@ class VigieState:
                 "human_decision": ("action", "target"),
                 "order_proposal": ("asset", "side", "notional_eur", "signals", "trader", "quant_confidence", "news_refs", "justification"),
                 "payment_proposal": ("amount_eur", "beneficiary_id"),
-                "llm_trace": ("task", "output", "external", "response"),
+                "llm_trace": ("task", "output", "external", "response", "prompt_excerpt"),
             }
             record = {k: copy.deepcopy(msg[k]) for k in ("message_id", "tick", "from", "to", "type", "depends_on")}
             record["payload"] = {k: copy.deepcopy(msg["payload"][k]) for k in fields.get(msg["type"], ()) if k in msg["payload"]}
@@ -52,3 +67,12 @@ class VigieState:
             return True
         except (KeyError, TypeError, ValueError):
             return False
+
+
+def __getattr__(name):
+    # L'import différé conserve les anciens points d'entrée sans cycle avec
+    # Runtime, qui dépend lui-même du contrat de ce module.
+    if name in {'Controller', 'Refused'}:
+        from vigie import control
+        return getattr(control, name)
+    raise AttributeError(name)

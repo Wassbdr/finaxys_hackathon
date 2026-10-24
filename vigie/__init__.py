@@ -1,1 +1,1 @@
-"""Couche 3 de la Vigie : constats et preuves, politique réservée au Dev 1."""
+"""Vigie commune : métriques et politique Dev 1, contamination et mimétisme Dev 2."""

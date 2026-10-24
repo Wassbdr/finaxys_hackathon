@@ -90,6 +90,18 @@ def test_record_and_recordings(api, tmp_path, monkeypatch):
     assert client.get("/recordings").json() == ["demo1"]
 
 
+def test_sim_layout_saved_and_served(tmp_path, monkeypatch):
+    import api.app as app_module
+
+    monkeypatch.setattr(app_module, "SIM_LAYOUT", tmp_path / "sim-layout.json")
+    client = TestClient(create_app({}))
+    assert client.get("/dashboard/sim-layout.json").json() == {}
+    assert client.post("/dashboard/sim-layout", json={"quant": [1.5, -2]}).json()["ok"]
+    assert client.get("/dashboard/sim-layout.json").json() == {"quant": [1.5, -2.0]}
+    for bad in ({"quant": [1]}, {"quant": [1, 99]}, {"../x": [1, 2]}):
+        assert client.post("/dashboard/sim-layout", json=bad).status_code == 400
+
+
 def test_stream_websocket_replays_messages(played):
     _, run = played
     source = ReplaySource(run, tick_seconds=0.001, speed=1.0)

@@ -1,0 +1,32 @@
+/* Les jetons de la console gardent la même encre ; aucune couleur n’attribue un état aux banques. */
+#impact { color: var(--text); }
+body.stale main > #impact { filter: none; opacity: 1; }
+.impact-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.impact-card { min-width: 0; padding: 20px 20px 18px 24px; border: 1px solid var(--line); border-left: 4px solid var(--line-2); background: var(--surface); }
+.impact-card-head { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; justify-content: space-between; }
+.impact-card h3 { margin: 0; font: 400 21px/1.25 var(--sans); letter-spacing: -.02em; }
+.impact-stamp { padding: 2px 6px; background: var(--wash); color: var(--dim); font: 400 11px var(--mono); white-space: nowrap; }
+.impact-sample { margin: 10px 0 16px; font-size: 14px; color: var(--dim); }
+.impact-comparison { margin: 16px 0; }
+.impact-comparison h4 { margin: 0 0 10px; font: 500 14px/1.4 var(--sans); }
+.impact-axis { font-size: 12px; color: var(--dim); margin: 0 0 10px; }
+.impact-row { display: grid; grid-template-columns: 1fr; gap: 3px; margin: 10px 0; }
+.impact-bank { font-size: 14px; color: var(--dim); }
+.impact-value { font: 400 16px/1.45 var(--sans); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.impact-bar { height: 7px; background: var(--wash); }
+.impact-bar i { height: 100%; display: block; background: var(--dim); }
+.impact-undefined i { display: none; }
+.impact-undefined { background: none; border-bottom: 1px dashed var(--line-2); }
+.impact-note, .impact-meaning, .impact-limit { margin: 12px 0 0; font-size: 14px; line-height: 1.55; }
+.impact-limit { color: var(--dim); }
+.impact-proofs { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 14px; font-size: 12px; }
+.impact-card a, .impact-method a, #impact-summary a { color: var(--text); text-underline-offset: 3px; }
+.impact-card abbr, .impact-method abbr { display: inline-block; margin: 8px 10px 0 0; cursor: help; font-size: 13px; text-decoration: underline dotted; text-underline-offset: 3px; }
+.impact-card :focus-visible, .impact-method :focus-visible, #impact-summary :focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.impact-method { margin: 22px 0; padding: 14px 0; border-top: 1px solid var(--line-2); font-size: 14px; color: var(--dim); }
+.impact-method a { display: inline-block; margin-top: 10px; }
+#impact-summary { margin: 18px 0; padding: 14px 18px; border: 1px solid var(--line); border-left: 4px solid var(--line-2); background: var(--surface); font-size: 13px; }
+#impact-summary > a { font-weight: 500; font-size: 14px; }
+#impact-summary p { margin: 7px 0 0; color: var(--dim); }
+@media (max-width: 980px) { .impact-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 480px) { .impact-card { padding: 16px 14px 16px 18px; } .impact-card h3 { font-size: 20px; } }

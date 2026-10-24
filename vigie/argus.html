@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Argus · Demandez à Krys</title>
+<!-- La phrase se change ici sans modifier le moteur de conversation. -->
+<meta name="argus-phrase" content="Voit. Isole. Prouve.">
+<!-- Adresse de la page Régulation de l'équipe, à renseigner quand elle existera (https://… ou /chemin) ;
+     vide, le bouton mène à l'onglet Conformité de la console. -->
+<meta name="argus-regulation-url" content="">
+<link rel="stylesheet" href="/argus/accueil.css">
+</head>
+<body>
+<a class="skip" href="#krys-question">Aller à la question</a>
+<aside class="sidebar">
+  <a class="brand" href="/argus" aria-label="Argus, accueil">
+    <svg viewBox="0 0 11 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="5" y="0" width="1" height="1" fill="#A8C8FF"/><rect x="0" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="4" y="1" width="3" height="1" fill="#6AA6FF"/><rect x="9" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="5" y="2" width="1" height="1" fill="#2B6BFF"/><rect x="4" y="3" width="3" height="1" fill="#1446C8"/><rect x="4" y="4" width="3" height="1" fill="#0B2A6F"/><rect x="3" y="5" width="5" height="2" fill="#0B2A6F"/><rect x="2" y="7" width="7" height="1" fill="#081B45"/></svg>
+    <span>Argus</span>
+  </a>
+  <button id="nav-toggle" type="button" aria-controls="console-nav" aria-expanded="true">Menu</button>
+  <nav id="console-nav" aria-label="Console Krys">
+    <a href="/dashboard#actions">Alertes <small>Incidents et actions de Krys</small></a>
+    <a href="/dashboard#summary">Summary <small>Décisions humaines en attente</small></a>
+    <a href="/dashboard#metrics" id="metrics-link">Metrics <small>Mesures et impact</small></a>
+    <a href="/dashboard#conformite" id="regulation-link">Régulation <small>DORA, AI Act, MiFID II</small></a>
+  </nav>
+  <p class="sidebar-note">Krys · tour de contrôle<br><a href="/demo/page">Démonstration</a></p>
+</aside>
+<main>
+  <header class="intro">
+    <p class="eyebrow">Argus · supervision des agents</p>
+    <h1 id="argus-phrase">Voit. Isole. Prouve.</h1>
+    <p>Une question, une réponse, ses preuves.</p>
+  </header>
+  <section class="conversation" aria-labelledby="krys-heading">
+    <h2 id="krys-heading">Demandez à Krys</h2>
+    <ol id="krys-log" role="log" aria-live="polite" aria-label="Réponses et preuves de Krys"></ol>
+    <div class="suggestions" aria-label="Suggestions de questions">
+      <button type="button" data-question="Qu'est-ce qui est bloqué en ce moment ?">Qu'est-ce qui est bloqué en ce moment ?</button>
+      <button type="button" data-question="Pourquoi ce virement est-il refusé ?">Pourquoi ce virement est-il refusé ?</button>
+      <button type="button" data-question="Comment Krys décide-t-elle ?">Comment Krys décide-t-elle ?</button>
+    </div>
+    <form id="krys-question-form">
+      <label class="sr-only" for="krys-question">Votre question à Krys</label>
+      <input id="krys-question" maxlength="1000" required autocomplete="off" placeholder="Posez votre question à Krys…" aria-describedby="chat-limit">
+      <button type="submit">Demander <span aria-hidden="true">↑</span></button>
+    </form>
+    <p class="note" id="proof-status" role="status">En attente des premières preuves signées. Aucune situation de la banque n'est encore établie.</p>
+    <p class="note" id="chat-limit">Limite : Krys répond à partir des preuves signées et du texte de référence ; elle ne déduit pas le motif d'un virement sans son message_id.</p>
+    <details class="access" id="krys-access">
+      <summary>Accès à la démo · jeton requis pour poser une question</summary>
+      <label for="krys-token">Jeton de lancement, conservé uniquement dans cette page</label>
+      <input id="krys-token" type="password" autocomplete="off" spellcheck="false">
+      <input id="url" type="hidden" value="ws://127.0.0.1:8010">
+      <p>Ouvrez cette page sur l'adresse locale autorisée par le lanceur de la démo. Sans démo active, les liens vers la console restent accessibles.</p>
+      <details>
+        <summary>Commandes humaines · autorisation distincte</summary>
+        <p>Lecture seule par défaut. Préparer puis confirmer sont deux étapes distinctes ; une réponse dans le chat ne confirme rien.</p>
+        <form id="krys-action-form">
+          <label for="krys-action">Action</label>
+          <select id="krys-action"><option value="unfreeze">Lever un gel</option><option value="resume">Reprendre après un rouge</option></select>
+          <label for="krys-target">Actif gelé ou * pour la reprise</label>
+          <input id="krys-target" maxlength="128" required autocomplete="off">
+          <button type="submit">Préparer le récapitulatif</button>
+        </form>
+        <p id="krys-recap" aria-live="polite"></p>
+        <button id="krys-confirm" type="button" disabled>Confirmer</button>
+      </details>
+    </details>
+    <noscript>Activez JavaScript pour interroger Krys. La navigation vers la console reste disponible.</noscript>
+  </section>
+</main>
+<script src="/demo/krys.js"></script>
+<script src="/argus/accueil.js"></script>
+</body>
+</html>

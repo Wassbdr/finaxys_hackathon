@@ -37,7 +37,11 @@ def test_three_worlds_same_seed_and_exact_injections(tmp_path,cfg):
         assert all(ls.tick==5 for ls in runner.worlds.values())
         assert all(not ls.cfg['llm']['enabled'] for ls in runner.worlds.values())
         assert all(not ls.cfg['chaos']['announce_compromised'] for ls in runner.worlds.values())
-        assert runner.controllers['C'].contagion.suspects['core-ledger'].tick==2
+        finding=runner.controllers['C'].contagion.suspects['core-ledger']
+        # Le rapprochement attend deux ticks pour les exécutions encore en transit.
+        assert finding.tick==4
+        heartbeat=runner.controllers['C'].state.messages[finding.evidence[0]]
+        assert heartbeat['tick']==2 and heartbeat['payload']['view']['as_of_tick']==2
         assert not runner.controllers['B'].red
         assert set(frames[-1]['banks']) == {'A','B','C'}
     finally: runner.close()
@@ -65,7 +69,9 @@ def test_api_tick_contract_and_existing_world_routes(tmp_path,cfg):
             with client.websocket_connect('/demo/stream?since_tick=-1') as ws:
                 packet=ws.receive_json()
                 assert packet==frame
-            assert client.get('/').status_code==404
+            landing = client.get('/')
+            assert landing.status_code == 200
+            assert landing.text == Path('vigie/landing.html').read_text()
     finally:runner.close()
 
 
@@ -206,3 +212,26 @@ def test_drift_confines_orders_and_preserves_healthy_payments(tmp_path,cfg,seed)
         assert frame['banks']['A']['pnl_eur']==frame['banks']['B']['pnl_eur']
         assert runner.worlds['A'].scenario_log==runner.worlds['B'].scenario_log==runner.worlds['C'].scenario_log
     finally:runner.close()
+
+
+def test_argus_krys_display_names_preserve_bus_contract(tmp_path, cfg):
+    expected = {'A': 'Sans Krys', 'B': 'Contrôles classiques', 'C': 'Krys'}
+    runner = DemoRunner(cfg, {'duration': '1s', 'steps': []}, tmp_path/'names')
+    try:
+        frame = runner.step()
+        assert {name: bank['label'] for name, bank in frame['banks'].items()} == expected
+        example = json.loads(Path('vigie/demo_api_example.json').read_text())
+        assert {name: bank['label'] for name, bank in example['banks'].items()} == expected
+        page = Path('vigie/demo_page.html').read_text()
+        assert '<title>Argus — trois banques, une journée</title>' in page
+        assert '<h1>Argus — trois banques, une journée</h1>' in page
+        assert all(label in page for label in expected.values())
+        assert '<title>KRYS · ARGUS</title>' in Path('vigie/dashboard.html').read_text()
+        assert 'Krys, couche 3' in Path('vigie/DEMO_API.md').read_text()
+        assert 'Krys, couche 3' in Path('vigie/ANNEXE_INVARIANT.md').read_text()
+        # Le nom commercial ne change ni l'identité authentifiée ni les preuves.
+        messages = runner.messages['C']
+        assert any(m['from'] == 'vigie' for m in runner.messages['C'])
+        assert all(runner.worlds['C'].keyring.verify(m) for m in messages)
+    finally:
+        runner.close()

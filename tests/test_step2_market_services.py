@@ -165,9 +165,19 @@ def test_http_endpoints_and_chaos(world):
 
 
 def test_mode_change_publishes_service_status(world):
-    world["cores"]["news-wire"].set_mode("compromised")
+    world["cores"]["news-wire"].set_mode("stale")
     kind, payload = world["published"][-1]
-    assert kind == "service_status" and payload["mode"] == "compromised" and payload["previous"] == "normal"
+    assert kind == "service_status" and payload["mode"] == "stale" and payload["previous"] == "normal"
+
+
+def test_compromise_is_not_announced_unless_configured(world):
+    core = world["cores"]["news-wire"]
+    assert core.set_mode("compromised")["mode"] == "compromised" and not world["published"]
+    core.set_mode("down")
+    assert world["published"][-1][1]["previous"] == "normal" and core.mode() == "down"
+    core.chaos = {**core.chaos, "announce_compromised": True}
+    core.set_mode("compromised")
+    assert world["published"][-1][1]["mode"] == "compromised"
 
 
 def test_market_feed_compromised_drifts_progressively(world):

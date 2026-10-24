@@ -4,6 +4,7 @@ import math
 
 from sim.config import trader_ids
 from vigie.core import Finding
+from vigie.injection import Injection
 
 
 def version(value):
@@ -19,6 +20,8 @@ class Contagion:
                      * len(cfg["market"]["assets"]) * len(trader_ids(cfg)))
         self.cash_samples = deque([(0, self.cash)], maxlen=20000)
         self.cash_complete = True
+        self.ledger_clock = 0
+        self.pending_balances = deque(maxlen=128)
         self.suspects = {}
         self.processed = set()
         self.executions = set()
@@ -27,6 +30,7 @@ class Contagion:
         self.radius_ticks = {}
         self.quarantine_ticks = {}
         self.blocked = set()
+        self.injection = Injection(state)
 
     def suspect(self, sid, kind, evidence):
         if sid in self.suspects:
@@ -43,9 +47,19 @@ class Contagion:
             return []
         self.processed.add(id_)
         p, kind, sender = msg["payload"], msg["type"], msg["from"]
-        findings = []
+        findings = self.injection.on_message(msg)
+        for finding in findings:
+            self.suspects[finding.target] = finding
         if kind == "tick" and sender == "clock":
+            self.ledger_clock = max(self.ledger_clock, msg["tick"])
             self.cash_samples.append((msg["tick"], self.cash))
+            pending = self.pending_balances
+            self.pending_balances = deque(maxlen=128)
+            for heartbeat, as_of in pending:
+                if self.ledger_clock >= as_of + 2:
+                    findings += self.check_balance(heartbeat, as_of)
+                else:
+                    self.pending_balances.append((heartbeat, as_of))
         if kind == "alert" and sender == "secu" and p.get("kind") == "cve_published":
             affects = p.get("cve", {}).get("affects", {})
             for sid, meta in sorted(self.state.meta.items()):
@@ -75,22 +89,22 @@ class Contagion:
                         raise ValueError("exécution inconnue")
                     self.cash += delta
                     self.executions.add(exec_id)
-                    self.cash_samples.append((msg["tick"], self.cash))
+                    self.cash_samples.append((max(self.ledger_clock, msg["tick"]), self.cash))
                 except (KeyError, TypeError, ValueError):
                     pass
         if sender == "risk" and kind == "heartbeat" and self.cash_complete:
-            cash = p.get("view", {}).get("cash_eur")
-            if cash is not None:
-                # Risk lit ses soldes au début du tick ; les messages déjà en file
-                # peuvent annoncer un instantané précédent. On accepte les soldes
-                # démontrés sur ce tick et le précédent, sans consulter le moteur.
-                samples = [v for tick, v in self.cash_samples if msg["tick"] - 1 <= tick <= msg["tick"]]
-                try:
-                    claim = float(cash)
-                    if samples and (not math.isfinite(claim) or min(abs(claim - v) for v in samples) > 0.05):
-                        findings += self.suspect("core-ledger", "ledger_mismatch", [id_] + self.execution_evidence())
-                except (TypeError, ValueError):
-                    pass
+            view = p.get("view", {})
+            if view.get("cash_eur") is not None:
+                as_of = view.get("as_of_tick", msg["tick"])
+                if type(as_of) is not int or as_of < 0 or as_of > msg["tick"] + 1:
+                    # Une référence impossible ne devient pas une suspicion de service.
+                    raise ValueError("Tick de vue Risk incohérent")
+                if "as_of_tick" in view and self.ledger_clock < as_of + 2:
+                    if len(self.pending_balances) == self.pending_balances.maxlen:
+                        raise ValueError("Trop de vues Risk en attente")
+                    self.pending_balances.append((msg, as_of))
+                else:
+                    findings += self.check_balance(msg, as_of)
         if kind == "price_update" and sender == "quant":
             sources = {e.get("service") for e in msg["data_provenance"]}
             if "market-feed" in sources:
@@ -123,6 +137,22 @@ class Contagion:
                 self.radius_ticks.setdefault(sid, self.state.tick)
         return findings
 
+    def check_balance(self, heartbeat, as_of):
+        if not self.cash_complete: return []
+        # La comparaison reste sur le tick DÉCLARÉ de la vue, même si le
+        # heartbeat arrive tard. ±1 tick couvre les lectures HTTP à la frontière
+        # du tick ; deux ticks d'attente couvrent la publication de l'exécution
+        # après la lecture du ledger. Aucun délai LLM ne dilate cette fenêtre.
+        samples = [cash for tick, cash in self.cash_samples if as_of - 1 <= tick <= as_of + 1]
+        try:
+            claim = float(heartbeat["payload"]["view"]["cash_eur"])
+            if samples and (not math.isfinite(claim) or min(abs(claim-v) for v in samples) > .05):
+                return self.suspect("core-ledger", "ledger_mismatch",
+                                    [heartbeat["message_id"]] + self.execution_evidence())
+        except (TypeError, ValueError):
+            pass
+        return []
+
     def execution_evidence(self):
         return [id_ for id_, m in self.state.messages.items()
                 if m["from"] == "executor" and m["type"] == "execution"
@@ -138,6 +168,9 @@ class Contagion:
             if id_ in visited:
                 continue
             visited.add(id_)
+            for target in self.injection.targets(current):
+                if target not in chains:
+                    chains[target] = list(reversed(path)) + self.suspects[target].evidence
             for entry in current.get("data_provenance", []):
                 sid = entry.get("service")
                 if sid in self.suspects and sid not in chains:
@@ -173,7 +206,7 @@ class Contagion:
                 marked_agents.add(msg["from"])
             for sid in chains:
                 self.radius_ticks.setdefault(sid, self.state.tick)
-            direct = any(e.get("service") in self.suspects for e in msg["data_provenance"])
+            direct = bool(self.injection.targets(msg)) or any(e.get("service") in self.suspects for e in msg["data_provenance"])
             # Une racine n'hérite pas déjà d'un parent marqué : les montants
             # décision/compliance/exécution d'une même opération ne s'additionnent pas.
             inherited = any(self.trace(self.state.messages[parent]) for parent in msg["depends_on"] if parent in self.state.messages)

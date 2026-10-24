@@ -54,6 +54,7 @@ chaos:
   attacker_iban: "FR76 9999 0000 0000 6666 6666 666"
   core_ledger_inflation: 1.15
   kyc_trap_beneficiary: BEN-07
+  announce_compromised: false    # true: service_status shows "compromised" on the bus (an attacker would not)
 
 agents:
   quant:
@@ -121,16 +122,16 @@ beneficiaries:
 vigie:
   enabled: true
   heartbeat_timeout_ticks: 5         # sans heartbeat Vigie pendant N ticks : ORANGE local
-  stub: true                         # émet un heartbeat tant qu'aucune vraie Vigie n'est branchée
+  stub: true                         # profil historique des tests ; make run force false
   orange_amount_factor: 0.5
 
 gate:
-  impl: stub                         # stub | bus | passthrough
+  impl: stub                         # tests historiques ; make run génère le profil bus/reject
   timeout_s: 2.0
   default_on_timeout: reject         # BusGate : décision si la Vigie ne répond pas
 
 llm:
-  enabled: true                      # --no-llm force false
+  enabled: false                     # aucune API payante ; les lanceurs Vigie imposent aussi false
   guardrails: "off"                  # on | off
   model: claude-opus-5-5             # ANTHROPIC_MODEL dans .env prime
   effort: low                        # jugements courts, un tick dure 1 s

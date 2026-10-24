@@ -84,7 +84,7 @@ Sélection : marge 0, trois traders, persistance 20 ticks ; zéro gel sur les si
 runs propres d'entraînement. 42 est explicitement interdit à l'entraînement et
 utilisé seulement en évaluation, sans nouvel ajustement de paramètres.
 
-Le rapport d'évaluation contient cinq cas, avec sans Vigie, couche 3 antérieure
+Le rapport d'évaluation contient cinq cas, avec sans KRYS, couche 3 antérieure
 sans gel et couche 3 avec gel. Les transitions détaillent actif/sens/traders,
 preuve, témoin, début/fin et échéance. Un gel encore actif à la fin d'un scénario
 n'a pas de fin inventée ; l'échéance restante est dans son enregistrement.

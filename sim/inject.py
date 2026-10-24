@@ -5,7 +5,7 @@
     python -m sim.inject fake-agent [--as risk|trader-9]
     python -m sim.inject kill trader-2 | kill-vigie
     python -m sim.inject set herding 0.8 | set guardrails on|off | set restricted CITRA,ACME
-    python -m sim.inject light ORANGE | human resume | human unblock BEN-07
+    python -m sim.inject light ORANGE | human resume | human unblock BEN-07 | human set_threshold price_drift_z 5
     python -m sim.inject news BOREAL -6 "BOREAL : avertissement sur résultats"
     python -m sim.inject invoice BEN-07 900000 | change-iban BEN-02 "FR76 ..."
     python -m sim.inject scenario scenarios/php2shell_day.yaml
@@ -223,6 +223,13 @@ def run_command(target, args: list[str]) -> str:
             target.set_param("restricted_list", [v for v in value.split(",") if v and v != "-"])
         else:
             raise ValueError(f"paramètre inconnu : {name}")
+        # La Vigie ne lit pas le store des paramètres : l'opérateur publie
+        # explicitement le changement sur le même bus signé que ses décisions.
+        published_name = 'restricted_list' if name == 'restricted' else name
+        published_value = x if name == 'herding' else (
+            [v for v in value.split(',') if v and v != '-'] if name == 'restricted' else value)
+        target.publish(_msg(target, 'alert', '*', {'kind': 'parameter_changed',
+                       'name': published_name, 'value': published_value}))
         return f"{name} = {value}"
 
     if cmd == "light":
@@ -238,6 +245,8 @@ def run_command(target, args: list[str]) -> str:
         payload = {"action": rest[0], "by": "opérateur"}
         if rest[0] == "unblock":
             payload["target"] = rest[1]
+        if rest[0] == "set_threshold":
+            payload.update(rule=rest[1], value=float(rest[2]))
         target.publish(_msg(target, "human_decision", "*", payload, sender="human"))
         return f"décision humaine : {' '.join(rest)}"
 

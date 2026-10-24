@@ -1,6 +1,6 @@
 # Banque Horizon : environnement de simulation (hackathon IA et Finance)
 PY ?= .venv/bin/python
-NO_LLM ?=
+NO_LLM ?= 1
 NO_VIGIE ?=
 SCENARIO ?= scenarios/php2shell_day.yaml
 RUN ?= runs/main
@@ -8,7 +8,7 @@ T0 ?= 0
 T1 ?= 300
 FLAGS = $(if $(NO_LLM),--no-llm) $(if $(NO_VIGIE),--no-vigie)
 
-.PHONY: install keys run run-honcho run-no-llm run-no-vigie test lockstep scenario inject report verify replay compare procfile
+.PHONY: install keys run run-honcho run-no-llm run-no-vigie test lockstep scenario inject report verify replay compare metrics procfile
 
 install:
 	python3 -m venv --without-pip .venv
@@ -18,11 +18,11 @@ keys:
 	$(PY) -m sim.keys
 
 procfile:
-	$(PY) -m sim.launch procfile $(FLAGS)
+	$(PY) -m vigie.launch procfile $(FLAGS)
 
 # Superviseur maison : débrancher un agent ne coupe pas les autres (honcho, lui, arrête tout)
 run:
-	$(PY) -m sim.launch run $(FLAGS)
+	$(PY) -m vigie.launch run $(FLAGS)
 
 run-honcho: procfile
 	$(PY) -m honcho -f Procfile.generated start
@@ -52,6 +52,14 @@ replay:
 	$(PY) -m api.replay $(RUN)
 
 compare:
+	$(PY) -m vigie.compare --scenario $(SCENARIO) $(if $(TICKS),--ticks $(TICKS))
+
+# Banc A/B de tous les scénarios et de 10 journées propres : improvements.json (clé metrics) et vigie/METRIQUES.md
+metrics:
+	HORIZON_NO_LLM=1 $(PY) -m vigie.eval_metrics
+	$(PY) -m vigie.simulation
+
+compare-sim:
 	$(PY) -m sim.compare
 
 .PHONY: couche3 eval-couche3
@@ -77,3 +85,31 @@ demo-replay:
 	HORIZON_NO_LLM=1 $(PY) -m vigie.demo_live replay --port $(PORT) --accelerator $(SPEED) $(if $(RECORDING),--recording $(RECORDING))
 demo-measure:
 	HORIZON_NO_LLM=1 $(PY) -m vigie.demo_live measure --scenario $(DEMO_SCENARIO)
+
+.PHONY: compare-sim propositions
+propositions:
+	$(PY) -m vigie.propositions --run "$(RUN)"
+
+# Le plan fixe les graines et la courbe avant les mesures ; aucun seuil n’est déployé.
+.PHONY: surete-utilite
+surete-utilite:
+	HORIZON_NO_LLM=1 $(PY) -m vigie.surete_utilite
+
+# Comparateur facultatif E, hors tableau principal et hors démo.
+.PHONY: invariant compare-invariant
+invariant:
+	$(PY) -m vigie.invariant_guard --launch
+compare-invariant:
+	$(PY) -m vigie.invariant_compare --out $(RUN)
+
+.PHONY: cout-panne
+cout-panne:
+	HORIZON_NO_LLM=1 $(PY) -m vigie.panne
+
+.PHONY: verify-cout-panne
+verify-cout-panne:
+	HORIZON_NO_LLM=1 $(PY) -m vigie.panne_verify $(RUN)
+
+.PHONY: remesure-fusion
+remesure-fusion:
+	systemd-run --user --wait --collect --pipe -q --working-directory="$(CURDIR)" -p CPUQuota=300% -p MemoryMax=4G nice -n 10 flock -w 172800 "$(HOME)/.cache/tako/banc.lock" tako-court -- $(PY) -m vigie.remesure_fusion $(RUN) --measure --extra

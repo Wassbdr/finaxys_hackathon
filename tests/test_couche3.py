@@ -98,11 +98,15 @@ def test_runtime_gate_only_blocks_marked_and_herding_hook(setup):
             return [Finding(msg["tick"], 3, "herding", "traders", "warning", [msg["message_id"]], 1.0)]
     runtime = Runtime(cfg, keys, meta=setup[2].meta, layers=[Herding()])
     runtime.on_message(factories['clock'].make(1,'tick','*',{'tick':1}))
-    clean = factories["risk"].make(1, "risk_decision", "executor", {"kind": "payment"}, data_provenance=[{"service": "news-wire"}])
+    news_prov={'service':'news-wire','version':'1','response_hash':'wire-root','tick':1}
+    price_prov={'service':'market-feed','version':'1','response_hash':'price-root','tick':1}
+    runtime.on_message(factories['trader-1'].make(1,'llm_trace','*',{'response':{}},data_provenance=[news_prov]))
+    runtime.on_message(factories['quant'].make(1,'price_update','*',{'assets':{'ACME':{'price':100}}},data_provenance=[price_prov]))
+    clean = factories["risk"].make(1, "risk_decision", "executor", {"kind": "payment"}, data_provenance=[news_prov])
     assert runtime.request_approval(clean).approved
     runtime.on_message(factories["secu"].make(1, "alert", "*", {"kind": "cve_published", "cve": {
         "affects": {"language": "php", "version_lt": "8.1"}}}))
-    dirty = factories["risk"].make(1, "risk_decision", "executor", {"kind": "payment"}, data_provenance=[{"service": "market-feed"}])
+    dirty = factories["risk"].make(1, "risk_decision", "executor", {"kind": "payment"}, data_provenance=[price_prov])
     assert not runtime.request_approval(dirty).approved
     assert runtime.decisions[-1]["evidence"]
     assert runtime.request_approval(clean).approved
@@ -115,9 +119,11 @@ def test_production_client_whitelist_and_signed_heartbeat(setup):
     clock = factories["clock"].make(2, "tick", "*", {"tick": 2})
     cve = factories["secu"].make(2, "alert", "*", {"kind": "cve_published", "cve": {
         "affects": {"language": "php", "version_lt": "8.1"}}})
+    provenance={'service':'market-feed','version':'1','response_hash':'public-price','tick':2}
+    root=factories['quant'].make(2,'price_update','*',{'assets':{'ACME':{'price':100}}},data_provenance=[provenance])
     operation = factories["risk"].make(2, "risk_decision", "executor", {},
-        data_provenance=[{"service": "market-feed"}])
-    events = [("bus", clock), ("bus", cve),
+        data_provenance=[provenance])
+    events = [("bus", clock), ("bus", root), ("bus", cve),
               ("vigie.approval_requests", {"request_id": "request1", "message": operation})]
     class Sub:
         def subscribe(self, *channels):
@@ -166,8 +172,10 @@ def test_compromise_announcement_is_optional(setup):
     core = cores["core-ledger"]
     core.set_mode("compromised")
     core.set_mode("down")
-    assert seen[0]["mode"] == "normal"
-    assert seen[1]["previous"] == "normal" and seen[1]["mode"] == "down"
+    # Une compromission invisible ne doit pas révéler son tick par une annonce
+    # normal→normal ; la panne suivante demeure publique.
+    assert len(seen) == 1
+    assert seen[0]["mode"] == "down" and seen[0]["previous"] == "normal"
 
 
 def test_evaluation_clean_ledger_and_determinism():

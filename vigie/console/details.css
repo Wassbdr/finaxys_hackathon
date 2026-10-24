@@ -1,0 +1,18 @@
+#details .details-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; }
+#details article { border: 1px solid var(--line); border-left: 4px solid var(--line-2); padding: 18px; background: var(--surface); margin: 16px 0; }
+#details article h3 { margin-top: 0; font-weight: 500; }
+#details .details-limit { color: var(--dim); border-top: 1px solid var(--line); padding-top: 10px; }
+#details a { color: var(--text); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+#details input, #details select { max-width: 100%; padding: 7px; border: 1px solid var(--line-2); background: var(--surface); }
+#details form { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+#details label { display: grid; gap: 4px; }
+#details pre { max-height: 300px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.5 var(--mono); background: var(--wash); padding: 12px; }
+#details .details-table { overflow-x: auto; }
+#details td, #details th { min-width: 110px; }
+#details .details-chart { width: 100%; min-height: 220px; height: auto; }
+#details .details-chart text { fill: var(--text); font: 13px var(--sans); }
+#details .details-chart line, #details .details-chart polyline { stroke: var(--dim); fill: none; stroke-width: 1.5; }
+#details .details-chart circle { fill: var(--text); }
+#details .details-message { border-bottom: 1px solid var(--line); padding: 12px 0; overflow-wrap: anywhere; }
+#details .details-state { display: inline-block; border: 1px solid var(--line-2); padding: 2px 8px; font-family: var(--mono); }
+#details :focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }

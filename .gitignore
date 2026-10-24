@@ -6,3 +6,4 @@ runs/
 recordings/
 .pytest_cache/
 Procfile.generated
+.playwright-mcp/

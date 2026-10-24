@@ -1,0 +1,1338 @@
+{
+  "plan": {
+    "version": 1,
+    "base": "d179dd0",
+    "seeds": [
+      42,
+      43
+    ],
+    "ticks": 300,
+    "cut_tick": 60,
+    "durations": [
+      10,
+      30,
+      60
+    ],
+    "human_delay_after_restart_ticks": 10,
+    "human_actions": [
+      {
+        "action": "resume"
+      },
+      {
+        "action": "unfreeze",
+        "target": "*"
+      }
+    ],
+    "tick_seconds": 1,
+    "mitigation": "hot_standby_attested_private_pipes_single_publisher",
+    "transport": "BusGate réel ; client local sur pipes privés, sans socket ni réseau",
+    "preregistered_at_utc": "2026-10-23T22:08:27.524915+00:00"
+  },
+  "baselines": {
+    "42": {
+      "seed": 42,
+      "executed": 38,
+      "pnl_eur": -216169.38,
+      "result_path": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/42/sans-panne/result.json"
+    },
+    "43": {
+      "seed": 43,
+      "executed": 53,
+      "pnl_eur": 472755.2,
+      "result_path": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/43/sans-panne/result.json"
+    }
+  },
+  "results": [
+    {
+      "seed": 42,
+      "duration_ticks": 10,
+      "relay": false,
+      "executed": 9,
+      "pnl_eur": -207083.41,
+      "comparison": {
+        "baseline": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/42/sans-panne/result.json",
+        "delta_pnl_eur": 9085.970000000001,
+        "not_proposed": 5,
+        "not_proposed_eur": 14971893.48,
+        "lost_baseline_executions": 29,
+        "lost_baseline_eur": 61512606.9,
+        "additional_executions": 0,
+        "additional_executions_eur": 0,
+        "blocked_after_cut": 28,
+        "blocked_after_cut_eur": 57230805.06,
+        "first_block_tick": 66,
+        "first_orange_tick": 65,
+        "first_green_after_restart_tick": 70,
+        "first_execution_after_cut_tick": null,
+        "restart_tick": 70,
+        "human_tick": 80,
+        "first_execution_after_restart_tick": null,
+        "unavailable_ticks": 240,
+        "extra_unavailable_ticks": 240,
+        "right_censored": true,
+        "proof_not_proposed": [
+          "payment:70:74",
+          "trader-2:277:290",
+          "trader-1:286:300",
+          "trader-2:289:303",
+          "trader-1:296:312"
+        ],
+        "proof_lost_baseline": [
+          "trader-1:66:72",
+          "trader-2:66:71",
+          "payment:70:74",
+          "payment:90:95",
+          "payment:110:116",
+          "trader-2:114:121",
+          "payment:130:137",
+          "trader-2:130:138",
+          "payment:150:158",
+          "trader-1:157:165",
+          "trader-2:157:166",
+          "payment:170:179",
+          "payment:190:200",
+          "trader-1:216:225",
+          "trader-2:216:226",
+          "trader-1:228:238",
+          "payment:230:242",
+          "trader-1:243:254",
+          "trader-2:243:254",
+          "payment:250:263",
+          "payment:270:284",
+          "trader-1:276:289",
+          "trader-3:276:282",
+          "trader-2:277:290",
+          "trader-1:286:300",
+          "trader-2:289:303",
+          "payment:290:305",
+          "trader-3:290:298",
+          "trader-1:296:312"
+        ]
+      },
+      "result_path": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/42/panne-10/result.json",
+      "processes": [
+        {
+          "replica": "primary",
+          "pid": 1933476,
+          "ready": true,
+          "uncertain": []
+        },
+        {
+          "replica": "primary",
+          "pid": 1956134,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "tick": 60,
+          "kind": "process_killed",
+          "pid": 1933476,
+          "returncode": -9
+        },
+        {
+          "tick": 70,
+          "kind": "process_restarted",
+          "pid": 1956134,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        },
+        {
+          "tick": 80,
+          "kind": "human_decision",
+          "messages": [
+            "human:panne-human:80:1",
+            "human:panne-human:80:2"
+          ]
+        }
+      ]
+    },
+    {
+      "seed": 42,
+      "duration_ticks": 10,
+      "relay": true,
+      "executed": 38,
+      "pnl_eur": -216169.38,
+      "comparison": {
+        "baseline": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/42/sans-panne/result.json",
+        "delta_pnl_eur": 0.0,
+        "not_proposed": 0,
+        "not_proposed_eur": 0,
+        "lost_baseline_executions": 0,
+        "lost_baseline_eur": 0,
+        "additional_executions": 0,
+        "additional_executions_eur": 0,
+        "blocked_after_cut": 0,
+        "blocked_after_cut_eur": 0,
+        "first_block_tick": null,
+        "first_orange_tick": null,
+        "first_green_after_restart_tick": 70,
+        "first_execution_after_cut_tick": 66,
+        "restart_tick": 70,
+        "human_tick": 80,
+        "first_execution_after_restart_tick": 70,
+        "unavailable_ticks": 0,
+        "extra_unavailable_ticks": 0,
+        "right_censored": false,
+        "proof_not_proposed": [],
+        "proof_lost_baseline": []
+      },
+      "result_path": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/42/relais-10/result.json",
+      "processes": [
+        {
+          "replica": "primary",
+          "pid": 1933477,
+          "ready": true,
+          "uncertain": []
+        },
+        {
+          "replica": "standby",
+          "pid": 1933657,
+          "ready": true,
+          "uncertain": []
+        },
+        {
+          "replica": "primary",
+          "pid": 1960445,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "tick": 60,
+          "kind": "process_killed",
+          "pid": 1933477,
+          "returncode": -9
+        },
+        {
+          "tick": 60,
+          "kind": "failover",
+          "to": "standby",
+          "seq": 713,
+          "head": "07451fac60c6c56196aff48e9f25440268c0dce15ad548e2fefbce157b6b19a8"
+        },
+        {
+          "tick": 70,
+          "kind": "process_restarted",
+          "pid": 1960445,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        },
+        {
+          "tick": 80,
+          "kind": "human_decision",
+          "messages": [
+            "human:panne-human:80:1",
+            "human:panne-human:80:2"
+          ]
+        }
+      ]
+    },
+    {
+      "seed": 42,
+      "duration_ticks": 30,
+      "relay": false,
+      "executed": 9,
+      "pnl_eur": -207083.41,
+      "comparison": {
+        "baseline": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/42/sans-panne/result.json",
+        "delta_pnl_eur": 9085.970000000001,
+        "not_proposed": 6,
+        "not_proposed_eur": 15542893.48,
+        "lost_baseline_executions": 29,
+        "lost_baseline_eur": 61512606.9,
+        "additional_executions": 0,
+        "additional_executions_eur": 0,
+        "blocked_after_cut": 27,
+        "blocked_after_cut_eur": 56659805.06,
+        "first_block_tick": 66,
+        "first_orange_tick": 65,
+        "first_green_after_restart_tick": 90,
+        "first_execution_after_cut_tick": null,
+        "restart_tick": 90,
+        "human_tick": 100,
+        "first_execution_after_restart_tick": null,
+        "unavailable_ticks": 240,
+        "extra_unavailable_ticks": 240,
+        "right_censored": true,
+        "proof_not_proposed": [
+          "payment:70:74",
+          "payment:90:95",
+          "trader-2:277:290",
+          "trader-1:286:300",
+          "trader-2:289:303",
+          "trader-1:296:312"
+        ],
+        "proof_lost_baseline": [
+          "trader-1:66:72",
+          "trader-2:66:71",
+          "payment:70:74",
+          "payment:90:95",
+          "payment:110:116",
+          "trader-2:114:121",
+          "payment:130:137",
+          "trader-2:130:138",
+          "payment:150:158",
+          "trader-1:157:165",
+          "trader-2:157:166",
+          "payment:170:179",
+          "payment:190:200",
+          "trader-1:216:225",
+          "trader-2:216:226",
+          "trader-1:228:238",
+          "payment:230:242",
+          "trader-1:243:254",
+          "trader-2:243:254",
+          "payment:250:263",
+          "payment:270:284",
+          "trader-1:276:289",
+          "trader-3:276:282",
+          "trader-2:277:290",
+          "trader-1:286:300",
+          "trader-2:289:303",
+          "payment:290:305",
+          "trader-3:290:298",
+          "trader-1:296:312"
+        ]
+      },
+      "result_path": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/42/panne-30/result.json",
+      "processes": [
+        {
+          "replica": "primary",
+          "pid": 1933474,
+          "ready": true,
+          "uncertain": []
+        },
+        {
+          "replica": "primary",
+          "pid": 1956136,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "tick": 60,
+          "kind": "process_killed",
+          "pid": 1933474,
+          "returncode": -9
+        },
+        {
+          "tick": 90,
+          "kind": "process_restarted",
+          "pid": 1956136,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        },
+        {
+          "tick": 100,
+          "kind": "human_decision",
+          "messages": [
+            "human:panne-human:100:1",
+            "human:panne-human:100:2"
+          ]
+        }
+      ]
+    },
+    {
+      "seed": 42,
+      "duration_ticks": 30,
+      "relay": true,
+      "executed": 38,
+      "pnl_eur": -216169.38,
+      "comparison": {
+        "baseline": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/42/sans-panne/result.json",
+        "delta_pnl_eur": 0.0,
+        "not_proposed": 0,
+        "not_proposed_eur": 0,
+        "lost_baseline_executions": 0,
+        "lost_baseline_eur": 0,
+        "additional_executions": 0,
+        "additional_executions_eur": 0,
+        "blocked_after_cut": 0,
+        "blocked_after_cut_eur": 0,
+        "first_block_tick": null,
+        "first_orange_tick": null,
+        "first_green_after_restart_tick": 90,
+        "first_execution_after_cut_tick": 66,
+        "restart_tick": 90,
+        "human_tick": 100,
+        "first_execution_after_restart_tick": 90,
+        "unavailable_ticks": 0,
+        "extra_unavailable_ticks": 0,
+        "right_censored": false,
+        "proof_not_proposed": [],
+        "proof_lost_baseline": []
+      },
+      "result_path": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/42/relais-30/result.json",
+      "processes": [
+        {
+          "replica": "primary",
+          "pid": 1933475,
+          "ready": true,
+          "uncertain": []
+        },
+        {
+          "replica": "standby",
+          "pid": 1933655,
+          "ready": true,
+          "uncertain": []
+        },
+        {
+          "replica": "primary",
+          "pid": 1967947,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "tick": 60,
+          "kind": "process_killed",
+          "pid": 1933475,
+          "returncode": -9
+        },
+        {
+          "tick": 60,
+          "kind": "failover",
+          "to": "standby",
+          "seq": 713,
+          "head": "07451fac60c6c56196aff48e9f25440268c0dce15ad548e2fefbce157b6b19a8"
+        },
+        {
+          "tick": 90,
+          "kind": "process_restarted",
+          "pid": 1967947,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        },
+        {
+          "tick": 100,
+          "kind": "human_decision",
+          "messages": [
+            "human:panne-human:100:1",
+            "human:panne-human:100:2"
+          ]
+        }
+      ]
+    },
+    {
+      "seed": 42,
+      "duration_ticks": 60,
+      "relay": false,
+      "executed": 9,
+      "pnl_eur": -207083.41,
+      "comparison": {
+        "baseline": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/42/sans-panne/result.json",
+        "delta_pnl_eur": 9085.970000000001,
+        "not_proposed": 6,
+        "not_proposed_eur": 15542893.48,
+        "lost_baseline_executions": 29,
+        "lost_baseline_eur": 61512606.9,
+        "additional_executions": 0,
+        "additional_executions_eur": 0,
+        "blocked_after_cut": 27,
+        "blocked_after_cut_eur": 55211436.25,
+        "first_block_tick": 66,
+        "first_orange_tick": 65,
+        "first_green_after_restart_tick": 120,
+        "first_execution_after_cut_tick": null,
+        "restart_tick": 120,
+        "human_tick": 130,
+        "first_execution_after_restart_tick": null,
+        "unavailable_ticks": 240,
+        "extra_unavailable_ticks": 240,
+        "right_censored": true,
+        "proof_not_proposed": [
+          "payment:70:74",
+          "payment:90:95",
+          "trader-2:277:290",
+          "trader-1:286:300",
+          "trader-2:289:303",
+          "trader-1:296:312"
+        ],
+        "proof_lost_baseline": [
+          "trader-1:66:72",
+          "trader-2:66:71",
+          "payment:70:74",
+          "payment:90:95",
+          "payment:110:116",
+          "trader-2:114:121",
+          "payment:130:137",
+          "trader-2:130:138",
+          "payment:150:158",
+          "trader-1:157:165",
+          "trader-2:157:166",
+          "payment:170:179",
+          "payment:190:200",
+          "trader-1:216:225",
+          "trader-2:216:226",
+          "trader-1:228:238",
+          "payment:230:242",
+          "trader-1:243:254",
+          "trader-2:243:254",
+          "payment:250:263",
+          "payment:270:284",
+          "trader-1:276:289",
+          "trader-3:276:282",
+          "trader-2:277:290",
+          "trader-1:286:300",
+          "trader-2:289:303",
+          "payment:290:305",
+          "trader-3:290:298",
+          "trader-1:296:312"
+        ]
+      },
+      "result_path": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/42/panne-60/result.json",
+      "processes": [
+        {
+          "replica": "primary",
+          "pid": 2044818,
+          "ready": true,
+          "uncertain": []
+        },
+        {
+          "replica": "primary",
+          "pid": 2071244,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "tick": 60,
+          "kind": "process_killed",
+          "pid": 2044818,
+          "returncode": -9
+        },
+        {
+          "tick": 120,
+          "kind": "process_restarted",
+          "pid": 2071244,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        },
+        {
+          "tick": 130,
+          "kind": "human_decision",
+          "messages": [
+            "human:panne-human:130:1",
+            "human:panne-human:130:2"
+          ]
+        }
+      ]
+    },
+    {
+      "seed": 42,
+      "duration_ticks": 60,
+      "relay": true,
+      "executed": 38,
+      "pnl_eur": -216169.38,
+      "comparison": {
+        "baseline": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/42/sans-panne/result.json",
+        "delta_pnl_eur": 0.0,
+        "not_proposed": 0,
+        "not_proposed_eur": 0,
+        "lost_baseline_executions": 0,
+        "lost_baseline_eur": 0,
+        "additional_executions": 0,
+        "additional_executions_eur": 0,
+        "blocked_after_cut": 0,
+        "blocked_after_cut_eur": 0,
+        "first_block_tick": null,
+        "first_orange_tick": null,
+        "first_green_after_restart_tick": 120,
+        "first_execution_after_cut_tick": 66,
+        "restart_tick": 120,
+        "human_tick": 130,
+        "first_execution_after_restart_tick": 130,
+        "unavailable_ticks": 0,
+        "extra_unavailable_ticks": 0,
+        "right_censored": false,
+        "proof_not_proposed": [],
+        "proof_lost_baseline": []
+      },
+      "result_path": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/42/relais-60/result.json",
+      "processes": [
+        {
+          "replica": "primary",
+          "pid": 2053772,
+          "ready": true,
+          "uncertain": []
+        },
+        {
+          "replica": "standby",
+          "pid": 2054070,
+          "ready": true,
+          "uncertain": []
+        },
+        {
+          "replica": "primary",
+          "pid": 2105489,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "tick": 60,
+          "kind": "process_killed",
+          "pid": 2053772,
+          "returncode": -9
+        },
+        {
+          "tick": 60,
+          "kind": "failover",
+          "to": "standby",
+          "seq": 713,
+          "head": "07451fac60c6c56196aff48e9f25440268c0dce15ad548e2fefbce157b6b19a8"
+        },
+        {
+          "tick": 120,
+          "kind": "process_restarted",
+          "pid": 2105489,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        },
+        {
+          "tick": 130,
+          "kind": "human_decision",
+          "messages": [
+            "human:panne-human:130:1",
+            "human:panne-human:130:2"
+          ]
+        }
+      ]
+    },
+    {
+      "seed": 43,
+      "duration_ticks": 10,
+      "relay": false,
+      "executed": 5,
+      "pnl_eur": 2831.8,
+      "comparison": {
+        "baseline": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/43/sans-panne/result.json",
+        "delta_pnl_eur": -469923.4,
+        "not_proposed": 25,
+        "not_proposed_eur": 52915443.019999996,
+        "lost_baseline_executions": 48,
+        "lost_baseline_eur": 96079037.79,
+        "additional_executions": 0,
+        "additional_executions_eur": 0,
+        "blocked_after_cut": 35,
+        "blocked_after_cut_eur": 85824382.02,
+        "first_block_tick": 67,
+        "first_orange_tick": 65,
+        "first_green_after_restart_tick": 70,
+        "first_execution_after_cut_tick": null,
+        "restart_tick": 70,
+        "human_tick": 80,
+        "first_execution_after_restart_tick": null,
+        "unavailable_ticks": 240,
+        "extra_unavailable_ticks": 240,
+        "right_censored": true,
+        "proof_not_proposed": [
+          "payment:70:74",
+          "trader-2:85:92",
+          "trader-1:94:99",
+          "trader-1:110:116",
+          "trader-2:111:120",
+          "trader-1:112:120",
+          "trader-1:122:132",
+          "trader-1:156:167",
+          "trader-1:166:181",
+          "trader-2:166:180",
+          "trader-1:176:192",
+          "trader-2:217:234",
+          "trader-1:229:247",
+          "trader-1:230:249",
+          "trader-2:230:248",
+          "trader-2:231:250",
+          "trader-1:239:259",
+          "trader-1:240:261",
+          "trader-2:240:260",
+          "trader-2:241:262",
+          "trader-2:242:264",
+          "trader-1:252:275",
+          "trader-1:258:282",
+          "trader-2:258:281",
+          "trader-2:284:309"
+        ],
+        "proof_lost_baseline": [
+          "trader-2:67:71",
+          "payment:70:74",
+          "trader-2:76:81",
+          "trader-1:84:88",
+          "trader-3:84:87",
+          "trader-2:85:92",
+          "payment:90:95",
+          "trader-1:94:99",
+          "trader-1:110:116",
+          "trader-2:111:120",
+          "trader-3:111:116",
+          "trader-1:112:120",
+          "trader-1:122:132",
+          "trader-3:122:129",
+          "trader-2:149:160",
+          "payment:150:158",
+          "trader-1:156:167",
+          "trader-3:158:167",
+          "trader-1:165:179",
+          "trader-3:165:176",
+          "trader-1:166:181",
+          "trader-2:166:180",
+          "payment:170:179",
+          "trader-1:176:192",
+          "trader-2:191:206",
+          "trader-1:204:221",
+          "trader-2:204:220",
+          "payment:210:221",
+          "trader-2:217:234",
+          "trader-1:229:247",
+          "payment:230:242",
+          "trader-1:230:249",
+          "trader-2:230:248",
+          "trader-2:231:250",
+          "trader-1:239:259",
+          "trader-1:240:261",
+          "trader-2:240:260",
+          "trader-1:241:263",
+          "trader-2:241:262",
+          "trader-2:242:264",
+          "payment:250:263",
+          "trader-1:252:275",
+          "trader-1:258:282",
+          "trader-2:258:281",
+          "payment:270:284",
+          "trader-1:283:309",
+          "trader-3:283:296",
+          "trader-2:284:309"
+        ]
+      },
+      "result_path": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/43/panne-10/result.json",
+      "processes": [
+        {
+          "replica": "primary",
+          "pid": 2058615,
+          "ready": true,
+          "uncertain": []
+        },
+        {
+          "replica": "primary",
+          "pid": 2083608,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "tick": 60,
+          "kind": "process_killed",
+          "pid": 2058615,
+          "returncode": -9
+        },
+        {
+          "tick": 70,
+          "kind": "process_restarted",
+          "pid": 2083608,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        },
+        {
+          "tick": 80,
+          "kind": "human_decision",
+          "messages": [
+            "human:panne-human:80:1",
+            "human:panne-human:80:2"
+          ]
+        }
+      ]
+    },
+    {
+      "seed": 43,
+      "duration_ticks": 10,
+      "relay": true,
+      "executed": 53,
+      "pnl_eur": 472755.2,
+      "comparison": {
+        "baseline": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/43/sans-panne/result.json",
+        "delta_pnl_eur": 0.0,
+        "not_proposed": 0,
+        "not_proposed_eur": 0,
+        "lost_baseline_executions": 0,
+        "lost_baseline_eur": 0,
+        "additional_executions": 0,
+        "additional_executions_eur": 0,
+        "blocked_after_cut": 0,
+        "blocked_after_cut_eur": 0,
+        "first_block_tick": null,
+        "first_orange_tick": null,
+        "first_green_after_restart_tick": 70,
+        "first_execution_after_cut_tick": 67,
+        "restart_tick": 70,
+        "human_tick": 80,
+        "first_execution_after_restart_tick": 70,
+        "unavailable_ticks": 0,
+        "extra_unavailable_ticks": 0,
+        "right_censored": false,
+        "proof_not_proposed": [],
+        "proof_lost_baseline": []
+      },
+      "result_path": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/43/relais-10/result.json",
+      "processes": [
+        {
+          "replica": "primary",
+          "pid": 2058635,
+          "ready": true,
+          "uncertain": []
+        },
+        {
+          "replica": "standby",
+          "pid": 2058661,
+          "ready": true,
+          "uncertain": []
+        },
+        {
+          "replica": "primary",
+          "pid": 2088939,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "tick": 60,
+          "kind": "process_killed",
+          "pid": 2058635,
+          "returncode": -9
+        },
+        {
+          "tick": 60,
+          "kind": "failover",
+          "to": "standby",
+          "seq": 691,
+          "head": "610d6f79aac127c52cdb946948bcf3d83d47c97869b7e0a19d99c74dd8c7ba33"
+        },
+        {
+          "tick": 70,
+          "kind": "process_restarted",
+          "pid": 2088939,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        },
+        {
+          "tick": 80,
+          "kind": "human_decision",
+          "messages": [
+            "human:panne-human:80:1",
+            "human:panne-human:80:2"
+          ]
+        }
+      ]
+    },
+    {
+      "seed": 43,
+      "duration_ticks": 30,
+      "relay": false,
+      "executed": 5,
+      "pnl_eur": 2831.8,
+      "comparison": {
+        "baseline": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/43/sans-panne/result.json",
+        "delta_pnl_eur": -469923.4,
+        "not_proposed": 26,
+        "not_proposed_eur": 53842443.019999996,
+        "lost_baseline_executions": 48,
+        "lost_baseline_eur": 96079037.79,
+        "additional_executions": 0,
+        "additional_executions_eur": 0,
+        "blocked_after_cut": 34,
+        "blocked_after_cut_eur": 79807066.3,
+        "first_block_tick": 67,
+        "first_orange_tick": 65,
+        "first_green_after_restart_tick": 90,
+        "first_execution_after_cut_tick": null,
+        "restart_tick": 90,
+        "human_tick": 100,
+        "first_execution_after_restart_tick": null,
+        "unavailable_ticks": 240,
+        "extra_unavailable_ticks": 240,
+        "right_censored": true,
+        "proof_not_proposed": [
+          "payment:70:74",
+          "trader-2:85:92",
+          "payment:90:95",
+          "trader-1:94:99",
+          "trader-1:110:116",
+          "trader-2:111:120",
+          "trader-1:112:120",
+          "trader-1:122:132",
+          "trader-1:156:167",
+          "trader-1:166:181",
+          "trader-2:166:180",
+          "trader-1:176:192",
+          "trader-2:217:234",
+          "trader-1:229:247",
+          "trader-1:230:249",
+          "trader-2:230:248",
+          "trader-2:231:250",
+          "trader-1:239:259",
+          "trader-1:240:261",
+          "trader-2:240:260",
+          "trader-2:241:262",
+          "trader-2:242:264",
+          "trader-1:252:275",
+          "trader-1:258:282",
+          "trader-2:258:281",
+          "trader-2:284:309"
+        ],
+        "proof_lost_baseline": [
+          "trader-2:67:71",
+          "payment:70:74",
+          "trader-2:76:81",
+          "trader-1:84:88",
+          "trader-3:84:87",
+          "trader-2:85:92",
+          "payment:90:95",
+          "trader-1:94:99",
+          "trader-1:110:116",
+          "trader-2:111:120",
+          "trader-3:111:116",
+          "trader-1:112:120",
+          "trader-1:122:132",
+          "trader-3:122:129",
+          "trader-2:149:160",
+          "payment:150:158",
+          "trader-1:156:167",
+          "trader-3:158:167",
+          "trader-1:165:179",
+          "trader-3:165:176",
+          "trader-1:166:181",
+          "trader-2:166:180",
+          "payment:170:179",
+          "trader-1:176:192",
+          "trader-2:191:206",
+          "trader-1:204:221",
+          "trader-2:204:220",
+          "payment:210:221",
+          "trader-2:217:234",
+          "trader-1:229:247",
+          "payment:230:242",
+          "trader-1:230:249",
+          "trader-2:230:248",
+          "trader-2:231:250",
+          "trader-1:239:259",
+          "trader-1:240:261",
+          "trader-2:240:260",
+          "trader-1:241:263",
+          "trader-2:241:262",
+          "trader-2:242:264",
+          "payment:250:263",
+          "trader-1:252:275",
+          "trader-1:258:282",
+          "trader-2:258:281",
+          "payment:270:284",
+          "trader-1:283:309",
+          "trader-3:283:296",
+          "trader-2:284:309"
+        ]
+      },
+      "result_path": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/43/panne-30/result.json",
+      "processes": [
+        {
+          "replica": "primary",
+          "pid": 2149746,
+          "ready": true,
+          "uncertain": []
+        },
+        {
+          "replica": "primary",
+          "pid": 2181037,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "tick": 60,
+          "kind": "process_killed",
+          "pid": 2149746,
+          "returncode": -9
+        },
+        {
+          "tick": 90,
+          "kind": "process_restarted",
+          "pid": 2181037,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        },
+        {
+          "tick": 100,
+          "kind": "human_decision",
+          "messages": [
+            "human:panne-human:100:1",
+            "human:panne-human:100:2"
+          ]
+        }
+      ]
+    },
+    {
+      "seed": 43,
+      "duration_ticks": 30,
+      "relay": true,
+      "executed": 53,
+      "pnl_eur": 472755.2,
+      "comparison": {
+        "baseline": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/43/sans-panne/result.json",
+        "delta_pnl_eur": 0.0,
+        "not_proposed": 0,
+        "not_proposed_eur": 0,
+        "lost_baseline_executions": 0,
+        "lost_baseline_eur": 0,
+        "additional_executions": 0,
+        "additional_executions_eur": 0,
+        "blocked_after_cut": 0,
+        "blocked_after_cut_eur": 0,
+        "first_block_tick": null,
+        "first_orange_tick": null,
+        "first_green_after_restart_tick": 90,
+        "first_execution_after_cut_tick": 67,
+        "restart_tick": 90,
+        "human_tick": 100,
+        "first_execution_after_restart_tick": 90,
+        "unavailable_ticks": 0,
+        "extra_unavailable_ticks": 0,
+        "right_censored": false,
+        "proof_not_proposed": [],
+        "proof_lost_baseline": []
+      },
+      "result_path": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/43/relais-30/result.json",
+      "processes": [
+        {
+          "replica": "primary",
+          "pid": 2189880,
+          "ready": true,
+          "uncertain": []
+        },
+        {
+          "replica": "standby",
+          "pid": 2189967,
+          "ready": true,
+          "uncertain": []
+        },
+        {
+          "replica": "primary",
+          "pid": 2230171,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "tick": 60,
+          "kind": "process_killed",
+          "pid": 2189880,
+          "returncode": -9
+        },
+        {
+          "tick": 60,
+          "kind": "failover",
+          "to": "standby",
+          "seq": 691,
+          "head": "610d6f79aac127c52cdb946948bcf3d83d47c97869b7e0a19d99c74dd8c7ba33"
+        },
+        {
+          "tick": 90,
+          "kind": "process_restarted",
+          "pid": 2230171,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        },
+        {
+          "tick": 100,
+          "kind": "human_decision",
+          "messages": [
+            "human:panne-human:100:1",
+            "human:panne-human:100:2"
+          ]
+        }
+      ]
+    },
+    {
+      "seed": 43,
+      "duration_ticks": 60,
+      "relay": false,
+      "executed": 5,
+      "pnl_eur": 2831.8,
+      "comparison": {
+        "baseline": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/43/sans-panne/result.json",
+        "delta_pnl_eur": -469923.4,
+        "not_proposed": 26,
+        "not_proposed_eur": 53418944.73,
+        "lost_baseline_executions": 48,
+        "lost_baseline_eur": 96079037.79,
+        "additional_executions": 0,
+        "additional_executions_eur": 0,
+        "blocked_after_cut": 34,
+        "blocked_after_cut_eur": 74263128.18,
+        "first_block_tick": 67,
+        "first_orange_tick": 65,
+        "first_green_after_restart_tick": 120,
+        "first_execution_after_cut_tick": null,
+        "restart_tick": 120,
+        "human_tick": 130,
+        "first_execution_after_restart_tick": null,
+        "unavailable_ticks": 240,
+        "extra_unavailable_ticks": 240,
+        "right_censored": true,
+        "proof_not_proposed": [
+          "payment:70:74",
+          "trader-2:85:92",
+          "payment:90:95",
+          "trader-1:94:99",
+          "payment:110:116",
+          "trader-1:110:116",
+          "trader-2:111:120",
+          "trader-1:112:120",
+          "trader-1:156:167",
+          "trader-1:166:181",
+          "trader-2:166:180",
+          "trader-1:176:192",
+          "trader-2:217:234",
+          "trader-1:229:247",
+          "trader-1:230:249",
+          "trader-2:230:248",
+          "trader-2:231:250",
+          "trader-1:239:259",
+          "trader-1:240:261",
+          "trader-2:240:260",
+          "trader-2:241:262",
+          "trader-2:242:264",
+          "trader-1:252:275",
+          "trader-1:258:282",
+          "trader-2:258:281",
+          "trader-2:284:309"
+        ],
+        "proof_lost_baseline": [
+          "trader-2:67:71",
+          "payment:70:74",
+          "trader-2:76:81",
+          "trader-1:84:88",
+          "trader-3:84:87",
+          "trader-2:85:92",
+          "payment:90:95",
+          "trader-1:94:99",
+          "trader-1:110:116",
+          "trader-2:111:120",
+          "trader-3:111:116",
+          "trader-1:112:120",
+          "trader-1:122:132",
+          "trader-3:122:129",
+          "trader-2:149:160",
+          "payment:150:158",
+          "trader-1:156:167",
+          "trader-3:158:167",
+          "trader-1:165:179",
+          "trader-3:165:176",
+          "trader-1:166:181",
+          "trader-2:166:180",
+          "payment:170:179",
+          "trader-1:176:192",
+          "trader-2:191:206",
+          "trader-1:204:221",
+          "trader-2:204:220",
+          "payment:210:221",
+          "trader-2:217:234",
+          "trader-1:229:247",
+          "payment:230:242",
+          "trader-1:230:249",
+          "trader-2:230:248",
+          "trader-2:231:250",
+          "trader-1:239:259",
+          "trader-1:240:261",
+          "trader-2:240:260",
+          "trader-1:241:263",
+          "trader-2:241:262",
+          "trader-2:242:264",
+          "payment:250:263",
+          "trader-1:252:275",
+          "trader-1:258:282",
+          "trader-2:258:281",
+          "payment:270:284",
+          "trader-1:283:309",
+          "trader-3:283:296",
+          "trader-2:284:309"
+        ]
+      },
+      "result_path": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/43/panne-60/result.json",
+      "processes": [
+        {
+          "replica": "primary",
+          "pid": 2191013,
+          "ready": true,
+          "uncertain": []
+        },
+        {
+          "replica": "primary",
+          "pid": 2217146,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "tick": 60,
+          "kind": "process_killed",
+          "pid": 2191013,
+          "returncode": -9
+        },
+        {
+          "tick": 120,
+          "kind": "process_restarted",
+          "pid": 2217146,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        },
+        {
+          "tick": 130,
+          "kind": "human_decision",
+          "messages": [
+            "human:panne-human:130:1",
+            "human:panne-human:130:2"
+          ]
+        }
+      ]
+    },
+    {
+      "seed": 43,
+      "duration_ticks": 60,
+      "relay": true,
+      "executed": 53,
+      "pnl_eur": 472755.2,
+      "comparison": {
+        "baseline": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/43/sans-panne/result.json",
+        "delta_pnl_eur": 0.0,
+        "not_proposed": 0,
+        "not_proposed_eur": 0,
+        "lost_baseline_executions": 0,
+        "lost_baseline_eur": 0,
+        "additional_executions": 0,
+        "additional_executions_eur": 0,
+        "blocked_after_cut": 0,
+        "blocked_after_cut_eur": 0,
+        "first_block_tick": null,
+        "first_orange_tick": null,
+        "first_green_after_restart_tick": 120,
+        "first_execution_after_cut_tick": 67,
+        "restart_tick": 120,
+        "human_tick": 130,
+        "first_execution_after_restart_tick": 122,
+        "unavailable_ticks": 0,
+        "extra_unavailable_ticks": 0,
+        "right_censored": false,
+        "proof_not_proposed": [],
+        "proof_lost_baseline": []
+      },
+      "result_path": "runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/43/relais-60/result.json",
+      "processes": [
+        {
+          "replica": "primary",
+          "pid": 2198971,
+          "ready": true,
+          "uncertain": []
+        },
+        {
+          "replica": "standby",
+          "pid": 2198975,
+          "ready": true,
+          "uncertain": []
+        },
+        {
+          "replica": "primary",
+          "pid": 2252154,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "tick": 60,
+          "kind": "process_killed",
+          "pid": 2198971,
+          "returncode": -9
+        },
+        {
+          "tick": 60,
+          "kind": "failover",
+          "to": "standby",
+          "seq": 691,
+          "head": "610d6f79aac127c52cdb946948bcf3d83d47c97869b7e0a19d99c74dd8c7ba33"
+        },
+        {
+          "tick": 120,
+          "kind": "process_restarted",
+          "pid": 2252154,
+          "ready": true,
+          "uncertain": [
+            "checkpoint_unavailable"
+          ]
+        },
+        {
+          "tick": 130,
+          "kind": "human_decision",
+          "messages": [
+            "human:panne-human:130:1",
+            "human:panne-human:130:2"
+          ]
+        }
+      ]
+    }
+  ]
+}

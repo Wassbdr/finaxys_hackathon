@@ -32,7 +32,8 @@ def cmd(ls, line):
 def test_service_mode_commands(ls, verb, mode):
     cmd(ls, f"{verb} core-ledger")
     assert ls.cores["core-ledger"].mode() == mode
-    assert ls.world.observer.service_timeline[-1]["mode"] == mode
+    announced = [s["mode"] for s in ls.world.observer.service_timeline]
+    assert announced[-1:] == ([] if mode == "compromised" else [mode])  # an attacker announces nothing
     assert ls.world.service_modes()["core-ledger"]["mode"] == mode
 
 

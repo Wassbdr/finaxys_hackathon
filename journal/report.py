@@ -53,9 +53,10 @@ def build_report(run: str | Path, t0: int, t1: int) -> str:
     chain_ok, chain_count, chain_bad = verify_journal(run / "journal.jsonl")
     traces = {m["message_id"]: m["payload"] for m in msgs if m["type"] == "llm_trace"}
 
-    status_changes = [m for m in msgs if m["type"] == "service_status"]
-    compromised = sorted({m["payload"]["service"] for m in status_changes if m["payload"]["mode"] in ("compromised", "stale")})
-    degraded = sorted({m["payload"]["service"] for m in status_changes if m["payload"]["mode"] != "normal"})
+    # Modes from the per-tick states: with chaos.announce_compromised off, the bus never says "compromised".
+    modes = [(sid, info["mode"]) for s in states if t0 <= s["tick"] <= t1 for sid, info in s.get("services", {}).items()]
+    compromised = sorted({sid for sid, mode in modes if mode in ("compromised", "stale")})
+    degraded = sorted({sid for sid, mode in modes if mode != "normal"})
     losses = end.get("losses", {}).get("losses_by_service_eur", {})
     losses_start = start.get("losses", {}).get("losses_by_service_eur", {}) if t0 > 0 else {}
     losses_window = {s: v - losses_start.get(s, 0.0) for s, v in losses.items()}

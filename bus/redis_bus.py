@@ -25,6 +25,18 @@ def connect(url: str, wait_s: float = 30.0) -> redis.Redis:
             time.sleep(0.5)
 
 
+def next_message(pubsub, timeout: float, **kwargs):
+    """get_message that waits at most `timeout` for a message to begin, then reads all of it.
+
+    redis-py 8 reads the rest of a message split across TCP packets with the same timeout and
+    drops the connection when it runs out: on a loaded Mac, 90 KB Vigie heartbeats were lost and
+    the Vigie process died with TimeoutError.
+    """
+    if not pubsub.connection.can_read(timeout=timeout):
+        return None
+    return pubsub.get_message(timeout=None, **kwargs)
+
+
 class RedisBus:
     def __init__(self, client: redis.Redis, prefix: str = ""):
         self.client = client
@@ -44,7 +56,7 @@ class RedisBus:
         pubsub.subscribe(*names)
         try:
             while True:
-                raw = pubsub.get_message(timeout=timeout)
+                raw = next_message(pubsub, timeout)
                 if raw is None:
                     yield None
                     continue

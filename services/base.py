@@ -78,14 +78,14 @@ class ServiceCore:
         self.store.set(self.key("mode_since"), tick)
         self.store.hset(f"{self.prefix}svc_modes", self.service_id, mode)
         status = {"service": self.service_id, "mode": mode, "previous": previous, "since_tick": tick, "by": by, "meta": self.meta()}
-        if self.publish:
-            public = dict(status)
-            if not self.chaos.get("announce_compromised", True):
-                # Le bus conserve les pannes visibles, sans révéler l'attaque simulée.
-                for field in ("mode", "previous"):
-                    if public[field] == "compromised":
-                        public[field] = "normal"
-            self.publish("service_status", public)
+        shown = status
+        if not self.chaos.get("announce_compromised", True) and "compromised" in (mode, previous):
+            # An attacker does not announce itself: on the bus a compromised service stays normal.
+            shown = {**status, "mode": mode.replace("compromised", "normal"), "previous": previous.replace("compromised", "normal")}
+            if shown["mode"] == shown["previous"]:
+                shown = None
+        if self.publish and shown:
+            self.publish("service_status", shown)
         return status
 
     # --- traitement d'une requête ---------------------------------------------------------

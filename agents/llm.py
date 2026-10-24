@@ -176,6 +176,20 @@ class LLMCache:
                     fh.write(canonical({"key": key, "value": value}) + "\n")
 
 
+def external_trace(external):
+    """Garde une fenêtre d'observation publique sans saturer l'admission du bus."""
+    out, remaining = [], 8192
+    for item in external[:8]:
+        if remaining <= 0:
+            break
+        text = item['text'].encode('utf-8', errors='replace')
+        excerpt = text[:min(4096, remaining)].decode('utf-8', errors='ignore')
+        remaining -= len(excerpt.encode('utf-8'))
+        out.append({'source': item['source'][:128], 'id': str(item.get('id', ''))[:128],
+                    'text': excerpt, 'truncated': len(excerpt.encode('utf-8')) < len(text)})
+    return out
+
+
 class LLMJudge:
     def __init__(self, cfg: dict, params, backend=None, cache: LLMCache | None = None):
         self.cfg = cfg
@@ -215,6 +229,9 @@ class LLMJudge:
             "temperature": self.temperature if self.temperature is not None else "défaut (non envoyée)",
             "prompt_excerpt": (user[:600] + "…") if len(user) > 600 else user,
             "prompt_hash": prompt_hash,
+            # Le portique doit pouvoir relier l'instruction reçue à sa source,
+            # même si l'extrait du prompt la coupe ou si le filtre la neutralise.
+            "external": external_trace(external),
             "response": output,
             "declared_confidence": output.get("confidence"),
             "input_provenance": provenance,

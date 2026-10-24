@@ -64,7 +64,7 @@ class Lockstep:
         self.gate = make_gate(cfg)
         timeout = cfg["chaos"]["client_timeout_ms"]
         self.world = World(cfg, self.store, self.keyring, self.gate, LocalServiceClient(self.cores, "executor", timeout),
-                           deterministic=True, run_dir=self.run_dir)
+                           deterministic=True, run_dir=self.run_dir, public_publish=self.bus.publish)
         cache = llm_cache
         if cache is None and cfg["llm"]["enabled"] and cfg["llm"]["cache"]:
             cache = LLMCache(cfg["llm"]["cache_path"])

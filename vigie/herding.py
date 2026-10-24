@@ -43,6 +43,14 @@ def text_similarity(documents):
 
 
 class Herding:
+    def __new__(cls, traders, *args, **kwargs):
+        # L'ancien constructeur public acceptait la configuration complète.
+        # Sa métrique distincte est conservée sans modifier les calculs Dev 2.
+        if isinstance(traders, dict):
+            from vigie.herding_marius import Herding as MariusHerding
+            return MariusHerding(traders, *args, **kwargs)
+        return super().__new__(cls)
+
     def __init__(self, traders, window=30, clean_reference=None):
         self.traders = tuple(traders)
         self.window = window
@@ -132,3 +140,6 @@ class Herding:
                 findings.append(Finding(tick=tick, layer=3, kind=kind, target='traders',
                                         severity='info', evidence=list(dict.fromkeys(evidence)), score=float(value)))
         return findings
+
+# Seuils de la métrique historique, conservés pour ses appelants existants.
+from vigie.herding_marius import THRESHOLDS
