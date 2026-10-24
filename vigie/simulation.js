@@ -42,7 +42,7 @@ const VIEWS = { "3/4": { dir: [0.5, 20.5, 24.5], dist: 42 }, Top: { dir: [0, 1, 
 // What stops the replay when its setting is on: the kinds of event simulation.py writes
 const STOPS = { stopBad: ["bad", "warn"], stopGood: ["good"] };
 // The Settings box's choices, kept by this browser as the recon keeps its own
-const set = share?.set ?? { display: "3D", view: "3/4", speed: 1, world: "ours", stopBad: false, stopGood: false, focus: true, reads: true, bubbles: true, helper: true, details: true, ...JSON.parse(localStorage.getItem("vigie.sim") || "{}") };
+const set = share?.set ?? { display: "3D", view: "3/4", speed: 1, world: "ours", stopBad: false, stopGood: false, reads: true, bubbles: true, helper: true, details: true, ...JSON.parse(localStorage.getItem("vigie.sim") || "{}") };
 const keep = () => localStorage.setItem("vigie.sim", JSON.stringify(set));
 const OFF_ON = [[false, "Off"], [true, "On"]];
 const choice = (key, options) => `<span class="choice" role="group" data-set="${key}">${options.map(([v, label, title]) =>
@@ -64,7 +64,6 @@ if (!SIDE) sec.innerHTML = `<div class="settings"><div class="fold">
       ${row("Vigie", choice("world", Object.entries(WHY).map(([w, why]) => [w, w === "ours" ? "Ours" : "Theirs", why])), `Ours: ${WHY.ours} Theirs: ${WHY.theirs}`)}
       ${row("Stop on a problem", choice("stopBad", OFF_ON), "Pauses when a service is compromised, an agent acts on compromised data, money leaves to a rerouted IBAN, the bank light turns orange or red, a CVE is published, a trader stops or the Vigie's heartbeat is lost")}
       ${row("Stop on an action", choice("stopGood", OFF_ON), "Pauses when the gate or the executor refuses, the Vigie raises a level, isolates a service or turns the bank red, compliance blocks, or a forged signature is rejected")}
-      ${row("Focus on a stop", choice("focus", OFF_ON), "When the replay stops, the camera flies to whoever caused it, then back 3 s later")}
       ${row("Background reads", choice("reads", OFF_ON), "The dots of the agents' routine reads of the services; off, only their messages fly")}
       ${row("Bubbles", choice("bubbles", OFF_ON), "What each agent says, over its head")}
       ${row("Helper", choice("helper", OFF_ON), "A box that follows the pointer: what is under it, or what happens at this tick")}
@@ -440,13 +439,6 @@ function send(from, to, kind, bad, delay) {
   m.visible = false;
   world.add(m);
   flying.push((l.last = { m, l, back, from, to, kind, bad: !!bad, at: -wait, dur: refused ? 0.6 : Math.min(0.3, 0.12 + l.curve.getLength() / 100) }));
-  if (refused) l.curve.getPoint(back ? 1 : 0, m.position), watch(l.last);
-}
-
-// the camera closes in on a refused order's dot and follows it to the gate, then goes back to where it was once the
-// refusal has shown (Marius, 24-10); grabbing the camera calls it off
-function watch(p) {
-  zoom = { p, until: time + 1.5, back: zoom?.back ?? { target: controls.target.clone(), pos: camera.position.clone() } };
 }
 
 function burst(id, color, size = 2) {
@@ -579,13 +571,12 @@ function hud() {
   ui.play.textContent = playing ? "Pause" : tick >= sc.ticks - 1 ? "Replay" : "Play";
 }
 
-let goal = null, fit = 1, zoom = null, still = 0;
-export const zoomed = () => !!zoom, refusedAt = t => W.evAt[t]?.some(e => REFUSED.test(e[2]));
+let goal = null, fit = 1, still = 0;
+export const refusedAt = t => W.evAt[t]?.some(e => REFUSED.test(e[2]));
 function view(k) {
   const V = VIEWS[k], blobs = Object.values(nodes).filter(n => n.eyes && n.g.parent === world);
   const target = V.on ? blobs.reduce((c, n) => c.add(n.g.position), v(0, 0, 0)).divideScalar(blobs.length).setY(1) : v(-1.5, 0.8, -1);
   goal = { target, pos: v(...V.dir).setLength(V.dist * fit).add(target) };
-  zoom = null;
 }
 // the angle saved with the layout (Layout › Save as default) becomes the default 3/4 view, the distance fitted on load
 // (Marius, 24-10)
@@ -597,18 +588,10 @@ goal = null;
 
 // The first event of tick t that a Stop setting pauses on
 const stopAt = t => (W.evAt[t] ?? []).find(([, k]) => Object.entries(STOPS).some(([s, kinds]) => set[s] && kinds.includes(k)));
-function halt(e) {
+function halt() {
   playing = false;
   unfly();
   acc = 0;
-  // the camera flies to whoever caused the stop, then goes back to where it was 3 s later, as after a refusal (Marius, 24-10)
-  const back = zoom?.back ?? { target: controls.target.clone(), pos: camera.position.clone() }, id = actor(e[2]), n = nodes[id];
-  zoom = { p: null, until: time, back };
-  if (set.focus && n && (id !== "vigie" || worldName !== "theirs")) {
-    const target = n.g.getWorldPosition(v(0, 0, 0)).add(v(0, 1, 0));
-    goal = { target, pos: camera.position.clone().sub(controls.target).setLength(16 * fit).add(target) };
-    zoom.until = time + 3;
-  }
   hud();
 }
 
@@ -686,7 +669,6 @@ if (!SIDE) addEventListener("keydown", e => {
 // Space fits every agent and service on the screen, the camera keeping its angle, the 2D map refitted to them; the tab
 // opens fitted the same way, both views at once, straight away (Marius, 24-10)
 export function frameAll(start) {
-  zoom = null;
   const ids = Object.keys(POS).filter(id => nodes[id] && (id !== "vigie" || worldName !== "theirs"));
   const xs = ids.map(id => POS[id][0]), zs = ids.map(id => POS[id][1]);
   Object.assign(MAP, { x0: Math.min(...xs) - 3, x1: Math.max(...xs.map(x => x + 3), ...pads.map(p => p.x + p.hx + p.r + 3.5)), z0: Math.min(...zs) - 4, z1: Math.max(...zs) + 4.5 });
@@ -716,7 +698,7 @@ export function frameAll(start) {
   set.view = null;
   paint();
 }
-controls.addEventListener("start", () => ((goal = null), (zoom = null), (set.view = null), paint()));
+controls.addEventListener("start", () => ((goal = null), (set.view = null), paint()));
 if (set.sc in F.scenarios) ui.sc.value = set.sc;
 load(ui.sc.value);
 
@@ -1116,7 +1098,7 @@ renderer.setAnimationLoop(now => {
   if (sec.hidden || document.hidden) return;
   time += dt;
   if (SIDE) playing = share.playing;
-  else if (playing && time >= still && !zoom && !peer?.zoomed()) {
+  else if (playing && time >= still) {
     acc += film * TPS;
     while (acc >= 1) {
       acc -= 1;
@@ -1128,11 +1110,10 @@ renderer.setAnimationLoop(now => {
       step(tick + 1);
       const e = stopAt(tick);
       if (e) {
-        halt(e);
+        halt();
         break;
       }
-      // the flow stops on a refusal for 3 s, and as long as the camera follows its dot, the dots already on their way
-      // going on (Marius, 24-10)
+      // the flow stops on a refusal for 3 s, the dots already on their way going on (Marius, 24-10)
       if (refusedAt(tick) || peer?.refusedAt(tick)) {
         still = time + 3;
         acc = 0;
@@ -1174,11 +1155,6 @@ renderer.setAnimationLoop(now => {
   lamp.material.emissive.setHex(beacon);
   lamp.material.emissiveIntensity = 1.6 + Math.sin(time * 3) * 0.8;
   beam.color.setHex(beacon);
-  if (zoom && flying.includes(zoom.p)) {
-    const t = zoom.p.m.getWorldPosition(v(0, 0, 0));
-    goal = { target: t, pos: camera.position.clone().sub(controls.target).setLength(16 * fit).add(t) };
-    zoom.until = time + 1.5;
-  } else if (zoom && time > zoom.until) (goal = zoom.back), (zoom = null);
   if (goal) {
     controls.target.lerp(goal.target, k);
     camera.position.lerp(goal.pos, k);
