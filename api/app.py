@@ -40,8 +40,6 @@ from sim.config import ROOT, load_config
 
 RECORDINGS = ROOT / "recordings"
 SIM_LAYOUT = ROOT / "vigie" / "sim-layout.json"
-# the page's files are checked again on every load: without it a browser may keep an old script beside a new page
-FRESH = {"Cache-Control": "no-cache"}
 
 
 class InjectRequest(BaseModel):
@@ -177,19 +175,19 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
 
     @app.get("/")
     def landing():
-        return FileResponse(ROOT / "vigie" / "landing.html", headers=FRESH)
+        return FileResponse(ROOT / "vigie" / "landing.html")
 
     @app.get("/dashboard")
     def dashboard():
-        return FileResponse(ROOT / "vigie" / "dashboard.html", headers=FRESH)
+        return FileResponse(ROOT / "vigie" / "dashboard.html")
 
     @app.get("/dashboard/{name}")
     def dashboard_file(name: str):
         if name == "sim-layout.json":
-            return FileResponse(SIM_LAYOUT, headers=FRESH) if SIM_LAYOUT.exists() else {}
+            return FileResponse(SIM_LAYOUT) if SIM_LAYOUT.exists() else {}
         if name not in ("dashboard.js", "dashboard-demo.json", "simulation.js", "dashboard-sim.json"):
             raise HTTPException(404)
-        return FileResponse(ROOT / "vigie" / name, headers=FRESH)
+        return FileResponse(ROOT / "vigie" / name)
 
     @app.post("/dashboard/sim-layout")
     def save_sim_layout(layout: dict[str, list[float]]):
