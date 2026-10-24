@@ -623,27 +623,35 @@ addEventListener("keydown", e => {
   if (e.code === "KeyP") ui.play.click();
   else frameAll();
 });
-// Space fits every agent and service on the screen, the camera keeping its angle, the 2D map refitted to them (Marius, 24-10)
-function frameAll() {
+// Space fits every agent and service on the screen, the camera keeping its angle, the 2D map refitted to them; the tab
+// opens fitted the same way, both views at once, straight away (Marius, 24-10)
+function frameAll(start) {
   const ids = Object.keys(POS).filter(id => nodes[id] && (id !== "vigie" || worldName === "ours"));
-  if (set.display === "2D") {
-    const xs = ids.map(id => POS[id][0]), zs = ids.map(id => POS[id][1]);
-    Object.assign(MAP, { x0: Math.min(...xs) - 3, x1: Math.max(...xs.map(x => x + 3), ...pads.map(p => p.x + p.hx + p.r + 3.5)), z0: Math.min(...zs) - 4, z1: Math.max(...zs) + 4.5 });
-    return fit2d(stage.clientWidth, stage.clientHeight);
-  }
+  const xs = ids.map(id => POS[id][0]), zs = ids.map(id => POS[id][1]);
+  Object.assign(MAP, { x0: Math.min(...xs) - 3, x1: Math.max(...xs.map(x => x + 3), ...pads.map(p => p.x + p.hx + p.r + 3.5)), z0: Math.min(...zs) - 4, z1: Math.max(...zs) + 4.5 });
+  fit2d(stage.clientWidth, stage.clientHeight);
+  if (set.display === "2D" && !start) return;
   const pts = ids.flatMap(id => [[-1.5, 0, 0], [1.5, 0, 0], [0, 0, -1.5], [0, 0, 1.5], [0, id === "vigie" ? 4.5 : 2.5, 0]]
     .map(([x, y, z]) => world.localToWorld(v(POS[id][0] + x, y, POS[id][1] + z))));
   const c = new THREE.Box3().setFromPoints(pts).getCenter(v(0, 0, 0)), dir = camera.position.clone().sub(controls.target).normalize(), cam = camera.clone();
+  const tan = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)), right = v(0, 0, 0), up = v(0, 0, 0);
   let d = 40;
-  // the distance at which the farthest point lands at 90% of the screen's side edges and 78% of its top and bottom
-  // ones, the top and bottom agents getting more room (Marius, 24-10), found in a few steps
-  for (let i = 0; i < 4; i++) {
+  // the distance at which the points span 90% of the screen's width and 78% of its height, the top and bottom agents
+  // getting more room (Marius, 24-10), and the aim that centres them on screen: seen at an angle, the near agents look
+  // bigger than the far ones, so the middle of the box is not the middle of the picture; found in a few steps
+  for (let i = 0; i < 6; i++) {
     cam.position.copy(dir).multiplyScalar(d).add(c);
     cam.lookAt(c);
     cam.updateMatrixWorld();
-    d *= Math.max(...pts.map(p => p.clone().project(cam)).map(q => Math.max(Math.abs(q.x) / 0.9, Math.abs(q.y) / 0.78)));
+    const q = pts.map(p => p.clone().project(cam)), xs = q.map(p => p.x), ys = q.map(p => p.y);
+    const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+    right.setFromMatrixColumn(cam.matrixWorld, 0);
+    up.setFromMatrixColumn(cam.matrixWorld, 1);
+    c.addScaledVector(right, ((x0 + x1) / 2) * d * tan * cam.aspect).addScaledVector(up, ((y0 + y1) / 2) * d * tan);
+    d *= Math.max((x1 - x0) / 2 / 0.9, (y1 - y0) / 2 / 0.78);
   }
   goal = { target: c, pos: dir.multiplyScalar(d).add(c) };
+  if (start) return camera.position.copy(goal.pos), controls.target.copy(goal.target), (goal = null);
   set.view = null;
   paint();
 }
@@ -651,6 +659,7 @@ controls.addEventListener("start", () => ((goal = null), (set.view = null), pain
 if (set.sc in F.scenarios) ui.sc.value = set.sc;
 load(ui.sc.value);
 
+let framed = false;
 new ResizeObserver(() => {
   const w = stage.clientWidth, h = stage.clientHeight;
   if (!w || !h) return;
@@ -662,6 +671,7 @@ new ResizeObserver(() => {
   const f = Math.max(1, 1.75 / camera.aspect);
   camera.position.sub(controls.target).multiplyScalar(f / fit).add(controls.target);
   fit = f;
+  if (!framed) (framed = true), frameAll(true);
 }).observe(stage);
 
 const tmp = new THREE.Vector3(), look = new THREE.Vector3(), want = new THREE.Color(), GREY = new THREE.Color(0x64748b);
