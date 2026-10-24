@@ -52,6 +52,10 @@ const VIEW_NAMES = { Top: "Dessus", Front: "Face" };
 
 // What stops the replay when its setting is on: the kinds of event simulation.py writes
 const STOPS = { stopBad: ["bad", "warn"], stopGood: ["good"] };
+// with fewer animations asked for, the scene keeps still between events: no breathing, sweeping, blinking or pulsing,
+// and the camera moves at once; the replay itself runs only when asked for
+const STILL = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const idle = () => (STILL ? 0 : time);
 // The Settings box's choices, kept by this browser as the recon keeps its own
 const set = share?.set ?? { display: "3D", view: "3/4", speed: 1, world: "ours", stopBad: false, stopGood: false, reads: true, bubbles: true, helper: true, details: true, ...JSON.parse(localStorage.getItem("vigie.sim") || "{}") };
 const keep = () => localStorage.setItem("vigie.sim", JSON.stringify(set));
@@ -785,8 +789,8 @@ new ResizeObserver(() => {
 
 const tmp = new THREE.Vector3(), look = new THREE.Vector3(), want = new THREE.Color(), GREY = new THREE.Color(0x64748b);
 function animateBlob(b, dt, k) {
-  const breathe = Math.sin(time * 2.4 + b.phase) * (b.asleep ? 0.015 : 0.035);
-  const h = (time - b.hopAt) / 0.42, up = h >= 0 && h < 1 ? Math.sin(h * Math.PI) : 0;
+  const breathe = Math.sin(idle() * 2.4 + b.phase) * (b.asleep ? 0.015 : 0.035);
+  const h = (time - b.hopAt) / 0.42, up = !STILL && h >= 0 && h < 1 ? Math.sin(h * Math.PI) : 0;
   const gulp = Math.max(0, 1 - (time - b.gulpAt) / 0.25) * 0.1, s = time - b.shakeAt;
   b.hop.position.y = up * 0.5;
   b.body.scale.set(1 - breathe * 0.5 + gulp, 1 + breathe - gulp + up * 0.08, 1 - breathe * 0.5 + gulp);
@@ -799,10 +803,10 @@ function animateBlob(b, dt, k) {
   b.label.position.set(Math.sin(a) * r, b.id === "vigie" ? -b.g.position.y / b.g.scale.y : 0, Math.cos(a) * r);
 
   if (time > b.blinkAt + 0.15) b.blinkAt = time + 1.5 + Math.random() * 4;
-  const shut = b.asleep || time >= b.blinkAt;
+  const shut = b.asleep || (!STILL && time >= b.blinkAt);
   if (b.look && time < b.lookUntil && nodes[b.look]) world.localToWorld(look.copy(at(b.look)));
   // the Vigie, idle, sweeps the floor 45° either side of straight ahead (Marius, 24-10)
-  else if (b.id === "vigie") (w => b.body.localToWorld(look.set(Math.sin(w) * 10, -2, Math.cos(w) * 10)))(Math.sin(time * 0.5) * Math.PI / 4);
+  else if (b.id === "vigie") (w => b.body.localToWorld(look.set(Math.sin(w) * 10, -2, Math.cos(w) * 10)))(Math.sin(idle() * 0.5) * Math.PI / 4);
   else look.copy(camera.position);
   b.body.worldToLocal(look);
   for (const { e, pupil } of b.eyes) {
@@ -818,10 +822,10 @@ function animateBlob(b, dt, k) {
   if (b.asleep) want.lerp(GREY, 0.7);
   b.skin.color.lerp(want, k);
   // a red glow, not a red tint: mixed into a teal or a blue skin, red turns it grey and the blob looks asleep
-  b.skin.emissiveIntensity += ((b.sick && !b.asleep ? 0.3 + Math.sin(time * 4 + b.phase) * 0.12 : 0) - b.skin.emissiveIntensity) * k;
+  b.skin.emissiveIntensity += ((b.sick && !b.asleep ? 0.3 + Math.sin(idle() * 4 + b.phase) * 0.12 : 0) - b.skin.emissiveIntensity) * k;
   b.halo.material.color.setHex(RING[b.alert] ?? RING.VERT);
   b.halo.material.opacity += ((b.alert ? 0.9 : 0) - b.halo.material.opacity) * k;
-  b.halo.scale.setScalar(b.alert === "ORANGE" || b.alert === "ROUGE" ? 1.1 + Math.sin(time * 5 + b.phase) * 0.08 : 1);
+  b.halo.scale.setScalar(b.alert === "ORANGE" || b.alert === "ROUGE" ? 1.1 + Math.sin(idle() * 5 + b.phase) * 0.08 : 1);
   b.glass.scale.setScalar(THREE.MathUtils.lerp(b.glass.scale.x, b.level === "QUARANTAINE" ? 1.5 : 0.001, k));
   if (b.sick && !b.asleep && b.g.parent === world && Math.random() < dt * 2.5) {
     const m = mesh(GEO.dot, shine(DOT.bad), [b.g.position.x + (Math.random() - 0.5) * 1.2, 1.6, b.g.position.z + (Math.random() - 0.5) * 1.2], 0.6);
@@ -834,9 +838,9 @@ function animateServer(n, k) {
   const bad = n.mode === "compromised", slow = n.mode === "slow" || n.mode === "stale";
   n.leds.forEach((m, i) => {
     m.material.emissive.setHex(LED[n.mode] ?? LED.normal);
-    m.material.emissiveIntensity = n.mode === "down" ? 0 : Math.sin(time * (bad ? 14 : slow ? 1.5 : 5) + i * 2.1 + n.phase) > -0.2 ? 1.6 : 0.25;
+    m.material.emissiveIntensity = n.mode === "down" ? 0 : Math.sin(idle() * (bad ? 14 : slow ? 1.5 : 5) + i * 2.1 + n.phase) > -0.2 ? 1.6 : 0.25;
   });
-  n.shell.emissiveIntensity = bad ? 0.35 + Math.sin(time * 6) * 0.25 : 0;
+  n.shell.emissiveIntensity = bad ? 0.35 + Math.sin(idle() * 6) * 0.25 : 0;
   n.g.position.x = POS[n.id][0] + (bad ? (Math.random() - 0.5) * 0.06 : 0);
   // its lit front turns to the camera, as the blobs do (Marius, 24-10)
   n.g.getWorldPosition(tmp);
@@ -1216,11 +1220,11 @@ renderer.setAnimationLoop(now => {
   tower.visible = ts > 0.01;
   const beacon = nodes.vigie.asleep ? 0x1e293b : LIGHT[light] ?? LIGHT.VERT;
   lamp.material.emissive.setHex(beacon);
-  lamp.material.emissiveIntensity = 1.6 + Math.sin(time * 3) * 0.8;
+  lamp.material.emissiveIntensity = 1.6 + Math.sin(idle() * 3) * 0.8;
   beam.color.setHex(beacon);
   if (goal) {
-    controls.target.lerp(goal.target, k);
-    camera.position.lerp(goal.pos, k);
+    controls.target.lerp(goal.target, STILL ? 1 : k);
+    camera.position.lerp(goal.pos, STILL ? 1 : k);
     if (camera.position.distanceTo(goal.pos) < 0.05) goal = null;
   }
   controls.update();

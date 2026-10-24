@@ -722,6 +722,11 @@ addEventListener("hashchange", fromHash);
 
 (async () => {
   DEMO = await getJson("/dashboard/dashboard-demo.json");
+  // without the console's own files the server is not answering: every block says so, none keeps loading
+  if (!DEMO) {
+    for (const el of document.querySelectorAll(".loading")) el.textContent = "Le serveur d'Argus ne répond pas : rechargez la page une fois la démo lancée.";
+    return;
+  }
   await Promise.all([pollHealth(), readImpact()]);
   await Promise.all([pollGraph(), pollImprovements(), pollGuardrails()]);
   await poll();
