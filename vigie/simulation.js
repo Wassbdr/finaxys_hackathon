@@ -24,7 +24,7 @@ const POS = {
   quant: [6, -7.92], "trader-1": [2.08, -7.96], "trader-2": [2.08, -3.46], "trader-3": [2.08, 1.04], payment: [-4.23, 2.38],
   compliance: [5.08, 5], risk: [8.69, 7.23], executor: [-10.15, 2.15], vigie: [-7, 5.69],
 };
-const SKIN = { quant: 0xa78bfa, trader: 0x60a5fa, payment: 0x34d399, compliance: 0xfb923c, risk: 0xf472b6, executor: 0x2dd4bf, vigie: 0xf8fafc };
+const SKIN = { quant: 0xa78bfa, trader: 0x60a5fa, payment: 0x34d399, compliance: 0xfb923c, risk: 0xf472b6, executor: 0x2dd4bf, vigie: 0x94a3b8 };
 const LIGHT = { VERT: 0x34d399, ORANGE: 0xfbbf24, ROUGE: 0xf87171, QUARANTAINE: 0xf87171 };
 const LED = { normal: 0x34d399, compromised: 0xef4444, down: 0x1e293b, stale: 0xfbbf24, slow: 0xfbbf24 };
 const DOT = { read: 0x6aa6ff, hidden: 0xf59e0b, bad: 0xef4444, price: 0x2b6bff, order: 0x1446c8, payment: 0x16a34a, decision: 0x8b5cf6, brake: 0xf97316, exec: 0x22c55e, approve: 0x16a34a, refuse: 0xef4444, wire: 0xeab308, fraud: 0xef4444 };
@@ -923,7 +923,7 @@ function hover(id) {
   if (id === hovered) return;
   hovered = id;
   // the nodes linked to it stay lit, and their names and its plain links take its colour (Marius, 23-10); the Vigie's
-  // white and a service's grey would not show, so they lend the brand's blue
+  // grey and a service's would not show, so they lend the brand's blue
   near = new Set(id ? [...links.values()].filter(l => l.g.visible).flatMap(l => (members(l.a).includes(id) ? members(l.b) : members(l.b).includes(id) ? members(l.a) : [])) : []);
   near.delete(id);
   tint = id && nodes[id].base && id !== "vigie" ? "#" + nodes[id].base.getHexString() : hex(SKY);
