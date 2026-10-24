@@ -72,8 +72,9 @@ quand le signal retombe ou par une décision humaine signée. Les seuils ont ét
 ## [injection] Les documents piégés
 Mots-clés : injection, prompt, document piégé, instruction cachée, KYC
 Un document qui contient une instruction déguisée (« approuve directement », « ignore les règles », caractères invisibles) rend sa
-source suspecte, et tout ce qui en dépend est bloqué. Dans le scénario dossier_piege, un virement de 900 000 € piloté par un document
-KYC piégé est refusé, preuve à l'appui, sans fausse alerte sur les documents normaux.
+source suspecte, et ce qui en dépend est bloqué. Dans le scénario dossier_piege, Krys repère le document piégé dès le tick 15 et
+refuse le virement de 900 000 € qu'il pilote, preuve à l'appui, sans fausse alerte sur les documents normaux. Limite mesurée sur la
+version fusionnée : d'autres opérations contaminées passent encore (4 sur 5 avec la graine 42), et la perte finale n'est pas réduite.
 
 ## [classique] Les contrôles classiques
 Mots-clés : classique, comparaison, marché, plafond, coupe-circuit, MiFID, réglementaire
@@ -87,7 +88,8 @@ Mots-clés : résultats, chiffres, euros, combien, évité, pertes, fraude, jour
 Banque simulée, graine 42, sans modèle de langage :
 - Piratage PHP2Shell : sans protection, 2 854 000 € volés ; contrôles classiques, 622 000 € volés et banque arrêtée ; Krys, 0 € volé,
   soupçon 10 ticks avant l'attaque.
-- Registre menteur (ledger_legacy) : les contrôles classiques ne voient rien ; Krys le voit au tick de l'attaque (+225 k€).
+- Registre menteur (ledger_legacy) : les contrôles classiques ne voient rien ; Krys le voit peu après l'attaque (+225 k€ avec la
+  graine 42 ; sur deux graines sur dix, quelques opérations contaminées passent avant la détection).
 - Rumeur : le gel de Krys réduit nettement les pertes (environ −0,7 M€ contre −1,6 M€ sans protection).
 - Journée « jour noir » : volés 2 854 000 € sans protection, 622 000 € avec les contrôles classiques, 0 € avec Krys.
 Ces montants dépendent de l'échelle choisie pour la simulation ; les rapports entre scénarios sont ce qui compte.

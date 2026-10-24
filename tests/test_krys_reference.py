@@ -98,4 +98,4 @@ def test_missing_reference_and_uncited_fact_are_refused(tmp_path):
 
 def test_approved_text_is_preserved_byte_for_byte():
     text = (Path(__file__).resolve().parents[1]/'vigie/KRYS_EXPLICATIONS.md').read_bytes()
-    assert hashlib.sha256(text).hexdigest() == '1d768c54c89bf180646714585ce0baef9a00752b6e192f5984a6ba03bfdda565'
+    assert hashlib.sha256(text).hexdigest() == 'e07ef8bebd4b8e9a523b5462bfa14ce464f4b6bde117b8a4938363399c2c5bc0'
