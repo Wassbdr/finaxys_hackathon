@@ -1,7 +1,7 @@
 {
-  "model": "mistral-small-2603",
-  "model_name": "Mistral Small 4",
-  "model_version": "26.03",
+  "model": "ministral-14b-2512",
+  "model_name": "Ministral 3 14B",
+  "model_version": "25.12",
   "deadline_s": 6,
   "max_tokens": 768,
   "max_source_chars": 12000,

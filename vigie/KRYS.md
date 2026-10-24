@@ -47,8 +47,11 @@ la démo continue de désactiver les modèles des agents bancaires ; KRYS_LLM ne
 concerne que la reformulation du chat. Sans les deux variables, aucun client
 Mistral n’est créé. Les tests vident ces variables et utilisent des faux clients.
 
-Le modèle est épinglé dans `krys_mistral.json` : **Mistral Small 4, version 26.03,
-identifiant API mistral-small-2603**, sans alias latest ni remplacement automatique.
+Le modèle est épinglé dans `krys_mistral.json` : **Ministral 3 14B, version 25.12,
+identifiant API ministral-14b-2512**, sans alias latest ni remplacement automatique.
+Mistral Small (mistral-small-2603) était le premier choix ; le 24/10/2026, le compte
+de l’équipe n’avait aucun débit ouvert sur ce modèle (429 code 1300 à chaque appel),
+alors que ministral-14b-2512 répondait 200 avec la même clé.
 Le client appelle seulement chat/completions, sans outils, redirection, proxy
 implicite, streaming de texte à l’écran ou retry. L’attente totale est bornée à
 6 secondes ; en cas d’échec, de saturation ou de rejet, la réponse locale est
@@ -71,14 +74,11 @@ entraînent le repli. Ces contrôles lexicaux ne prouvent pas une équivalence
 sémantique complète : les sources restent affichées pour vérification humaine.
 Aucun texte tiers ni détail d’erreur n’est journalisé.
 
-Ordre de grandeur indicatif, tarifs publics consultés le 24/10/2026 : 0,15 USD
-par million de jetons d’entrée et 0,60 USD par million en sortie. Une question
-avec 1 000 jetons d’entrée et 300 en sortie représente environ **0,00033 USD**
-(0,033 cent américain), hors taxes et conditions du compte. Ce calcul est une
-estimation, aucun appel facturé n’a été effectué pour ce lot. Le contexte est
-borné à 12 000 caractères, la sortie demandée à 768 jetons ; le nombre réel de
-jetons dépend du texte.
-Sources : [modèle et version](https://docs.mistral.ai/models/mistral-small-4-0-26-03),
+Le coût dépend du tarif public de ministral-14b-2512 (page tarifs ci-dessous),
+non revérifié lors du changement de modèle : aucun chiffre n’est donc avancé ici.
+Le contexte est borné à 12 000 caractères, la sortie demandée à 768 jetons ; le
+nombre réel de jetons dépend du texte.
+Sources : [modèles](https://docs.mistral.ai/getting-started/models/),
 [tarifs](https://docs.mistral.ai/inference/pricing),
 [API chat](https://docs.mistral.ai/api/endpoint/chat).
 

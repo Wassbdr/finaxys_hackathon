@@ -49,7 +49,7 @@ _CONNECTORS = set('ainsi cette ces cela donc cependant toutefois selon aucun auc
 
 def load_config():
     config = json.loads(Path(__file__).with_suffix('.json').read_text())
-    if (config['model'] != 'mistral-small-2603' or config['model_version'] != '26.03'
+    if (config['model'] != 'ministral-14b-2512' or config['model_version'] != '25.12'
             or not 0 < config['deadline_s'] <= 6):
         raise ValueError('Modèle versionné et délai borné requis')
     return config

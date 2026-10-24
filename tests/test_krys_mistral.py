@@ -65,7 +65,7 @@ def test_approved_rephrasing_is_cited_and_sends_only_retrieved_facts():
     assert result['citations'] == answer['citations']
     assert len(client.calls) == 1
     call = client.calls[0]
-    assert call['model'] == 'mistral-small-2603'
+    assert call['model'] == 'ministral-14b-2512'
     facts = json.loads(call['messages'][1]['content'])
     assert facts == {'facts': answer['text'], 'sources': ['[argus]']}
     assert 'instructions' in call['messages'][0]['content'].lower()
@@ -147,7 +147,7 @@ def test_http_request_is_pinned_no_tools_no_redirect_and_no_real_network():
     requests = []
     def fake(request):
         requests.append(request)
-        return httpx.Response(200, json={'model': 'mistral-small-2603',
+        return httpx.Response(200, json={'model': 'ministral-14b-2512',
             'choices': [{'message': {'content': 'Argus surveille une banque. [argus]'}}]})
     client = MistralClient(secrets.token_urlsafe(24), transport=httpx.MockTransport(fake))
     answer = source()
@@ -156,7 +156,7 @@ def test_http_request_is_pinned_no_tools_no_redirect_and_no_real_network():
     request = requests[0]
     assert str(request.url) == 'https://api.mistral.ai/v1/chat/completions'
     body = json.loads(request.content)
-    assert body['model'] == 'mistral-small-2603' and 'tools' not in body
+    assert body['model'] == 'ministral-14b-2512' and 'tools' not in body
     assert body['stream'] is False and body['temperature'] == 0
 
 
