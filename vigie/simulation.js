@@ -481,7 +481,8 @@ const REFUSED = /refuses|rejected|blocks/;
 function say([, kind, text]) {
   const id = actor(text), n = nodes[id];
   if (!set.bubbles || !n || (id === "vigie" && worldName === "theirs") || REFUSED.test(text)) return;
-  n.bubble?.removeFromParent();
+  // one bubble at a time in the scene: a new one fades out the one before (Marius, 24-10)
+  Object.values(nodes).forEach(hush);
   const d = document.createElement("div");
   d.className = "sim-bubble k-" + kind;
   d.textContent = (text.startsWith(id + " ") ? text.slice(id.length + 1) : text.replace(/^the (Vigie|executor) /, "")).split(":")[0];
@@ -489,6 +490,13 @@ function say([, kind, text]) {
   n.bubble.position.set(0, n.top, 0);
   n.g.add(n.bubble);
   n.bubbleUntil = time + 2.6;
+}
+function hush(n) {
+  const o = n.bubble;
+  if (!o) return;
+  n.bubble = null;
+  o.element.classList.add("out");
+  o.element.onanimationend = o.element.onanimationcancel = () => o.removeFromParent();
 }
 
 function show(t) {
@@ -1151,7 +1159,7 @@ renderer.setAnimationLoop(now => {
   for (const n of Object.values(nodes)) {
     if (n.eyes) animateBlob(n, dt, k);
     else animateServer(n, k);
-    if (n.bubble && playing && time > n.bubbleUntil) n.bubble.removeFromParent(), (n.bubble = null);
+    if (n.bubble && playing && time > n.bubbleUntil) hush(n);
   }
   for (const l of links.values()) {
     const f = l.redFrom ? Math.min(1, l.fill + dt / 1.2) : 0;
