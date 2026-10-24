@@ -4,13 +4,14 @@
   'use strict';
   const byId = id => document.getElementById(id);
   byId('argus-phrase').textContent = document.querySelector('meta[name="argus-phrase"]').content;
+  // Les suggestions changent avec l'état de la banque : un seul écouteur les sert toutes, d'hier et de demain.
   const question = byId('krys-question');
-  for (const suggestion of document.querySelectorAll('[data-question]')) {
-    suggestion.addEventListener('click', () => {
-      question.value = suggestion.dataset.question;
-      question.focus();
-    });
-  }
+  document.addEventListener('click', event => {
+    const suggestion = event.target.closest && event.target.closest('[data-question]');
+    if (!suggestion) return;
+    question.value = suggestion.dataset.question;
+    question.focus();
+  });
 
   new MutationObserver(() => {
     byId('krys-log').scrollTop = byId('krys-log').scrollHeight;

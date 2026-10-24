@@ -46,6 +46,14 @@
       ${limit('un feu vert ou une provenance signée ne garantissent ni absence de fraude ni pertinence financière.')}</article>
     <p id="details-origin"></p>`;
   const el = id => document.getElementById(id);
+  // Dans la console d'une banque qui a adopté Argus, les preuves sont celles de Krys : les comparaisons entre banques
+  // (courbe sûreté / utilité, annexe) vivent dans la Simulation.
+  const adopted = root.dataset && root.dataset.proofs === 'krys';
+  if (adopted) {
+    const curve = root.querySelector('[data-details-scroll="details-curve"]');
+    curve.previousSibling.remove(); curve.remove();
+    el('details-curve').remove(); root.querySelector('.details-grid').remove();
+  }
   let chainRequest = 0, listRequest = 0;
   async function loadChain(mid) {
     const request = ++chainRequest;
@@ -108,7 +116,8 @@
   });
   const params = new URLSearchParams(location.search);
   if (params.get('details_mode') === 'live') el('details-mode').value = 'live';
-  measures(); loadDecisions(); verify();
+  if (!adopted) measures();
+  loadDecisions(); verify();
   const initial = params.get('details_message_id');
   if (initial && initial.length <= 256) loadChain(initial);
 })();

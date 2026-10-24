@@ -759,7 +759,10 @@ export function frameAll(start) {
   paint();
 }
 controls.addEventListener("start", () => ((goal = null), (set.view = null), paint()));
-if (set.sc in F.scenarios) ui.sc.value = set.sc;
+// a link may name the scenario to replay (a proposal's « Voir le rejeu » in the console); otherwise this browser's last
+const asked = new URLSearchParams(location.search).get("scenario");
+if (asked && Object.hasOwn(F.scenarios, asked)) ui.sc.value = asked;
+else if (set.sc in F.scenarios) ui.sc.value = set.sc;
 load(ui.sc.value);
 
 let framed = false;

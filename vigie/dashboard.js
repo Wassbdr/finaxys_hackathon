@@ -40,6 +40,14 @@ const table = (head, rows, foot = "") => `<div class="frame"><table><thead><tr>$
 const chip = (c, text) => `<span class="chip s-${c}">${esc(text)}</span>`;
 const count = (n, name, fill) => `<div class="count ${n ? "f-" + fill : "f-grey"}"><b>${n}</b><span>${esc(name)}</span></div>`;
 const big = (value, name, fill, under = "") => `<div class="count big f-${fill}"><b>${value}</b><span>${esc(name)}</span>${under ? `<small>${under}</small>` : ""}</div>`;
+// A human decision in two steps: its button asks for the confirmation, a second click within five seconds sends it,
+// signed (human()). The command is data, read back by the click; nothing in a row becomes code.
+const decision = (command, label, ghost = false, input = "") => {
+  const ready = armed?.command === command && Date.now() < armed.until;
+  return `<button type="button" class="act${ghost && !ready ? " ghost" : ""}${ready ? " armed" : ""}" data-decide="${esc(command)}"${input ? ` data-input="${esc(input)}"` : ""}>${ready ? "Confirmer ?" : esc(label)}</button>`;
+};
+// a question to Krys about a row, in the Krys view or in its bubble
+const askButton = question => `<button type="button" class="ask" data-ask="${esc(question)}">Demander à Krys</button>`;
 // no pastille that only says a colour: the border already does (Marius, 23-10)
 const pastille = word => ["vert", "orange", "rouge"].includes(word) ? "" : `<span class="pastille">${esc(word)}</span>`;
 const block = (kind, id, [c, word], text, title = id) => `<button type="button" class="block s-${c}" data-open="${kind}:${esc(id)}">${pastille(word)}<h3>${esc(title)}</h3><p>${text}</p></button>`;
@@ -51,6 +59,14 @@ let live = false, stale = false, moved = 0, showApprovals = false, detail = null
 // Argus shows the Krys bank only: in the three-bank demo its world is C, elsewhere the only world there is. MODE is
 // /health's: live or replay.
 let WORLD = "", MODE = null;
+// the archived measures of Krys (vigie/console/data/impact), read once for the Gouvernance view's six indicators
+let IMPACT = null;
+// a human decision is sent on its second click, within five seconds: the first one only asks for the confirmation
+let armed = null;
+// the block a former tab's anchor names: scrolled to once the view has drawn what stands above it
+let pendingBlock = null;
+// the incidents Krys drafts from its signed journal (the outbox of mails-chat), and a Krys command waiting for its confirmation
+let OUTBOX = null, prepared = null;
 
 // --- data -------------------------------------------------------------------------------------------------------
 
@@ -70,6 +86,15 @@ function compose() {
 }
 const SAMPLE = `<span class="sample" title="le serveur ne publie pas encore cette donnée : exemple tiré de dashboard-demo.json">exemple</span>`;
 const sample = (...keys) => keys.some(k => D.fake.has(k)) ? SAMPLE : "";
+// Live, a part the bank does not publish is not filled from the sample: it says so, and Krys answers in the chat.
+// Without a simulation, the whole page is the sample and says so in its header.
+const known = (...keys) => !live || !keys.some(k => D.fake.has(k));
+const unpublished = question => `<p class="empty">La banque en direct ne publie pas cette donnée. ${askButton(question)}</p>`;
+// what Krys publishes on the bus, live: its last status (suspects, frozen assets, R0, propositions) and its findings
+const krysStatus = () => live ? (D.S.alerts || []).filter(a => a.kind === "krys_status").at(-1) ?? null : null;
+const krysFindings = () => live ? (D.S.alerts || []).filter(a => a.kind === "layer3_finding").map(a => a.finding).filter(Boolean) : [];
+// in the three-bank demo, human commands go through Krys (prepared, then confirmed); elsewhere through /inject
+const viaKrys = () => WORLD !== "";
 
 async function poll() {
   const [s, v] = await Promise.all([getJson("/state" + WORLD), getJson("/vigie" + WORLD)]);
@@ -81,10 +106,14 @@ async function pollGraph() { const g = await getJson("/graph" + WORLD); if (g) G
 async function pollHealth() { const h = await getJson("/health"); MODE = h?.mode ?? null; WORLD = h?.worlds?.includes("C") ? "?world=C" : ""; }
 async function pollImprovements() { I = await getJson("/improvements"); }
 async function pollGuardrails() { GR = await getJson("/guardrails"); }
+async function readImpact() { IMPACT = await getJson("/dashboard/console/impact/data.json"); }
+async function pollOutbox() { const o = await getJson("/console/mails-chat/outbox"); OUTBOX = Array.isArray(o?.items) ? o.items : null; }
 
 // --- shared readings ----------------------------------------------------------------------------------------------
 
 function suspects() {
+  if (live && D.fake.has("metrics") && D.fake.has("isolated_services"))
+    return Object.fromEntries((krysStatus()?.suspects || []).map(sid => [sid, {since_tick: null, text: "isolé par Krys"}]));
   const out = {...D.st.metrics?.suspect_services};
   for (const sid of D.st.isolated_services || []) out[sid] ??= {since_tick: "?", text: "isolé par Krys"};
   return out;
@@ -92,12 +121,12 @@ function suspects() {
 // an agent's state is the worst of its sanction level and its four layer lights: an orange layer does not show green
 const RANK = ["VERT", "ORANGE", "ROUGE", "QUARANTAINE"];
 function agentState(id) {
-  const a = D.S.agents?.[id] || {}, va = D.st.agents?.[id] || {};
+  const a = D.S.agents?.[id] || {}, va = known("agents") ? D.st.agents?.[id] || {} : {};
   const level = [va.level || a.light || "VERT", ...Object.values(va.lights || {})].reduce((x, y) => RANK.indexOf(y) > RANK.indexOf(x) ? y : x);
   return a.alive === false && level === "VERT" ? ["grey", "silencieux"] : STATE[level] || ["grey", level];
 }
 // red: KRYS distrusts it; orange: layer 1 reports it exposed (a CVE, a large impact radius) but it is still trusted
-const serviceState = id => suspects()[id] ? ["red", "suspect"] : (D.st.graph?.suspects || []).some(s => s.service === id) ? ["orange", "exposé"] : ["green", "de confiance"];
+const serviceState = id => suspects()[id] ? ["red", "suspect"] : known("graph") && (D.st.graph?.suspects || []).some(s => s.service === id) ? ["orange", "exposé"] : ["green", "de confiance"];
 const agentIds = () => Object.keys(D.S.agents || {}).sort((x, y) => order(x) - order(y));
 const roleOf = id => D.S.agents?.[id]?.role || id.split("-")[0];
 const bankLight = () => D.S.light?.light || D.st.light || "VERT";
@@ -129,7 +158,8 @@ function put(id, html) { if (drawn[id] !== html) { drawn[id] = html; $(id).inner
 function render() {
   if (!DEMO) return;
   compose();
-  renderBar(); renderSummary(); renderAgents(); renderActions(); renderGuardrails(); renderMetrics(); renderImprove(); renderDetail();
+  renderBar(); renderSummary(); renderSuggestions(); renderSynthese(); renderAgents(); renderActions(); renderGuardrails(); renderMetrics(); renderGovernance(); renderImprove(); renderDetail();
+  if (pendingBlock) { $(pendingBlock)?.scrollIntoView({block: "start"}); pendingBlock = null; }
 }
 
 function renderBar() {
@@ -156,12 +186,13 @@ function renderAgents() {
   html += `<div class="grid three">${[...roles].map(([role, members]) => members.length === 1
     ? block("agent", members[0], agentState(members[0]), esc(ROLES[role] || ""))
     : block("role", role, [members.map(id => agentState(id)[0]).reduce((x, y) => worst.indexOf(y) > worst.indexOf(x) ? y : x), String(members.length)], esc(ROLES[role] || ""))).join("")}</div>`;
-  html += `<h2>Qui alimente qui<span class="hint">un nœud passe au rouge dès qu'une donnée d'un service suspect l'atteint</span>${sample("contamination_graph")}</h2>${graph()}`;
+  html += `<h2>Qui alimente qui<span class="hint">un nœud passe au rouge dès qu'une donnée d'un service suspect l'atteint</span>${known("contamination_graph") ? sample("contamination_graph") : ""}</h2>${graph()}`;
   put("agents", html);
 }
 
 /** The graph screen: KRYS's contamination graph (layer 3), with the hidden dependencies layer 1 found. */
 function graph() {
+  if (!known("contamination_graph")) return unpublished("Quels services ont contaminé quels agents ?");
   const g = D.st.contamination_graph || {nodes: [], edges: []};
   if (!g.nodes?.length) return `<p class="empty">aucun message pour l'instant</p>`;
   const W = 1000, NW = 136, NH = 34, GAP = 54, cols = {}, at = {};
@@ -186,6 +217,8 @@ function agentDetail(id) {
   const st = D.st, ind = st.metrics || {}, a = D.S.agents?.[id] || {}, va = st.agents?.[id] || {}, role = a.role || id.split("-")[0];
   const susp = va.suspicion || 0, sus = suspects(), deps = D.G.nodes.find(n => n.id === id)?.depends_on || [];
   let html = head(id, agentState(id)) + `<p>${esc(ROLES[role] || role)}</p>`;
+  // live, Krys's detailed checks on an agent are not published: she answers about it in the chat
+  if (!known("agents", "metrics")) return html + `<div class="chips">${chip(a.alive === false ? "red" : "green", a.alive === false ? "silencieux" : "en vie")}${a.paused ? chip("orange", "en pause") : ""}</div>` + unpublished(`Que sait Krys de ${id} ?`);
   html += `<h4>Les quatre couches de <span class="name">Krys</span> sur lui</h4><div class="chips">${[1, 2, 3, 4].map(n => { const l = va.lights?.[n] || "VERT", [c, w] = STATE[l] || ["grey", l]; return chip(c, `${n} ${LAYERS[n]}: ${w}`); }).join("")}</div>`;
   html += `<div class="chips">${chip(a.alive === false ? "red" : "green", a.alive === false ? "silencieux" : "en vie")}${a.paused ? chip("orange", "en pause") : ""}${va.quarantined ? chip("red", "en quarantaine : clé révoquée, outils coupés") : ""}${a.vigie_lost ? chip("orange", "a perdu Krys") : ""}`
     + deps.map(d => chip(sus[d] ? "red" : "grey", `lit ${d}${sus[d] ? " (suspect)" : ""}`)).join("") + chip(susp >= 50 ? "red" : susp > 0 ? "orange" : "green", `soupçon ${num(susp)}/100`) + `</div>`;
@@ -209,7 +242,7 @@ function agentDetail(id) {
   const acts = actionsOf(id).slice(-6).reverse();
   html += `<h4>Ce que <span class="name">Krys</span> lui a fait</h4>` + (acts.length ? table(`<th>tick</th><th>action</th><th>pourquoi</th><th>couche</th>`,
     acts.map(x => `<tr><td>${x.tick}</td><td class="a-${esc(x.action)}"><b>${esc(actionName(x.action))}</b></td><td>${esc(x.text || x.reason)}</td><td>${esc(x.layer)}</td></tr>`)) : `<p class="empty">rien : toutes ses actions ont été approuvées</p>`);
-  if (va.quarantined) html += `<div><button class="act" onclick="human('human unblock ${esc(id)}')">Lever la quarantaine</button></div>`;
+  if (va.quarantined) html += `<div>${decision(`human unblock ${id}`, "Lever la quarantaine")}</div>`;
   return html;
 }
 
@@ -218,42 +251,46 @@ function serviceDetail(id) {
   const users = D.G.nodes.filter(n => n.kind === "agent" && (n.depends_on || []).includes(id)).map(n => n.id);
   let html = head(id, serviceState(id)) + `<p>PHP ${esc(s.php_version)} · ${s.patchable ? "corrigeable" : "non corrigeable"}${s.owner_team ? ` · exploité par ${esc(s.owner_team)}` : ""}</p>`;
   if (s.cve?.length) html += `<div class="chips">${s.cve.map(c => chip("orange", `${c.id} ${c.name}: ${String(c.status).replaceAll("_", " ")}`)).join("")}</div>`;
-  if (f) html += `<p><b>Suspect depuis le tick ${esc(f.since_tick)}</b> : ${esc(f.text)}</p><div><button class="act" onclick="human('human unblock ${esc(id)}')">Lui refaire confiance</button></div>`;
+  if (f) html += `<p><b>Suspect depuis le tick ${esc(f.since_tick)}</b> : ${esc(f.text)}</p><div>${decision(`human unblock ${id}`, "Lui refaire confiance")}</div>`;
   html += `<h4>Agents qui déclarent le lire</h4><div class="chips">${users.map(u => chip(agentState(u)[0], u)).join("") || `<span class="empty">aucun</span>`}</div>`;
-  const radius = D.st.graph?.nodes?.find(n => n.id === id)?.radius;
+  const radius = known("graph") ? D.st.graph?.nodes?.find(n => n.id === id)?.radius : null;
   if (radius) html += `<h4>Rayon d'impact (couche 1)${sample("graph")}</h4><p>${radius.agents} agents sur ${agentIds().length} en dépendent (${pct(radius.share)}) : ${esc(radius.direct.join(", "))} directement${radius.transitive.length ? `, ${esc(radius.transitive.join(", "))} par leur intermédiaire` : ""}. ${eur(radius.eur)} d'exécutions reposent sur lui.</p>`;
   const reached = (D.st.contamination_graph?.edges || []).filter(e => e.source === id && e.contaminated).map(e => e.target);
   if (reached.length) html += `<h4>Où sont allées ses données suspectes</h4><div class="chips">${reached.map(t => chip("red", t)).join("")}</div>`;
-  html += `<h4>Preuves (registre fantôme, ancre de prix indépendante)</h4>` + ledgerTable(ledgerGroups(e => e.service === id));
+  html += `<h4>Preuves (registre fantôme, ancre de prix indépendante)</h4>` + (known("ledger_evidence") ? ledgerTable(ledgerGroups(e => e.service === id)) : unpublished(`Pourquoi ${id} est-il suspect ?`));
   return html;
 }
 
 function renderActions() {
   const st = D.st, actions = st.actions || [], decisions = D.decisions;
-  const n = k => actions.filter(a => a.action === k).length, advice = actions.filter(a => a.layer === "auditor").length;
-  let html = `<div class="counts">${count(decisions.filter(d => d.approved).length, "approuvées au portique", "green")}${count(decisions.filter(d => !d.approved).length, "refusées au portique", "red")}`
-    + `${count(n("slow"), "agents ralentis", "orange")}${count(n("quarantine"), "quarantaines", "red")}${count(n("flag"), "signalements d'indicateurs", "orange")}${count(st.contagion_blocked || 0, "chaînes contaminées coupées", "red")}`
-    + `${st.auditor_llm ? count(advice, "avis de l'auditeur LLM", "orange") : count("éteint", "auditeur LLM", "grey")}${count(`${st.counters?.raw_alerts ?? 0} → ${st.counters?.incidents ?? 0} → ${st.counters?.notifications ?? 0}`, "alertes brutes → incidents → avis aux humains", "blue")}</div>`;
-  const waits = [];
-  if (bankLight() === "ROUGE") waits.push(`<tr><td>Banque au rouge : tous les agents sont en pause</td><td class="num"><button class="act" onclick="human('human resume')">Reprendre</button></td></tr>`);
-  for (const a of st.quarantined || []) waits.push(`<tr><td>${esc(a)} en quarantaine : clé révoquée, outils coupés</td><td class="num"><button class="act" onclick="human('human unblock ${esc(a)}')">Lever la quarantaine</button></td></tr>`);
-  for (const [s, f] of Object.entries(suspects())) waits.push(`<tr><td>${esc(s)} suspect depuis le tick ${esc(f.since_tick)} : toute action qu'il a alimentée est refusée. ${esc(f.text)}</td><td class="num"><button class="act ghost" onclick="human('human unblock ${esc(s)}')">Lui refaire confiance</button></td></tr>`);
-  html += `<h2>En attente d'un humain<span class="hint">seul un humain qui signe desserre le frein</span></h2>` + (waits.length ? table(`<th>quoi</th><th class="num">décision</th>`, waits) : `<p class="empty">rien</p>`);
   const incidents = (st.incidents || []).filter(i => i.level !== "VERT").sort((x, y) => y.last_tick - x.last_tick);
-  html += `<h2>Incidents ouverts<span class="hint">répétitions regroupées</span></h2>` + (incidents.length ? table(`<th>incident</th><th>origine</th><th>niveau</th><th>raisons</th><th>ticks</th><th class="num">alertes brutes</th>`,
-    incidents.map(i => `<tr><td>${esc(i.id)}</td><td>${esc(i.root)}</td><td class="${i.level === "ORANGE" ? "a-slow" : "a-block"}"><b>${esc((STATE[i.level] || [, i.level])[1])}</b></td><td>${esc(i.reasons.join(", "))}</td><td>${i.first_tick} → ${i.last_tick}</td><td class="num">${i.raw_count}</td></tr>`)) : `<p class="empty">aucun</p>`);
-  html += `<h2>Pourquoi un service a été isolé<span class="hint">registre fantôme reconstruit à partir des exécutions signées, ancre de prix indépendante</span></h2>` + ledgerTable(ledgerGroups());
-  const claims = (st.claim_evidence || []).slice().reverse();
-  html += `<h2>Ce qu'un agent a affirmé, et ce que Krys a constaté${sample("claim_evidence")}</h2>` + (claims.length ? table(`<th>agent</th><th>client</th><th>affirmé</th><th>constaté</th>`,
-    claims.slice(0, 8).map(c => `<tr><td>${esc(c.agent)}</td><td>${esc(c.client_id)}</td><td>${esc(c.assertion)}</td><td class="a-block">${esc(c.truth)}</td></tr>`)) : `<p class="empty">aucune fausse affirmation détectée</p>`);
-  const refused = decisions.filter(d => !d.approved).slice().reverse().slice(0, 15);
-  html += `<h2>Refusés au portique, du plus récent au plus ancien</h2>` + (refused.length ? table(`<th>tick</th><th>demande</th><th>raison</th><th>décidé par</th>`,
-    refused.map(d => `<tr><td>${d.tick}</td><td>${esc(d.request_id)}</td><td class="a-block">${esc(d.reason)}</td><td>${esc(d.decided_by)}</td></tr>`)) : `<p class="empty">aucun refus pour l'instant</p>`);
-  html += `<h2>Chaque décision de Krys sur un agent, de la plus récente à la plus ancienne<label class="hint"><input type="checkbox" ${showApprovals ? "checked" : ""} onchange="showApprovals=this.checked;render()"> montrer les approbations</label></h2>`;
-  const rows = actions.filter(a => showApprovals || a.action !== "green").slice().reverse().slice(0, 40);
-  html += rows.length ? table(`<th>tick</th><th>agent / cible</th><th>action</th><th>pourquoi</th><th>couche</th><th class="num">soupçon</th>`,
-    rows.map(a => `<tr><td>${a.tick}</td><td>${esc(a.agent)}</td><td class="a-${esc(a.action)}"><b>${esc(actionName(a.action))}</b></td><td>${esc(a.text || a.reason)}</td><td>${esc(a.layer)}</td><td class="num">${a.suspicion ?? ""}</td></tr>`)) : `<p class="empty">aucune action pour l'instant</p>`;
+  let html = `<h2>Incidents ouverts${known("incidents") ? sample("incidents") : ""}<span class="hint">répétitions regroupées</span></h2>`;
+  // live, the incidents are those Krys groups from its signed journal (the outbox of the console)
+  if (!known("incidents")) html += OUTBOX?.length ? table(`<th>incident</th><th>période</th><th>impact</th><th class="num">question</th>`,
+    OUTBOX.map(i => `<tr><td>${esc(i.subject)}</td><td>${esc(i.period)}</td><td>${esc(i.impact)}</td><td class="num">${askButton(i.evidence?.length ? `Pourquoi ${i.evidence[0]} ?` : "Quelles sont les alertes en cours ?")}</td></tr>`))
+    : OUTBOX ? `<p class="empty">aucun incident dans le journal signé</p>` : unpublished("Quelles sont les alertes en cours ?");
+  else html += (incidents.length ? table(`<th>incident</th><th>origine</th><th>niveau</th><th>raisons</th><th>ticks</th><th class="num">question</th>`,
+    incidents.map(i => `<tr><td>${esc(i.id)}</td><td>${esc(i.root)}</td><td class="${i.level === "ORANGE" ? "a-slow" : "a-block"}"><b>${esc((STATE[i.level] || [, i.level])[1])}</b></td><td>${esc(i.reasons.join(", "))}</td><td>${i.first_tick} → ${i.last_tick}</td><td class="num">${askButton(i.proof?.length ? `Pourquoi ${i.proof[0]} ?` : `Pourquoi l'incident ${i.id} ?`)}</td></tr>`)) : `<p class="empty">aucun incident ouvert</p>`);
+  const refused = decisions.filter(d => !d.approved).slice().reverse().slice(0, 10), gate = D.S.decisions?.["execution:refused"];
+  html += `<h2>Refusés au portique<span class="hint">les plus récents d'abord</span></h2>`;
+  // live, the gate's decisions may only be counted by the bank: the count, and Krys for the details
+  if (live && !refused.length && gate) html += `<p class="lead"><b>${gate} opération${gate === 1 ? "" : "s"}</b> refusée${gate === 1 ? "" : "s"} au portique depuis le début de la journée. ${askButton("Qu'est-ce qui est bloqué en ce moment ?")}</p>`;
+  else html += (refused.length ? table(`<th>tick</th><th>demande</th><th>raison</th><th class="num">question</th>`,
+    refused.map(d => `<tr><td>${d.tick}</td><td>${esc(d.request_id)}</td><td class="a-block">${esc(d.reason)}</td><td class="num">${askButton(`Pourquoi ${d.request_id} ?`)}</td></tr>`)) : `<p class="empty">aucun refus pour l'instant</p>`);
   put("actions", html);
+  if (!known("actions")) return put("actions-log", unpublished("Qu'a fait Krys depuis le début de la journée ?"));
+  // the full journal of Krys's actions, folded under the view (its <details> stays open across the redraws)
+  const n = k => actions.filter(a => a.action === k).length;
+  let log = `<div class="counts">${count(n("slow"), "agents ralentis", "orange")}${count(n("quarantine"), "quarantaines", "red")}${count(n("flag"), "signalements", "orange")}${count(st.contagion_blocked || 0, "chaînes contaminées coupées", "red")}</div>`;
+  log += `<h2>Pourquoi un service a été isolé<span class="hint">registre fantôme reconstruit à partir des exécutions signées, ancre de prix indépendante</span></h2>` + ledgerTable(ledgerGroups());
+  const claims = (st.claim_evidence || []).slice().reverse();
+  log += `<h2>Ce qu'un agent a affirmé, et ce que Krys a constaté${sample("claim_evidence")}</h2>` + (claims.length ? table(`<th>agent</th><th>client</th><th>affirmé</th><th>constaté</th>`,
+    claims.slice(0, 8).map(c => `<tr><td>${esc(c.agent)}</td><td>${esc(c.client_id)}</td><td>${esc(c.assertion)}</td><td class="a-block">${esc(c.truth)}</td></tr>`)) : `<p class="empty">aucune fausse affirmation détectée</p>`);
+  log += `<h2>Chaque décision de Krys sur un agent<label class="hint"><input type="checkbox" ${showApprovals ? "checked" : ""} onchange="showApprovals=this.checked;render()"> montrer les approbations</label></h2>`;
+  const rows = actions.filter(a => showApprovals || a.action !== "green").slice().reverse().slice(0, 40);
+  log += rows.length ? table(`<th>tick</th><th>agent / cible</th><th>action</th><th>pourquoi</th><th>couche</th><th class="num">soupçon</th>`,
+    rows.map(a => `<tr><td>${a.tick}</td><td>${esc(a.agent)}</td><td class="a-${esc(a.action)}"><b>${esc(actionName(a.action))}</b></td><td>${esc(a.text || a.reason)}</td><td>${esc(a.layer)}</td><td class="num">${a.suspicion ?? ""}</td></tr>`)) : `<p class="empty">aucune action pour l'instant</p>`;
+  put("actions-log", log);
 }
 
 /** The blocks of the Metrics tab, one a question: its state, its line, and what its click opens. */
@@ -327,99 +364,135 @@ const METRICS = {
 };
 
 function renderMetrics() {
-  const st = D.st, h = st.herding || {}, ceo = st.layer1?.ceo || {}, R = r0();
-  let html = `<h2>Pour la direction${sample("herding", "layer1")}</h2><div class="counts">`
-    + big(h.effective_agents != null ? `${num(h.effective_agents, 1)} sur ${h.traders}` : "-", "traders qui agissent indépendamment", h.effective_agents != null && h.effective_agents < h.traders / 2 ? "orange" : "green", "nombre effectif, d'après les valeurs propres de leurs décisions")
-    + big(R != null ? num(R, 1) : "-", "R0 de la contagion", R >= 1 ? "red" : "green", "agents qui ont agi sur chaque message empoisonné")
-    + big(eur(ceo.unpatchable_eur), "exécutés sur du code impossible à corriger", ceo.unpatchable_share > .5 ? "red" : "orange", ceo.unpatchable_share != null ? `${pct(ceo.unpatchable_share)} des exécutions, via ${esc((ceo.unpatchable_services || []).join(", "))}` : "")
-    + big(pct(ceo.reconstitution_rate), "décisions remontées jusqu'à une source", ceo.reconstitution_rate >= .95 ? "green" : "orange", "exécutions dont la chaîne depends_on est complète") + `</div>`;
-  html += `<h2>Indicateurs en direct, juste après les contrôles de limites</h2><div class="grid">${Object.entries(METRICS).map(([k, f]) => { const m = f(); return block("metric", k, m.state, m.text, m.title); }).join("")}</div>`;
+  const st = D.st;
+  if (!known("metrics")) {
+    const status = krysStatus(), found = krysFindings();
+    put("metrics", status ? `<div class="counts">${count(status.suspects?.length ?? 0, "services isolés", "red")}${count(status.frozen?.length ?? 0, "actifs gelés", "orange")}${count(status.r0 ? num(status.r0, 1) : 0, "R0 de la contagion", "orange")}${count(found.length, "constats récents", "blue")}</div>`
+      : unpublished("Que surveille Krys en ce moment ?"));
+    put("metrics-log", found.length ? table(`<th>tick</th><th>couche</th><th>type</th><th>cible</th><th>gravité</th><th class="num">score</th>`,
+      found.slice().reverse().map(f => `<tr><td>${f.tick}</td><td>${f.layer}</td><td>${esc(String(f.kind).replaceAll("_", " "))}</td><td>${esc(f.target)}</td><td>${esc(SEVERITY[f.severity] ?? f.severity)}</td><td class="num">${num(+f.score, 2)}</td></tr>`)) : `<p class="empty">aucun constat publié pour l'instant</p>`);
+    return;
+  }
+  put("metrics", `<div class="grid">${Object.entries(METRICS).map(([k, f]) => { const m = f(); return block("metric", k, m.state, m.text, m.title); }).join("")}</div>`);
   const fs = findings().slice().reverse().slice(0, 12);
-  html += `<h2>Constats, du plus récent au plus ancien<span class="hint">ce que les couches signalent à la couche de décision</span>${sample("findings")}</h2>` + (fs.length ? table(`<th>tick</th><th>couche</th><th>type</th><th>cible</th><th>gravité</th><th class="num">score</th><th>quoi</th>`,
+  let log = `<h2>Constats, du plus récent au plus ancien<span class="hint">ce que les couches signalent à la couche de décision</span>${sample("findings")}</h2>` + (fs.length ? table(`<th>tick</th><th>couche</th><th>type</th><th>cible</th><th>gravité</th><th class="num">score</th><th>quoi</th>`,
     fs.map(f => `<tr><td>${f.tick}</td><td>${f.layer}</td><td>${esc(f.kind.replaceAll("_", " "))}</td><td>${esc(f.target)}</td><td class="${f.severity === "critical" ? "a-red" : f.severity === "warning" ? "a-slow" : ""}">${esc(SEVERITY[f.severity] ?? f.severity)}</td><td class="num">${num(+f.score, 2)}</td><td>${esc(f.detail?.text || Object.entries(f.detail || {}).filter(([, v]) => typeof v !== "object").map(([k, v]) => `${k.replaceAll("_", " ")} ${v}`).join(" · "))}</td></tr>`)) : `<p class="empty">aucun pour l'instant</p>`);
   const alerts = (st.metrics?.alerts || []).slice().reverse().slice(0, 12);
-  html += `<h2>Dernières alertes des indicateurs</h2>` + (alerts.length ? table(`<th>tick</th><th>règle</th><th>cible</th><th class="num">valeur</th><th class="num">seuil</th><th>ce que cela signifie</th>`,
+  log += `<h2>Dernières alertes des indicateurs</h2>` + (alerts.length ? table(`<th>tick</th><th>règle</th><th>cible</th><th class="num">valeur</th><th class="num">seuil</th><th>ce que cela signifie</th>`,
     alerts.map(a => `<tr><td>${a.tick}</td><td>${esc(a.rule)}</td><td>${esc(a.target)}</td><td class="num">${a.value}</td><td class="num">${a.threshold ?? ""}</td><td>${esc(a.text)}</td></tr>`)) : `<p class="empty">aucune</p>`);
-  put("metrics", html);
-  put("evaluation", evaluation());
+  put("metrics-log", log);
 }
 
-/** The replays of every scenario without (A) and with (B) KRYS, and the bench's metrics. */
-function evaluation() {
-  const I = D.I, m = I.metrics || {}, when = new Date(I.generated_at).toLocaleString("fr-FR");
-  let html = `<h2>Sans protection et avec Krys<span class="hint">rejeux du ${esc(when)}</span>${sample("improvements")}</h2>`;
-  const p = I.scenarios.find(s => s.scenario === PITCH);
-  // three separate figures, never one inside another: the fraud blocked is larger than the net result saved
-  if (p) html += `<div class="counts">${big(eur(p.avoided_fraud_eur), "fraude bloquée", "green")}${big(eur(p.avoided_loss_eur), "résultat net préservé", "green")}${big(eur(-p.brake_cost_eur), "coût des blocages", "orange", "résultat de trading perdu sur les ordres refusés")}</div>
-    <p class="note">${esc(PITCH)}, même graine : ${eur(p.unprotected_net_eur)} sans protection (dont ${eur(p.avoided_fraud_eur)} de fraude), ${eur(p.protected_net_eur)} avec Krys.</p>`;
-  // the table is two thirds of the screen wide: thousands in k€, detection as ticks before (−) or after (+) the attack
-  const k = v => v != null && Math.abs(v) >= 1e3 && Math.abs(v) < 1e6 ? Math.round(v / 1e3) + " k€" : eur(v);
-  html += `<div style="margin-top:12px">` + table(`<th>scénario</th><th class="num">sans protection</th><th class="num">avec <span class="name">Krys</span></th><th class="num">fraude bloquée</th><th class="num">résultat net préservé</th><th class="num">coût des blocages</th><th class="num">argent sain gelé</th><th class="num">opérations contaminées</th><th>détecté, en ticks par rapport à l'attaque</th>`,
-    I.scenarios.map(g => `<tr><td>${esc(g.scenario)}</td><td class="num">${k(g.unprotected_net_eur)}</td><td class="num">${k(g.protected_net_eur)}</td><td class="num">${k(g.avoided_fraud_eur)}</td><td class="num a-green">${k(g.avoided_loss_eur)}</td><td class="num a-slow">${k(-g.brake_cost_eur)}</td><td class="num">${k(g.frozen_eur)}</td><td class="num">${g.contaminated_operations.unprotected} → ${g.contaminated_operations.protected}</td><td>${(g.detection || []).map(d => `<span style="white-space:nowrap">${esc(d.service)} ${d.detected_at == null ? `<span class="a-block">manqué</span>` : (d.ticks_to_detect > 0 ? "+" : d.ticks_to_detect < 0 ? "−" : "") + Math.abs(d.ticks_to_detect)}</span>`).join("<br>") || "-"}</td></tr>`),
-    `<tfoot><tr><th>total</th><th></th><th></th><th></th><th class="num">${k(I.totals.avoided_loss_eur)}</th><th class="num">${k(-I.totals.brake_cost_eur)}</th><th class="num">${k(I.totals.frozen_eur)}</th><th class="num">${I.totals.missed_operations} encore passées</th><th></th></tr></tfoot>`) + `</div>`;
-  if (m.scenarios) {
-    const iv = x => x ? `${num(+x.mean, 2)} <span class="hint">[${num(+x.low, 2)}–${num(+x.high, 2)}]</span>` : "-";
-    html += `<h2>Les mesures du banc<span class="hint">make metrics · ${m.totals?.attempts ?? "-"} tentatives sur ${m.totals?.attack_runs ?? "-"} rejeux d'attaque, ${m.totals?.clean_runs ?? "-"} rejeux sains</span>${sample("improvements", "eval")}</h2>`
-      + table(`<th>scénario</th><th class="num">attaques réussies, sans protection → avec <span class="name">Krys</span></th><th class="num">précision du portique</th><th class="num">rappel du portique</th><th class="num">détection</th><th class="num">confinement</th><th class="num">travail sain conservé</th><th>agents en rouge</th><th class="num">portique p50 / p99</th>`,
-        m.scenarios.map(s => `<tr><td>${esc(s.scenario)}</td><td class="num">${pct(s.asr?.without?.rate)} → <b class="${s.asr?.with?.rate ? "a-red" : "a-green"}">${pct(s.asr?.with?.rate)}</b></td><td class="num">${pct(s.gate?.precision)}</td><td class="num">${pct(s.gate?.recall)}</td><td class="num">${s.detection?.detection_ticks ?? "-"} ticks</td><td class="num">${s.detection?.containment_ticks ?? "-"} ticks</td><td class="num">${pct(s.utility?.ratio)}</td><td>${(s.impact?.red_with || []).length} sur ${s.impact?.agents ?? "-"}</td><td class="num">${s.gate_latency_ms?.p50 ?? "-"} / ${s.gate_latency_ms?.p99 ?? "-"} ms</td></tr>`));
-    const c = m.clean;
-    const share = x => x ? `${pct(x.rate ?? x.mean)} <span class="hint">[${pct(x.low)}–${pct(x.high)}]</span>` : "-";
-    if (c) html += `<div class="counts" style="margin-top:12px">${big(iv(c.false_blocks_per_run), "opérations saines refusées par rejeu", "orange", `${c.runs} rejeux sains, intervalle à 95 %`)}${big(iv(c.false_alerts_per_run), "fausses alertes par rejeu", "orange")}${big(share(c.runs_with_false_isolation), "rejeux sains avec un service isolé à tort", "orange")}${big(share(c.utility), "travail sain conservé", "green")}${m.gate_latency_ms ? big(`${num(m.gate_latency_ms.p50, 1)} / ${num(m.gate_latency_ms.p99, 1)} ms`, "latence du portique p50 / p99", "blue", `${m.gate_latency_ms.n} décisions, ${m.gate_latency_ms.timeouts} délais dépassés`) : ""}</div>`;
-  }
-  html += `<h2>Chaque règle, notée sur les rejeux</h2>` + table(`<th>règle</th><th>couche</th><th class="num">déclenchée</th><th class="num">à raison</th><th class="num">à tort</th><th class="num">argent contaminé arrêté</th><th class="num">argent sain gelé</th>`,
-    I.rules.map(r => `<tr><td>${esc(r.rule)}</td><td>${esc(r.layer)}</td><td class="num">${r.fired}</td><td class="num">${r.true}</td><td class="num">${r.false}</td><td class="num">${eur(r.blocked_eur)}</td><td class="num">${eur(r.frozen_eur)}</td></tr>`));
-  return html;
+/** The six indicators of Krys in service, each from the archived measures (or the bench's, for the gate) with its proof.
+    A figure that is not there says so; none is computed here that the measures do not hold. */
+function renderGovernance() {
+  const card = id => IMPACT?.cards?.find(c => c.id === id);
+  const krys = (id, label = "Krys") => card(id)?.groups?.flatMap(g => g.rows).filter(r => r.label === label) ?? [];
+  const proof = id => { const p = card(id)?.proofs?.[0]; return p && String(p.url).startsWith("/dashboard/console/impact/") ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">source</a>` : ""; };
+  const tile = (value, name, under, id, extra = "") => `<div class="kpi"><b>${value ?? `<span class="missing">manquant</span>`}</b><span>${esc(name)}</span><small>${under}${extra} ${proof(id)}</small></div>`;
+  const [fraud] = krys("fraud"), [contam] = krys("contamination"), [kept] = krys("utility"), [normal] = krys("normal"), detection = krys("detection");
+  const [down] = krys("outage", "Krys sans relais"), [relay] = krys("outage", "Krys avec relais");
+  const delays = detection.flatMap(r => r.delay_range || []), gate = known("improvements", "eval") ? D.I.metrics?.gate_latency_ms : null;
+  put("impact", `<div class="kpis">`
+    + tile(fraud ? eur(fraud.denominator - fraud.numerator) : null, "de fraude au virement bloquée", fraud ? `${eur(fraud.numerator)} volé sur ${eur(fraud.denominator)} tentés, sur les journées d'attaque mesurées.` : "", "fraud")
+    + tile(contam ? `${num(contam.numerator)} sur ${num(contam.denominator)}` : null, "opérations contaminées exécutées", contam ? `${pct(contam.numerator / contam.denominator, 1)} des opérations bâties sur une donnée compromise.` : "", "contamination")
+    + tile(kept ? pct(kept.numerator / kept.denominator, 1) : null, "de l'activité saine conservée sous attaque", normal ? `${pct(normal.numerator / normal.denominator)} les journées normales.` : "", "utility")
+    + tile(delays.length ? `${Math.max(...delays)} ticks` : null, "au plus pour repérer une attaque", detection.length ? `Sur ${detection.length} scénarios ; la faille connue est repérée avant l'attaque.` : "", "detection")
+    + tile(gate ? `${num(gate.p50, 1)} ms` : null, "pour décider au portique", gate ? `p99 ${num(gate.p99, 1)} ms, sur ${num(gate.n)} décisions du banc.` : "", "", gate ? sample("improvements", "eval") : "")
+    + tile(relay ? pct(relay.numerator / relay.denominator) : null, "de l'activité saine tenue pendant une panne de Krys", relay && down ? `Grâce au relais ; ${pct(down.numerator / down.denominator)} sans lui.` : "", "outage")
+    + `</div>`);
 }
+
 
 function renderImprove() {
+  if (!known("improvements")) return put("improve", `<p class="empty">Aucun rapport de rejeux n'est publié pour cette banque : les seuils et les propositions viennent de <code>make metrics</code>. ${askButton("Quels seuils Krys applique-t-elle ?")}</p>`);
   const I = D.I, th = D.st.metrics?.thresholds || I.thresholds || {};
-  let html = `<h2>Seuils en vigueur<span class="hint">tout changement est signé par un humain et journalisé</span></h2>` + table(`<th>seuil</th><th class="num">actuel</th><th>nouvelle valeur</th>`,
-    Object.entries(th).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${v}</td><td><input type="number" step="any" id="th-${esc(k)}" value="${v}"> <button class="act ghost" onclick="human('human set_threshold ${esc(k)} ' + $('th-${esc(k)}').value)">Appliquer</button></td></tr>`));
-  html += `<h2>Ce que disent les rejeux${sample("improvements")}</h2><div class="card">${I.summary.map(s => `<div>${esc(s)}</div>`).join("")}</div><h2>Propositions pour un humain</h2>`;
+  let html = `<h2>Seuils en vigueur<span class="hint">tout changement est une proposition signée par un humain et journalisée</span></h2>` + table(`<th>seuil</th><th class="num">actuel</th><th>nouvelle valeur</th>`,
+    Object.entries(th).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${v}</td><td><input type="number" step="any" id="th-${esc(k)}" value="${v}" aria-label="Nouvelle valeur de ${esc(k)}"> ${decision(`human set_threshold ${k}`, "Signer", true, `th-${k}`)}</td></tr>`));
+  html += `<h2>Propositions pour un humain${sample("improvements")}</h2>`;
   for (const p of I.proposals) {
     const kind = {threshold: "seuil", gap: "trou de couverture", rule: "règle"}[p.kind] || p.kind;
     let evidence = "";
     if (p.evidence?.sweep) evidence += table(`<th class="num">valeur</th><th>détecte</th><th class="num">bonnes alertes</th><th class="num">fausses alertes</th><th class="num">ticks pour détecter, cumulés</th>`,
       p.evidence.sweep.map(r => `<tr${r.value === p.proposed ? ` style="color:var(--blue)"` : ""}><td class="num">${r.value}</td><td>${esc(r.caught.join(", ")) || "-"}</td><td class="num">${r.true_alerts}</td><td class="num">${r.false_alerts}</td><td class="num">${r.ticks_to_detect}</td></tr>`));
-    if (p.replay) evidence += table(`<th>scénario rejoué</th><th class="num">résultat net préservé</th><th class="num">argent sain gelé</th>`,
-      Object.entries(p.replay.by_scenario).map(([n, v]) => `<tr><td>${esc(n)}</td><td class="num">${eur(v.avoided_loss_eur)}</td><td class="num">${eur(v.frozen_eur)}</td></tr>`));
     for (const m of p.evidence?.missed || []) evidence += `<div style="margin:8px 0"><b>t${m.tick} ${esc(m.kind)} ${eur(m.amount_eur)} → ${esc(m.target)}</b>, alimenté par ${esc((m.compromised_sources || []).join(", "))}<br>` +
       m.chain.map(c => `<span class="chip">t${c.tick} ${esc(c.from)} · ${esc(c.type)}${c.fed_by_compromised.length ? " · alimenté par " + esc(c.fed_by_compromised.join(", ")) : ""}</span> ${esc(c.said)}`).join("<br>") + `</div>`;
+    // the replay a proposal rests on plays in the Simulation, scenario chosen
+    const scenario = Object.keys(p.replay?.by_scenario || {})[0] ?? p.evidence?.missed?.[0]?.scenario ?? (I.scenarios || []).find(g => g.scenario === p.target)?.scenario;
+    const replay = scenario ? `<a class="replay" href="/simulation?scenario=${encodeURIComponent(scenario)}#simulation">Voir le rejeu</a>` : "";
     html += `<div class="card proposal"><h3><span><span class="badge">${esc(kind)}</span>${esc(p.target)}</span>` +
-      (p.kind === "threshold" ? `<span>${p.proven ? chip("green", "le rejeu confirme") : chip("red", `le rejeu infirme : garder ${p.current}`)} <button class="act ${p.proven ? "" : "ghost"}" onclick="human('${esc(p.apply)}')">Appliquer ${p.current} → ${p.proposed}</button></span>` : "") +
+      `<span class="row-acts">${replay}${p.kind === "threshold" ? `${p.proven ? chip("green", "le rejeu confirme") : chip("red", `le rejeu infirme : garder ${p.current}`)} ${decision(p.apply, `Appliquer ${p.current} → ${p.proposed}`, !p.proven)}` : ""}</span>` +
       `</h3><div class="why">${esc(p.why)}</div>${evidence ? `<details><summary>preuves</summary>${evidence}</details>` : ""}</div>`;
   }
+  if (!I.proposals.length) html += `<p class="empty">aucune proposition</p>`;
   put("improve", html);
 }
 
-/** What waits for a human: the problems only a human clears, and the replays' good news only a human applies (Marius, 23-10). */
+/** What waits for a human: each problem with the decision that clears it and the question Krys answers about it. */
 function renderSummary() {
-  const st = D.st, bad = [], good = [];
+  const st = D.st, rows = [];
   // a row read from the sample does not wait for anyone: it says so, and the Alertes view counts only the problems read live
   let waiting = 0;
   const real = (...keys) => live && !keys.some(k => D.fake.has(k));
-  const ask = (list, text, command, label, ghost, counts = live) => (list === bad && counts && waiting++, list.push(`<tr><td>${text}${counts ? "" : SAMPLE}</td><td class="num">${command ? `<button class="act${ghost ? " ghost" : ""}" onclick="${command.startsWith("#") ? `location.hash='${command}'` : `human('${esc(command)}')`}">${label}</button>` : ""}</td></tr>`));
-  if (bankLight() === "ROUGE") ask(bad, "La banque est au rouge : tous les agents sont en pause.", "human resume", "Reprendre");
+  const ask = (text, command, label, question, counts = live, ghost = false) => {
+    if (counts) waiting++;
+    rows.push(`<tr><td>${text}${counts ? "" : SAMPLE}</td><td class="num"><span class="row-acts">${askButton(question)}${command ? decision(command, label, ghost) : ""}</span></td></tr>`);
+  };
+  if (bankLight() === "ROUGE") ask("La banque est au rouge : tous les agents sont en pause.", viaKrys() ? "krys resume *" : "human resume", "Reprendre", "Pourquoi la banque est-elle au rouge ?");
   const risk = D.S.agents?.risk?.status;
-  if (risk?.halted) ask(bad, `Risk a arrêté le trading (${esc(risk.halt_reason)}) : seul un humain le relance.`, "human resume_trading", "Reprendre le trading");
-  for (const a of st.quarantined || []) ask(bad, `${esc(a)} est en quarantaine : sa clé est révoquée et ses outils coupés.`, `human unblock ${a}`, "Lever la quarantaine", false, real("quarantined"));
-  for (const [s, f] of Object.entries(suspects())) ask(bad, `${esc(s)} est suspect depuis le tick ${esc(f.since_tick)} : toute action qu'il a alimentée est refusée.`, `human unblock ${s}`, "Lui refaire confiance", true, real("metrics", "isolated_services"));
-  for (const [who, why] of Object.entries(D.S.agents?.compliance?.status?.blocked || {})) ask(bad, `Compliance a bloqué ${esc(who)} (${esc(why)}) : seul un humain le débloque.`, `human unblock ${who}`, "Débloquer", true);
+  if (risk?.halted) ask(`Risk a arrêté le trading (${esc(risk.halt_reason)}) : seul un humain le relance.`, "human resume_trading", "Reprendre le trading", "Pourquoi Risk a-t-il arrêté le trading ?");
+  if (known("quarantined")) for (const a of st.quarantined || []) ask(`${esc(a)} est en quarantaine : sa clé est révoquée et ses outils coupés.`, `human unblock ${a}`, "Lever la quarantaine", `Pourquoi ${a} est-il en quarantaine ?`, real("quarantined"));
+  const fromKrys = live && D.fake.has("isolated_services");
+  // a service Krys isolated stays isolated until a human trusts it again; through Krys, no command lifts it yet: ask her
+  for (const [s, f] of Object.entries(suspects())) ask(`${esc(s)} est suspect${f.since_tick != null ? ` depuis le tick ${esc(f.since_tick)}` : ""} : toute action qu'il a alimentée est refusée.`, viaKrys() ? null : `human unblock ${s}`, "Lui refaire confiance", `Pourquoi ${s} est-il suspect ?`, fromKrys || real("metrics", "isolated_services"), true);
+  for (const asset of krysStatus()?.frozen || []) ask(`L'actif ${esc(asset)} est gelé : aucune opération ne le touche.`, `krys unfreeze ${asset}`, "Lever le gel", `Pourquoi ${asset} est-il gelé ?`);
+  for (const [who, why] of Object.entries(D.S.agents?.compliance?.status?.blocked || {})) ask(`Compliance a bloqué ${esc(who)} (${esc(why)}) : seul un humain le débloque.`, `human unblock ${who}`, "Débloquer", `Pourquoi ${who} est-il bloqué ?`, live, true);
   const lost = agentIds().filter(id => D.S.agents[id].vigie_lost);
-  if (lost.length) ask(bad, `${esc(lost.join(", "))} ${lost.length === 1 ? "a perdu le battement de Krys et est passé" : "ont perdu le battement de Krys et sont passés"} seul${lost.length === 1 ? "" : "s"} à l'orange : vérifiez que Krys tourne.`);
-  const props = D.I.proposals || [], th = st.metrics?.thresholds || {}, open = props.filter(p => p.kind !== "threshold");
-  if (open.length) ask(bad, `Les rejeux ont trouvé ${open.length} trou${open.length === 1 ? "" : "s"} ou règle${open.length === 1 ? "" : "s"} à revoir : ${esc(open.map(p => p.target).join(", "))}.`, "#improve", "Les lire", true, real("improvements"));
-  for (const p of props.filter(p => p.kind === "threshold" && p.proven && th[p.target] !== p.proposed)) ask(good, `Les rejeux confirment : ${esc(p.why)}`, p.apply, `Appliquer ${p.current} → ${p.proposed}`, false, real("improvements"));
-  const n = (k, one, many) => `<b>${k}</b> ${k === 1 ? one : many}`;
-  let html = `<p class="lead">${n(bad.length, "problème", "problèmes")} et ${n(good.length, "bonne nouvelle", "bonnes nouvelles")} vous attendent${live && !stale ? "" : " : aucune simulation ne tourne, aucune décision ne peut donc être envoyée"}</p>`;
-  html += `<h2>Problèmes que seul un humain lève</h2>` + (bad.length ? table(`<th>quoi</th><th class="num">votre décision</th>`, bad) : `<p class="empty">aucun</p>`);
-  html += `<h2>Bonnes nouvelles que seul un humain applique</h2>` + (good.length ? table(`<th>quoi</th><th class="num">votre décision</th>`, good) : `<p class="empty">aucune</p>`);
-  put("summary", html);
+  if (lost.length) ask(`${esc(lost.join(", "))} ${lost.length === 1 ? "a perdu le battement de Krys et est passé" : "ont perdu le battement de Krys et sont passés"} seul${lost.length === 1 ? "" : "s"} à l'orange : vérifiez que Krys tourne.`, null, null, "Pourquoi les agents ont-ils perdu le battement de Krys ?");
+  const lead = !live ? "Aucune simulation ne tourne : les lignes ci-dessous sont des exemples."
+    : waiting ? `<b>${waiting} décision${waiting === 1 ? "" : "s"}</b> vous attend${waiting === 1 ? "" : "ent"}. Une décision s'envoie en deux temps, signée.` : "Rien n'attend de décision humaine.";
+  put("summary", `<p class="lead">${lead}</p>` + (rows.length ? table(`<th>ce qui attend</th><th class="num">votre décision</th>`, rows) : ""));
   const count = $("waiting");
   count.hidden = !live;
   count.textContent = waiting;
   count.classList.toggle("none", !waiting);
   count.setAttribute("aria-label", `${waiting} décision${waiting === 1 ? "" : "s"} en attente`);
+  D.waiting = waiting;
+}
+
+/** The Synthèse: where the bank stands, what changed since the day began, and what waits for a signature. */
+function renderSynthese() {
+  const st = D.st, light = bankLight(), [c, word] = STATE[light] || ["grey", light];
+  const incidents = known("incidents") ? (st.incidents || []).filter(i => i.level !== "VERT") : OUTBOX ?? [], isolated = Object.keys(suspects());
+  const refused = D.decisions.filter(d => !d.approved).length || (live ? D.S.decisions?.["execution:refused"] ?? 0 : 0);
+  let html = `<p class="lead">${live ? `Tick <b>${S.tick}</b>${stale ? (S.tick >= 179 ? ", journée terminée" : ", en pause") : ""} · ` : ""}feu de la banque <b class="a-${c}">${esc(word)}</b>${live ? "" : " · données d'exemple, aucune simulation en cours"}</p>`;
+  html += `<div class="counts">${count(live ? D.waiting : "-", "décisions en attente", "red")}${count(incidents.length, "incidents ouverts", "orange")}${count(isolated.length, "services isolés", "red")}${count(refused, "refus au portique", "red")}</div>`;
+  // what changed: the last decisions Krys took on the bank, newest first
+  const changes = (st.actions || []).filter(a => ["block", "quarantine", "slow"].includes(a.action)).slice(-5).reverse();
+  // live, what Krys proposes to the humans: her finding, the action, who decides, and the cost of acting
+  const props = krysStatus()?.propositions || [];
+  if (props.length) html += `<h2>Ce que Krys propose</h2>` + props.map(p => `<div class="card proposal"><h3><span>${esc(p.decideur)}</span>${askButton(p.evidence?.length ? `Pourquoi ${p.evidence[0]} ?` : "Que propose Krys ?")}</h3>`
+    + `<p>${esc(p.constat)}</p><p><b>Action :</b> ${esc(p.action)}</p>${p.cout_risque ? `<p class="why">Coût ou risque : ${esc(p.cout_risque)}</p>` : ""}</div>`).join("");
+  if (!known("actions")) html += `<h2>Ce qui a changé</h2>` + (OUTBOX?.length ? `<ul class="changes">${OUTBOX.slice(0, 5).map(i => `<li><b>${esc(i.subject)}</b> · ${esc(i.period)}</li>`).join("")}</ul>` : unpublished("Qu'a fait Krys depuis le début de la journée ?"));
+  else html += `<h2>Ce qui a changé${sample("actions")}</h2>` + (changes.length ? `<ul class="changes">${changes.map(a => `<li><span class="tick">tick ${a.tick}</span> Krys a ${{block: "bloqué", quarantine: "mis en quarantaine", slow: "ralenti"}[a.action]} <b>${esc(a.agent)}</b> : ${esc(a.text || a.reason)}</li>`).join("")}</ul>` : `<p class="empty">rien depuis le début de la journée</p>`);
+  if (!known("improvements")) { put("synthese-body", html); return; }
+  const bench = D.I.proposals || [], th = st.metrics?.thresholds || {};
+  const good = bench.filter(p => p.kind === "threshold" && p.proven && th[p.target] !== p.proposed);
+  html += `<h2>Bonnes nouvelles à appliquer${sample("improvements")}</h2>` + (good.length ? table(`<th>ce que les rejeux confirment</th><th class="num">votre décision</th>`,
+    good.map(p => `<tr><td>${esc(p.target)} : ${esc(p.current)} → ${esc(p.proposed)}. ${esc(p.why)}</td><td class="num">${decision(p.apply, `Appliquer ${p.current} → ${p.proposed}`)}</td></tr>`)) : `<p class="empty">aucune</p>`);
+  const toSign = bench.filter(p => p.kind === "threshold").length, open = bench.filter(p => p.kind !== "threshold");
+  html += `<a class="callout" href="#improve"><b>${toSign} proposition${toSign === 1 ? "" : "s"} de seuils</b> attend${toSign === 1 ? "" : "ent"} une signature${open.length ? `, et ${open.length} règle${open.length === 1 ? "" : "s"} ou trou${open.length === 1 ? "" : "s"} de couverture à revoir` : ""} : les voir dans le Parc →</a>`;
+  put("synthese-body", html);
+}
+
+/** The suggestions of the Krys view: three questions that always work, and those the bank's state asks now. */
+function renderSuggestions() {
+  const asks = ["Quelles sont les alertes en cours ?", "Qu'est-ce qui est bloqué en ce moment ?"];
+  if (live && !D.fake.has("isolated_services")) for (const s of (D.st.isolated_services || []).slice(0, 1)) asks.push(`Pourquoi ${s} est-il isolé ?`);
+  const refused = live ? D.decisions.filter(d => !d.approved).at(-1) : null;
+  asks.push(refused ? `Pourquoi ${refused.request_id} ?` : "Pourquoi ce virement est-il refusé ?");
+  asks.push("Comment Krys décide-t-elle ?");
+  put("suggestions", asks.map(q => `<button type="button" data-question="${esc(q)}">${esc(q)}</button>`).join(""));
 }
 
 /** Every guardrail in force: each agent's limits as config.yaml sets them with how much of each is used now, KRYS's, the LLM's. */
@@ -570,6 +643,45 @@ function toast(text) {
   const t = $("toast"); t.textContent = text; t.hidden = false;
   clearTimeout(toast.timer); toast.timer = setTimeout(() => t.hidden = true, 3500);
 }
+// the second click of a decision sends it; the button keeps the focus across the redraw it causes
+document.addEventListener("click", e => {
+  const d = e.target.closest("[data-decide]");
+  if (d) {
+    const command = d.dataset.decide + (d.dataset.input ? " " + ($(d.dataset.input)?.value ?? "") : "");
+    if (command.startsWith("krys ")) { krysCommand(command); return; }
+    if (armed?.command === d.dataset.decide && Date.now() < armed.until) { armed = null; human(command); }
+    else { armed = {command: d.dataset.decide, until: Date.now() + 5000}; setTimeout(render, 5100); }
+    drawn.detail = ""; render();
+    document.querySelector(`[data-decide="${CSS.escape(d.dataset.decide)}"]`)?.focus();
+    return;
+  }
+  const q = e.target.closest("[data-ask]");
+  if (q) askKrys(q.dataset.ask);
+});
+// A command through Krys: the first click prepares it and shows Krys's recap, the second confirms it within its validity.
+// Krys refuses it when the demo was launched without human commands; the refusal is shown as it is.
+async function krysCommand(command) {
+  const [, action, target] = command.split(" ");
+  const post = (path, body) => fetch("/demo/krys/actions/" + path, {method: "POST", credentials: "same-origin", redirect: "error",
+    headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)}).then(async r => ({ok: r.ok, body: await r.json().catch(() => ({}))}), () => ({ok: false, body: {}}));
+  if (prepared?.command === command && Date.now() < prepared.until) {
+    const r = await post("confirm", {action_id: prepared.id, confirmation: "confirmer"});
+    prepared = null; armed = null;
+    toast(r.ok ? `Publié, signé par un humain : ${r.body.message_id ?? command}` : `Refusé : ${r.body.detail ?? "Krys injoignable"}`);
+  } else {
+    const r = await post("prepare", {action, target});
+    if (!r.ok) { prepared = null; armed = null; toast(`Refusé : ${r.body.detail ?? "Krys injoignable"}`); }
+    else { prepared = {command, id: r.body.action_id, until: Date.now() + 110000}; armed = {command, until: prepared.until}; toast(r.body.recap); }
+  }
+  render();
+}
+// a question to Krys: in the Krys view if it is open, otherwise in its bubble (mails-chat.js)
+function askKrys(question) {
+  const field = $("krys-question");
+  field.value = question;
+  if (!$("krys").hidden || $("mc-chat")?.hidden === false) field.focus();
+  else $("mc-open")?.click();
+}
 async function human(command) {
   if (!live || stale) return toast("Aucune simulation ne tourne : lancez-en une pour envoyer une décision");
   const r = await fetch("/inject", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({command})}).catch(() => null);
@@ -600,7 +712,8 @@ const fromHash = () => {
   go(tabs.some(t => t.dataset.tab === view) ? view : "krys");
   if (!block) return;
   history.replaceState(null, "", location.pathname + location.search + "#" + view);
-  requestAnimationFrame(() => $(block)?.scrollIntoView({block: "start"}));
+  pendingBlock = block;
+  if (DEMO) render();
 };
 fromHash();
 addEventListener("hashchange", fromHash);
@@ -609,11 +722,12 @@ addEventListener("hashchange", fromHash);
 
 (async () => {
   DEMO = await getJson("/dashboard/dashboard-demo.json");
-  await pollHealth();
+  await Promise.all([pollHealth(), readImpact()]);
   await Promise.all([pollGraph(), pollImprovements(), pollGuardrails()]);
   await poll();
   setInterval(poll, 1000);
   setInterval(pollGraph, 5000);
   setInterval(pollHealth, 5000);
+  pollOutbox(); setInterval(pollOutbox, 10000);
   setInterval(pollImprovements, 30000);
 })();
