@@ -63,6 +63,11 @@
   .hint { color: var(--faint); font-size: 12.5px; font-weight: 400; letter-spacing: 0; margin-left: 8px; }
   .empty { color: var(--faint); margin: 0; }
   .sample { margin-left: 8px; padding: 1px 6px; border: 1px dashed var(--b3); border-radius: 2px; color: var(--blue); font: 500 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; vertical-align: 3px; }
+  /* the Simulation tab's way to the live demo pages (Edouard, 24-10) */
+  .sim-live { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 12px; }
+  .sim-live a { padding: 7px 12px; border: 1px solid var(--line-2); border-radius: 2px; background: var(--surface); color: var(--text); text-decoration: none; font-weight: 500; }
+  .sim-live a:first-child { border-color: var(--blue); color: var(--b5); }
+  .sim-live a:hover, .sim-live a:focus-visible { box-shadow: var(--lift); }
   .s-green { --c: var(--green); } .s-orange { --c: var(--orange); } .s-red { --c: var(--red); } .s-grey { --c: var(--grey); }
 
   /* A block: its name, what it does and its state, as a pastille and as the bar on its left; a click opens the rest */
