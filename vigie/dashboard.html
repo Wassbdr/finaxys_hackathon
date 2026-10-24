@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="/console/static/header.css">
 <link rel="stylesheet" href="/console/static/helper.css">
 <link rel="stylesheet" href="/console/static/accueil.css">
+<link rel="stylesheet" href="/console/static/tableau.css">
 <style>
   /* The console, on the pitch page's paper: its tokens (ivory, a deep-sea ink, Geist at 400 and 500, the ramp of blues
      for the brand, colour otherwise only for a state) are tokens.css, shared by every page. */
@@ -247,6 +248,7 @@
   <a href="#synthese" data-tab="synthese" data-help="Synthèse|Ce que les rejeux du banc montrent">Synthèse <small>Rapport et veille</small></a>
   <a href="#parc" data-tab="parc" data-help="Parc|Les agents et qui alimente qui, leurs garde-fous, les seuils et les propositions">Parc <small>Agents, garde-fous, seuils</small></a>
   <a href="#gouvernance" data-tab="gouvernance" data-help="Gouvernance|Les indicateurs, l'impact mesuré et les preuves">Gouvernance <small>Indicateurs et preuves</small></a>
+  <a href="#tableau" data-tab="tableau" data-help="Tableau de bord|Toutes les mesures qui font la valeur d'Argus, rangées en arborescence, avec leurs graphes">Tableau de bord <small>Toutes les mesures, en graphes</small></a>
 </nav>
 <main>
   <section id="krys" aria-labelledby="argus-phrase">
@@ -328,6 +330,11 @@
     <h2 class="part">Preuves</h2>
     <div id="details" data-proofs="krys"></div>
   </section>
+  <section id="tableau" aria-labelledby="tableau-title" hidden>
+    <h1 class="view-title" id="tableau-title">Tableau de bord</h1>
+    <p class="view-lead">Les mesures qui font la valeur d'Argus, une à la fois : choisissez-la dans l'arborescence. Chaque graphe a ses chiffres et sa source.</p>
+    <div class="tb-body" id="tableau-body"></div>
+  </section>
   <!-- Section sans vue (retirée à la demande d'Édouard) : la boîte d'envoi des brouillons d'incident. -->
   <section id="mails-chat" hidden></section>
 </main>
@@ -339,5 +346,6 @@
 <script src="/console/static/accueil.js"></script>
 <script src="/console/mails-chat/mails-chat.js"></script>
 <script src="/console/details.js"></script>
+<script src="/console/static/tableau.js"></script>
 </body>
 </html>

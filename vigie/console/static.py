@@ -16,6 +16,8 @@ FILES = {
     'sentinel.css': (STATIC/'sentinel.css', CSS),
     'accueil.js': (HERE/'accueil.js', JS),
     'accueil.css': (HERE/'accueil.css', CSS),
+    'tableau.js': (HERE/'tableau.js', JS),
+    'tableau.css': (HERE/'tableau.css', CSS),
     'simulation.css': (STATIC/'simulation.css', CSS),
     'helper.js': (HERE/'helper.js', JS),
     'helper.css': (HERE/'helper.css', CSS),

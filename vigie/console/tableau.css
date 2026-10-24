@@ -1,0 +1,45 @@
+/* Le tableau de bord : l'arborescence des mesures à gauche, une page à droite. Krys en bleu foncé, les contrôles
+   classiques en bleu clair (paire vérifiée pour les daltonismes) ; orange et rouge ne disent qu'un état. */
+#tableau .tb-body { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 28px; align-items: start; }
+.tb-tree { position: sticky; top: calc(var(--menu) + 16px); padding: 8px 0; border-right: 1px solid var(--line); }
+.tb-tree ul { margin: 0; padding: 0; list-style: none; }
+.tb-tree ul ul { margin: 2px 0 8px; padding-left: 12px; border-left: 1px solid var(--line); }
+.tb-tree a, .tb-group { display: block; width: 100%; padding: 6px 10px; border: 0; border-radius: 2px; background: none; text-align: left;
+  font: 400 14px var(--sans); color: var(--dim); text-decoration: none; cursor: pointer; }
+.tb-group { font-weight: 500; color: var(--text); }
+.tb-group::before { content: "▸"; display: inline-block; width: 14px; color: var(--faint); transition: transform .2s; }
+.tb-group[aria-expanded=true]::before { transform: rotate(90deg); }
+.tb-tree a:hover, .tb-group:hover { background: var(--wash); color: var(--text); }
+.tb-tree a[aria-current] { background: var(--surface); color: var(--text); font-weight: 500; box-shadow: inset 3px 0 0 var(--blue); }
+.tb-tree :focus-visible { outline: 3px solid rgb(31 91 255 / .35); outline-offset: -3px; }
+.tb-page { min-width: 0; outline: none; }
+.tb-page h2 { margin: 0 0 6px; font-size: 24px; font-weight: 400; letter-spacing: -.02em; }
+.tb-page h3 { margin: 24px 0 8px; font-size: 16px; font-weight: 500; }
+.tb-lead { margin: 0 0 6px; max-width: 72ch; color: var(--dim); font-size: 15px; }
+.tb-source { margin: 0 0 18px; font-size: 12.5px; color: var(--faint); } .tb-source a { color: var(--b5); }
+.tb-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 12px; margin: 14px 0 22px; }
+.tb-tile { display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
+.tb-tile b { font-size: 28px; font-weight: 400; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.tb-tile span { font-size: 14px; } .tb-tile small { color: var(--dim); font-size: 12.5px; }
+.tb-legend { display: flex; gap: 18px; margin: 4px 0 8px; font-size: 13px; color: var(--dim); }
+.tb-legend i { display: inline-block; width: 12px; height: 12px; margin-right: 6px; border-radius: 2px; vertical-align: -1px; }
+.tb-chart { display: block; width: 100%; max-width: 760px; height: auto; margin: 4px 0 10px; overflow: visible; }
+.tb-chart .tb-label { font: 400 12.5px var(--sans); fill: var(--text); }
+.tb-chart .tb-value { font: 500 12px var(--mono); fill: var(--text); }
+.tb-chart .tb-axis { font: 400 11px var(--mono); fill: var(--faint); }
+.tb-chart .tb-missing, .tb-missing { font: 400 12px var(--sans); fill: var(--faint); color: var(--faint); }
+.tb-chart .tb-grid { stroke: rgb(14 23 38 / .08); }
+.tb-chart .tb-limit { stroke: var(--dim); stroke-dasharray: 3 3; }
+.tb-chart g:hover rect { opacity: .82; }
+.tb-numbers { margin: 6px 0 18px; font-size: 13px; } .tb-numbers summary { cursor: pointer; color: var(--dim); }
+.tb-numbers table { margin-top: 8px; border-collapse: collapse; } .tb-numbers td, .tb-numbers th { padding: 4px 12px 4px 0; text-align: left; }
+.tb-numbers th { font: 500 10.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+.tb-empty { color: var(--faint); } .tb-next { margin-top: 18px; color: var(--dim); }
+.tb-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.tb-list li { padding: 8px 12px; border: 1px solid var(--line); border-radius: 2px; background: var(--surface); }
+.tb-list small { color: var(--faint); margin-left: 6px; }
+.tb-state { display: inline-block; min-width: 150px; font-size: 12.5px; font-weight: 500; }
+.tb-state::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; background: currentColor; vertical-align: 1px; }
+.tb-couvert { color: var(--green); } .tb-partiel { color: var(--orange); } .tb-hors-perimetre { color: var(--red); }
+@media (max-width: 900px) { #tableau .tb-body { grid-template-columns: 1fr; } .tb-tree { position: static; border-right: 0; border-bottom: 1px solid var(--line); } }
+@media (prefers-reduced-motion: reduce) { .tb-group::before { transition: none; } }

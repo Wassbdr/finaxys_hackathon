@@ -160,6 +160,8 @@ function render() {
   compose();
   renderBar(); renderSummary(); renderSuggestions(); renderSynthese(); renderAgents(); renderActions(); renderGuardrails(); renderMetrics(); renderGovernance(); renderImprove(); renderDetail();
   if (pendingBlock) { $(pendingBlock)?.scrollIntoView({block: "start"}); pendingBlock = null; }
+  // the dashboard's live pages read what Krys publishes, never the sample
+  window.tableauLive?.({live, S: live ? D.S : null, status: krysStatus(), findings: krysFindings()});
 }
 
 function renderBar() {
@@ -697,7 +699,7 @@ function go(id) {
   for (const t of tabs) t.toggleAttribute("aria-current", t.dataset.tab === id);
   for (const s of document.querySelectorAll("main > section")) s.hidden = s.id !== id;
 }
-for (const t of tabs) t.onclick = e => { e.preventDefault(); go(t.dataset.tab); history.replaceState(null, "", location.pathname + location.search + "#" + t.dataset.tab); };
+for (const t of tabs) t.onclick = e => { e.preventDefault(); go(t.dataset.tab); history.replaceState(null, "", location.pathname + location.search + "#" + t.dataset.tab); window.tableauLive?.({live, S: live && D ? D.S : null, status: D ? krysStatus() : null, findings: D ? krysFindings() : []}); };
 // up and down move along the views, Enter opens the one in focus
 document.querySelector(".views").addEventListener("keydown", e => {
   const i = tabs.indexOf(document.activeElement);
@@ -708,7 +710,8 @@ document.querySelector(".views").addEventListener("keydown", e => {
 // a view's anchor opens it; a former tab's opens the view that took its content, scrolled to its block (anchor() is the
 // head script's); ?embed=<view> names it without an anchor, as an anchor in a frame scrolls the page around it
 const fromHash = () => {
-  const {view, block} = anchor(location.hash.slice(1) || new URLSearchParams(location.search).get("embed") || "");
+  // a view may name a page of its own after a slash (#tableau/fraude): the view opens, its page is its own business
+  const {view, block} = anchor((location.hash.slice(1) || new URLSearchParams(location.search).get("embed") || "").split("/")[0]);
   go(tabs.some(t => t.dataset.tab === view) ? view : "krys");
   if (!block) return;
   history.replaceState(null, "", location.pathname + location.search + "#" + view);

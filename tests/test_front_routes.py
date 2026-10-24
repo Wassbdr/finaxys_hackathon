@@ -111,7 +111,7 @@ def test_the_console_sends_the_anchors_that_left_to_their_space():
 def test_the_console_has_five_views_and_each_former_tab_lands_in_one():
     html = (ROOT/'vigie/dashboard.html').read_text()
     views = re.findall(r'<a href="#([a-z]+)" data-tab="\1"', html)
-    assert views == ['krys', 'alertes', 'synthese', 'parc', 'gouvernance']
+    assert views == ['krys', 'alertes', 'synthese', 'parc', 'gouvernance', 'tableau']
     sections = {m.group(1): m.group(2) for m in re.finditer(r'<section id="([a-z-]+)"[^>]*>(.*?)</section>', html, re.S)}
     assert set(views) <= set(sections) and 'hidden' not in re.search(r'<section id="krys"[^>]*>', html).group(0)
     moved = dict(re.findall(r'(\w+): "(\w+)"', re.search(r'moved: \{(.*?)\}', html).group(1)))
@@ -158,3 +158,16 @@ def test_the_pitch_page_leads_to_the_new_spaces_only():
     for url in links:
         assert not re.match(r'/(dashboard|argus|demo/page)(?![/\w])', url), url
     assert 'localhost:8000' not in html
+
+
+def test_the_dashboard_reads_only_published_measures():
+    c = client()
+    code = (ROOT/'vigie/console/tableau.js').read_text()
+    reads = re.findall(r"get\((?:IMPACT \+ )?'([^']+)'\)", code)
+    assert len(reads) == 7
+    for name in reads:
+        url = name if name.startswith('/') else '/dashboard/console/impact/' + name
+        assert c.get(url).status_code == 200, url
+    assert c.get('/console/static/tableau.js').status_code == 200 and c.get('/console/static/tableau.css').status_code == 200
+    # every value reaches the page through esc(): no other HTML sink than the pages it writes
+    assert 'innerHTML = PAGES[page]()' in code and code.count('.innerHTML') == 5
