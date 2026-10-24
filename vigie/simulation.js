@@ -561,7 +561,7 @@ function hud() {
   ui.play.textContent = playing ? "Pause" : tick >= sc.ticks - 1 ? "Replay" : "Play";
 }
 
-let goal = null, fit = 1, zoom = null;
+let goal = null, fit = 1, zoom = null, still = 0;
 function view(k) {
   const V = VIEWS[k], blobs = Object.values(nodes).filter(n => n.eyes && n.g.parent === world);
   const target = V.on ? blobs.reduce((c, n) => c.add(n.g.position), v(0, 0, 0)).divideScalar(blobs.length).setY(1) : v(-1.5, 0.8, -1);
@@ -1088,7 +1088,7 @@ renderer.setAnimationLoop(now => {
   last = now;
   if (sec.hidden || document.hidden) return;
   time += dt;
-  if (playing) {
+  if (playing && time >= still && !zoom) {
     acc += film * TPS;
     while (acc >= 1) {
       acc -= 1;
@@ -1101,6 +1101,13 @@ renderer.setAnimationLoop(now => {
       const e = stopAt(tick);
       if (e) {
         halt(e);
+        break;
+      }
+      // the flow stops on a refusal for 3 s, and as long as the camera follows its dot, the dots already on their way
+      // going on (Marius, 24-10)
+      if (W.evAt[tick]?.some(e => REFUSED.test(e[2]))) {
+        still = time + 3;
+        acc = 0;
         break;
       }
     }
