@@ -236,12 +236,14 @@
     <a href="#guardrails" data-tab="guardrails" data-name="Guardrails" data-help="Guardrails|Every limit in force, each agent's and KRYS's, with how much of it is used now">Guardrails</a>
     <a href="#metrics" data-tab="metrics" data-name="Metrics" data-help="Metrics|The live indicators and the bench's figures without and with KRYS">Metrics</a>
     <a href="#improve" data-tab="improve" data-name="Improvements" data-help="Improvements|The thresholds in force and what the replays propose to change">Improvements</a>
+    <a href="#impact" data-tab="impact" data-name="Impact" data-help="Impact|Mesures archivées des trois banques, dénominateurs et limites">Impact</a>
     <a href="#details" data-tab="details" data-name="Détails">Détails</a>
     <span class="line" aria-hidden="true"></span>
   </div>
   <div class="bank"><span id="conn"></span>Bank<span class="box lamp calm" id="light">-</span></div>
 </nav>
 <main>
+  <section id="impact" hidden></section>
   <section id="details" hidden></section>
   <section id="agents"></section>
   <section id="summary" hidden></section>
@@ -254,6 +256,7 @@
 <dialog class="glass" id="dlg"><button type="button" class="x" aria-label="Close" onclick="dlg.close()">×</button><div class="in" id="detail"></div></dialog>
 <div class="toast" id="toast" hidden></div>
 <script src="/dashboard/dashboard.js"></script>
+<script src="/dashboard/console/impact.js"></script>
 <script type="module" src="/dashboard/simulation.js"></script>
 <script src="/console/details.js"></script>
 </body>

@@ -132,6 +132,7 @@ details p { color: var(--dim); }
       <span class="status" id="status">déconnecté</span>
     </div>
   </header>
+  <aside id="impact-summary" aria-label="Impact mesuré sur les journées archivées"></aside>
 
   <section class="banner block" aria-live="polite">
     <div class="tick" id="tick">tick —</div>
@@ -339,5 +340,6 @@ window.addEventListener("resize", () => drawChart(lastShown));
 connect();
 </script>
 <script src="/demo/krys.js"></script>
+<script src="/dashboard/console/impact.js"></script>
 </body>
 </html>

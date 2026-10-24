@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136",
+  "analysis_commit": "48a980a4e2f4c575382248fdbeab9e281087a590",
+  "outage_analysis_commit": "dfdd053b40ce00db95edcb89bcb1069f89320871",
+  "seeds": [
+    41,
+    42,
+    43,
+    59,
+    61,
+    67,
+    71,
+    73,
+    79,
+    83
+  ],
+  "baseline_margin": 0.0,
+  "profile_sha256": "7c426758ef24ad268390e7f8ecaed73238a88198dc4e7d0a5b3f67316d6e6b67",
+  "sources": {
+    "fixed.json": {
+      "source_file": "fixed-comparison.json",
+      "source_sha256": "ea00dd2fd67e6f9289fd03fad36e3744d9206b0252b4643f5c2ea30f445ba670",
+      "copied_sha256": "ea00dd2fd67e6f9289fd03fad36e3744d9206b0252b4643f5c2ea30f445ba670",
+      "extraction": false,
+      "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136"
+    },
+    "normal.json": {
+      "source_file": "propre.json",
+      "source_sha256": "0e79695b8e6e57d6f1d7bfe0f952d2bdac1ded1fc1a661b244cc5da347eae379",
+      "copied_sha256": "0e79695b8e6e57d6f1d7bfe0f952d2bdac1ded1fc1a661b244cc5da347eae379",
+      "extraction": false,
+      "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136"
+    },
+    "crash.json": {
+      "source_file": "krach_reel.json",
+      "source_sha256": "453aa07f8b6902c51498ed30420eb6cda33863de4a90d6eefcdf4485b3e7575c",
+      "copied_sha256": "453aa07f8b6902c51498ed30420eb6cda33863de4a90d6eefcdf4485b3e7575c",
+      "extraction": false,
+      "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136"
+    },
+    "fraud.json": {
+      "source_file": "resultats_argus.json",
+      "source_sha256": "d894fdd7cfdad9dc8271adbee53225266da2bbdb2f5dcf4649d98f0b8e1cd6fb",
+      "copied_sha256": "d894fdd7cfdad9dc8271adbee53225266da2bbdb2f5dcf4649d98f0b8e1cd6fb",
+      "extraction": false,
+      "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136"
+    },
+    "detections.json": {
+      "source_file": "surete_utilite.json",
+      "source_sha256": "28c0163931069d7f37100311925991b9b99bd93773b2103702b9f5dfae6507eb",
+      "copied_sha256": "f3b594e5f53d45ed2c8c502c0fe7474f80dd46efca85958430761073dc6f030d",
+      "extraction": true,
+      "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136"
+    },
+    "outage.json": {
+      "source_file": "metrics.json",
+      "source_sha256": "418a1245ddb0d37f94275ed632806706b7e7bd2b25c16e2b00adf69b9a013ec8",
+      "copied_sha256": "48d66dd941b760e36f5bd54368df41f07df0ab9849c24be77f705e7a162fdf6a",
+      "extraction": true,
+      "measured_commit": "d179dd0"
+    },
+    "limits.md": {
+      "source_file": "README_COUCHE3.md",
+      "source_sha256": "185943fb2d8417752d0429dd28b7352c71f401a17e6fa27008a9b1d8f2a5d826",
+      "copied_sha256": "185943fb2d8417752d0429dd28b7352c71f401a17e6fa27008a9b1d8f2a5d826",
+      "extraction": false,
+      "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136"
+    },
+    "outage-method.md": {
+      "source_file": "COUT_PANNE.md",
+      "source_sha256": "c233940f0dbf6dd5ac614f9e5c0fb1ef904395995290b99b059a24ffbdef21e2",
+      "copied_sha256": "c233940f0dbf6dd5ac614f9e5c0fb1ef904395995290b99b059a24ffbdef21e2",
+      "extraction": false,
+      "measured_commit": "d179dd0"
+    }
+  }
+}
