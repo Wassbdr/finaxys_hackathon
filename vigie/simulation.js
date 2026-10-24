@@ -866,7 +866,7 @@ function draw2d() {
     g2.restore();
     g2.save();
     g2.globalAlpha = hovered && n.id !== hovered && !near.has(n.id) ? FADE : 1;
-    const [x, y] = to2(...POS[n.id]), ink = near.has(n.id) ? tint : undefined;
+    const [x, y] = to2(...POS[n.id]);
     if (n.leds) {
       const w = 1.7 * s2, h = 1.3 * s2, led = n.mode === "down" ? "#94a3b8" : hex(LED[n.mode] ?? LED.normal);
       if (n.iso) {
@@ -889,7 +889,7 @@ function draw2d() {
       g2.lineWidth = 2;
       g2.stroke();
       for (const k of [-0.3, 0, 0.3]) (g2.fillStyle = led), g2.fillRect(x - 0.35 * s2, y + k * s2 - 1.5, 0.7 * s2, 3);
-      text2(n.id, x, y + h / 2 + 14, 12, ink);
+      text2(n.id, x, y + h / 2 + 14, 12);
       if (n.mode !== "normal" || n.iso) text2((n.iso ? "isolated" : n.mode).toUpperCase(), x, y + h / 2 + 27, 10.5, n.iso ? "#22d3ee" : n.mode === "compromised" ? "#f87171" : "#fbbf24", 700);
       continue;
     }
@@ -916,7 +916,7 @@ function draw2d() {
       g2.setLineDash([]);
     }
     const profile = sc.agents.find(a => a.id === n.id)?.profile;
-    text2(vigie ? "Vigie" : n.id, x, y + 1.3 * s2 + 14, 12, ink);
+    text2(vigie ? "Vigie" : n.id, x, y + 1.3 * s2 + 14, 12);
     if (profile) text2(profile.toUpperCase(), x, y + 1.3 * s2 + 27, 10.5, "#455064", 500);
   }
   g2.restore();
@@ -946,8 +946,8 @@ function hover(id) {
   id = nodes[id] ? id : null;
   if (id === hovered) return;
   hovered = id;
-  // the nodes linked to it stay lit, and their names and its plain links take its colour (Marius, 23-10); the Vigie's
-  // grey and a service's would not show, so they lend the brand's blue
+  // the nodes linked to it stay lit and its plain links take its colour (Marius, 23-10), their names staying in ink
+  // (Marius, 24-10); the Vigie's grey and a service's would not show, so they lend the brand's blue
   near = new Set(id ? [...links.values()].filter(l => l.g.visible).flatMap(l => (members(l.a).includes(id) ? members(l.b) : members(l.b).includes(id) ? members(l.a) : [])) : []);
   near.delete(id);
   tint = id && nodes[id].base && id !== "vigie" ? "#" + nodes[id].base.getHexString() : hex(SKY);
@@ -961,7 +961,7 @@ function hover(id) {
   for (const n of Object.values(nodes)) {
     const fade = !!id && n.id !== id && !near.has(n.id), copy = new Map();
     root(n).traverse(o => {
-      if (o.isCSS2DObject) (o.element.style.opacity = fade ? FADE : ""), (o.element.style.color = near.has(n.id) ? tint : "");
+      if (o.isCSS2DObject) o.element.style.opacity = fade ? FADE : "";
       if (!o.material) return;
       if (users.get(o.material).size > 1) o.material = copy.get(o.material) ?? copy.set(o.material, o.material.clone()).get(o.material);
       const m = o.material, solid = !(m.userData.transparent ??= m.transparent);
