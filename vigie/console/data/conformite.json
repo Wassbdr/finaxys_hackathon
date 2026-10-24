@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "titre": "Conformité — éléments de preuve",
+  "scope": "Les statuts décrivent uniquement la couverture technique de la démonstration. Ils ne constituent pas une attestation réglementaire.",
+  "calendar": "AI Act : applicabilité au conditionnel, selon l’usage et sa qualification. Recherche fournie : report à 2027 non confirmé au JO. Aucune échéance reportée n’est retenue ici pour juger la couverture ; le responsable doit vérifier le texte applicable et son périmètre.",
+  "calendar_source": "https://eur-lex.europa.eu/legal-content/EN/TXT/PDF/?uri=CELEX:32026R1744",
+  "calendar_note": "Complément repéré sur EUR-Lex : règlement 2026/1744, modification de l’article 113. À rapprocher du dossier avant toute utilisation juridique.",
+  "method": "Banque simulée, mêmes graines et attaques. Comparaison avec les contrôles classiques. Les résultats publiés portent sur Krys, couche 3 ; ils ne valent pas validation réglementaire de la console.",
+  "measurement": {
+    "commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136",
+    "delivery_commit": "48a980a4e2f4c575382248fdbeab9e281087a590",
+    "sample": "6 scénarios d’attaque × 10 journées simulées chacun",
+    "source": "/home/dantenos/projects/finaxys_hackathon/.worktrees/remesure-fusion/runs/remesure-fusion-cf4973a-surete-v2/fixed-comparison.json",
+    "sha256": "ea00dd2fd67e6f9289fd03fad36e3744d9206b0252b4643f5c2ea30f445ba670",
+    "file": "data/conformite-fixed-comparison.json"
+  },
+  "badges": [
+    {
+      "label": "DORA",
+      "why": "Pourquoi le régulateur s’y intéresse : retrouver et qualifier les incidents informatiques. DORA, art. 10, 17–19. Ce repère ne qualifie pas la gravité."
+    },
+    {
+      "label": "AI Act",
+      "why": "Pourquoi le régulateur s’y intéresse : reconstituer une décision et garder un contrôle humain si le système est à haut risque. AI Act, art. 12, 14 et 26."
+    },
+    {
+      "label": "MiFID II",
+      "why": "Pourquoi le régulateur s’y intéresse : encadrer les ordres et leur interruption lorsque le trading algorithmique s’applique. RTS 6, art. 12, 15 et 16 ; les contrôles classiques le reproduisent."
+    }
+  ],
+  "items": [
+    {
+      "id": "dora-journal",
+      "titre": "Conserver une trace exploitable",
+      "status": "couvert",
+      "article": "DORA, art. 17(2)(b) ; règlement délégué 2024/1774, art. 12",
+      "source": "https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:32022R2554",
+      "fait": "Le journal signé et chaîné couvre la trace des messages de cette démonstration.",
+      "classiques": "Les contrôles classiques produisent aussi un journal.",
+      "limite": "Conservation, accès et archivage institutionnels restent à organiser.",
+      "preuve": "journal",
+      "preuve_label": "journal/writer.py — JournalWriter.append et verify_journal"
+    },
+    {
+      "id": "dora-detection",
+      "titre": "Repérer les anomalies et organiser la réponse",
+      "status": "partiel",
+      "article": "DORA, art. 10(1)–(2), 17 et 18",
+      "source": "https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:32022R2554",
+      "fait": "Argus aide à démontrer la détection par des constats reliés aux messages.",
+      "classiques": "Les contrôles classiques détectent aussi certains incidents ; Krys ajoute le suivi entre agents.",
+      "limite": "Les scénarios simulés ne couvrent pas toutes les menaces ni les critères réglementaires de gravité.",
+      "preuve": "detection",
+      "preuve_label": "vigie/contagion.py — Contagion"
+    },
+    {
+      "id": "dora-notification",
+      "titre": "Préparer la notification d’incident",
+      "status": "partiel",
+      "article": "DORA, art. 19(1) et 19(4), art. 20",
+      "source": "https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:32022R2554",
+      "fait": "Le bouton reprend le brouillon sourcé existant du chatbot.",
+      "classiques": "Les contrôles classiques apportent leurs propres constats ; le brouillon reste une aide humaine.",
+      "limite": "Responsable, gravité, destinataire et délais sont à valider ; aucun dépôt réglementaire automatique.",
+      "preuve": "brouillon",
+      "preuve_label": "vigie/krys.py — Chat.ask, branche DORA"
+    },
+    {
+      "id": "ai-12",
+      "titre": "Tracer les événements du système",
+      "status": "couvert",
+      "article": "AI Act, art. 12(1)–(2)",
+      "source": "https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:32024R1689",
+      "fait": "Si le système relevait du haut risque, les traces aideraient à démontrer la journalisation.",
+      "classiques": "Les contrôles classiques journalisent aussi leurs actions.",
+      "limite": "La démonstration ne prouve pas la conservation sur tout le cycle de vie.",
+      "preuve": "journal",
+      "preuve_label": "journal/writer.py — JournalWriter.append et verify_journal"
+    },
+    {
+      "id": "ai-14",
+      "titre": "Garder un contrôle humain",
+      "status": "partiel",
+      "article": "AI Act, art. 14(1), 14(4)(d)–(e)",
+      "source": "https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:32024R1689",
+      "fait": "Les décisions humaines signées et confirmations séparées aideraient à reprendre la main.",
+      "classiques": "Les contrôles classiques disposent aussi d’un arrêt global.",
+      "limite": "Le contrôle humain exige aussi des personnes compétentes et une organisation réelle.",
+      "preuve": "humain",
+      "preuve_label": "vigie/krys.py — HumanActions.prepare et confirm"
+    },
+    {
+      "id": "ai-26",
+      "titre": "Organiser l’exploitation",
+      "status": "partiel",
+      "article": "AI Act, art. 26(1)–(2), 26(5)–(6)",
+      "source": "https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:32024R1689",
+      "fait": "Les preuves d’exploitation aideraient le déployeur à documenter sa surveillance.",
+      "classiques": "Les journaux des contrôles classiques restent utiles au même dossier.",
+      "limite": "Formation, responsabilités, données et conservation restent à la charge du déployeur.",
+      "preuve": "controle",
+      "preuve_label": "vigie/main.py — Runtime.on_message et request_approval"
+    },
+    {
+      "id": "ai-organisation",
+      "titre": "Désigner et former les responsables",
+      "status": "hors-perimetre",
+      "article": "AI Act, art. 26(2)",
+      "source": "https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:32024R1689",
+      "fait": "Argus ne désigne pas les responsables et ne délivre pas leur formation.",
+      "classiques": "Les contrôles classiques ne remplacent pas non plus cette organisation.",
+      "limite": "La banque doit établir les rôles, compétences et autorisations avant exploitation.",
+      "preuve": "humain",
+      "preuve_label": "vigie/krys.py — HumanActions.prepare et confirm"
+    },
+    {
+      "id": "rts-ordre",
+      "titre": "Vérifier avant de transmettre un ordre",
+      "status": "couvert",
+      "article": "MiFID II RTS 6, règlement 2017/589, art. 15 ; surveillance art. 16",
+      "source": "https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:32017R0589",
+      "fait": "Le portique couvre des plafonds et vérifications avant exécution simulée.",
+      "classiques": "Ces contrôles sont déjà reproduits par les contrôles classiques ; Krys les complète.",
+      "limite": "Branchement aux plateformes et validation des paramètres réels restent hors démonstration.",
+      "preuve": "classique",
+      "preuve_label": "vigie/classique.py — Classique.request_approval"
+    },
+    {
+      "id": "rts-coupe",
+      "titre": "Interrompre les ordres",
+      "status": "partiel",
+      "article": "MiFID II RTS 6, règlement 2017/589, art. 12(1)–(2)",
+      "source": "https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:32017R0589",
+      "fait": "Le feu rouge refuse de nouvelles exécutions dans la simulation.",
+      "classiques": "Les contrôles classiques reproduisent déjà ce coupe-circuit.",
+      "limite": "L’annulation immédiate des ordres encore ouverts sur des plateformes réelles n’est pas démontrée.",
+      "preuve": "classique",
+      "preuve_label": "vigie/classique.py — Classique.request_approval"
+    },
+    {
+      "id": "assurance",
+      "titre": "Documenter le risque résiduel",
+      "status": "partiel",
+      "article": "Assurabilité : hypothèse de souscription, pas une obligation de résultat",
+      "source": "",
+      "fait": "Un gel ciblé pourrait borner la perte maximale liée à une source ; il aide à mesurer l’exposition observée.",
+      "classiques": "La comparaison inclut les contrôles classiques, pas seulement une banque sans protection.",
+      "limite": "Aucune borne universelle de perte, garantie d’assurabilité ou baisse de prime n’est établie.",
+      "preuve": "mesure",
+      "preuve_label": "vigie/SURETE_UTILITE.md — mesure cf4973a"
+    }
+  ]
+}

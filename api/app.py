@@ -192,6 +192,8 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
         if name not in ("accueil.js", "accueil.css"):
             raise HTTPException(404)
         return FileResponse(ROOT / "vigie" / "console" / name, headers=FRESH)
+    from vigie.console.conformite import router as conformite_router
+    app.include_router(conformite_router)
 
     @app.get("/dashboard")
     def dashboard():

@@ -1,0 +1,23 @@
+/* Les jetons et la typographie sont hérités de la console ; seules les portées
+   de cet onglet et ses badges sont ajoutées à la charte commune. */
+.conformite { color:var(--text); font-family:var(--sans); line-height:1.55; }
+.conformite h1 { font-size:1.65rem; font-weight:500; margin:0 0 .7rem; }
+.conformite h2 { font-size:1.1rem; font-weight:500; margin:.6rem 0; }
+.conformite p { max-width:85ch; margin:.6rem 0; }
+.conformite a { color:var(--blue); text-underline-offset:.2em; overflow-wrap:anywhere; }
+.conformite-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; margin:1.2rem 0; }
+.conformite-card,.conformite-draft { background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--line-2); padding:1.1rem; min-width:0; }
+.conformite-status { display:inline-block; font-size:.85rem; border:1px solid var(--line); padding:.15rem .4rem; }
+.conformite-status.couvert { color:var(--green); }
+.conformite-status.partiel { color:var(--orange); }
+.conformite-status.hors-perimetre { color:var(--red); }
+.conformite-method { font-size:.85rem; color:var(--dim); overflow-wrap:anywhere; }
+.conformite-draft { margin-top:1.2rem; }
+.conformite-draft label { display:block; margin:.7rem 0; }
+.conformite-draft input { display:block; max-width:100%; padding:.45rem; border:1px solid var(--line-2); background:var(--bg); }
+.conformite-draft button { border:1px solid var(--line-2); padding:.5rem .7rem; border-radius:0; background:var(--surface); cursor:pointer; }
+.conformite-output { white-space:pre-wrap; overflow-wrap:anywhere; font:inherit; max-width:90ch; }
+.conformite-badges { display:inline-flex; flex-wrap:wrap; gap:.3rem; margin-left:.5rem; }
+.conformite-badge { border:1px solid var(--line-2); border-radius:0; color:var(--dim); font:400 .7rem var(--sans); padding:.1rem .25rem; text-decoration:none; }
+.conformite-badge:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+@media(max-width:750px) { .conformite-grid { grid-template-columns:1fr; } .conformite-card { padding:.8rem; } }
