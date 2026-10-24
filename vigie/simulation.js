@@ -927,14 +927,16 @@ function hover(id) {
   near = new Set(id ? [...links.values()].filter(l => l.g.visible).flatMap(l => (members(l.a).includes(id) ? members(l.b) : members(l.b).includes(id) ? members(l.a) : [])) : []);
   near.delete(id);
   tint = id && nodes[id].base && id !== "vigie" ? "#" + nodes[id].base.getHexString() : hex(SKY);
-  // a material one node shares with anything else (INK, GOLD, the tower's STEEL) gets a copy of its own, so it fades alone
-  const of = new Map(Object.values(nodes).map(n => [n.g, n])), owner = o => (of.has(o) || !o.parent ? o : owner(o.parent));
+  // a material one node shares with anything else (INK, GOLD, the tower's STEEL) gets a copy of its own, so it fades alone;
+  // the Vigie fades with its tower (Marius, 24-10)
+  const root = n => (n.id === "vigie" ? tower : n.g);
+  const of = new Map(Object.values(nodes).map(n => [root(n), n])), owner = o => (of.has(o) || !o.parent ? o : owner(o.parent));
   const users = new Map();
   scene.traverse(o => o.material && users.set(o.material, (users.get(o.material) ?? new Set()).add(owner(o))));
   dim = new Set();
   for (const n of Object.values(nodes)) {
     const fade = !!id && n.id !== id && !near.has(n.id), copy = new Map();
-    n.g.traverse(o => {
+    root(n).traverse(o => {
       if (o.isCSS2DObject) (o.element.style.opacity = fade ? FADE : ""), (o.element.style.color = near.has(n.id) ? tint : "");
       if (!o.material) return;
       if (users.get(o.material).size > 1) o.material = copy.get(o.material) ?? copy.set(o.material, o.material.clone()).get(o.material);
