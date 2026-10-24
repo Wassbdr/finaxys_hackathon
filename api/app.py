@@ -59,6 +59,8 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
     app = FastAPI(title="Banque Horizon : API de simulation", version="1.0")
     app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
     targets = targets or {}
+    from vigie.console.details_api import attach_details
+    attach_details(app)
 
     def source(world: str | None):
         name = world or default_world
