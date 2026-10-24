@@ -402,49 +402,120 @@ function renderSummary() {
 const THRESHOLDS = {price_drift_z: "Price move in one tick that raises an alert, in standard deviations", reconciliation_gap_pct: "Gap between Risk's cash and the book of record that raises an alert, %",
   herding_share: "Share of the traders on one side of one asset within 3 ticks that raises an alert", breach_horizon_ticks: "Warns when a limit will break within, ticks"};
 function renderGuardrails() {
-  if (!GR) return put("guardrails", `<p class="empty">The API does not serve /guardrails: restart it (python -m api.app).</p>`);
-  const {trader: t, compliance: c, risk: r, payment: pay, quant: q} = GR.agents, L = D.S.limits || {}, p = D.S.params || {};
-  const scale = D.S.agents?.risk?.status?.trader_scale ?? 1, blocked = Object.keys(D.S.agents?.compliance?.status?.blocked || {});
-  const used = v => v == null ? "" : `<span class="${v >= 100 ? "a-red" : v >= 80 ? "a-slow" : ""}">${Math.round(v)}%</span>`;
-  const each = key => Object.entries(L.traders || {}).map(([id, x]) => `${esc(id)} ${used(x[key])}`).join(" · ");
-  const on = x => chip(x ? "green" : "grey", x ? "on" : "off");
-  const rows = list => table(`<th>who</th><th>guardrail</th><th class="num">set to</th><th class="num">now</th>`,
-    list.map(([who, what, value, now = ""], i) => `<tr><td>${i && list[i - 1][0] === who ? "" : esc(who)}</td><td>${what}</td><td class="num">${value}</td><td class="num">${now}</td></tr>`));
-  let html = `<p class="lead">Each agent checks its own limits; KRYS checks the agents. Values from config.yaml, use from the live bank${sample("all")}</p>`;
-  html += `<h2>The bank's agents<span class="hint">an agent on orange has its order and payment limits × ${GR.vigie.orange_amount_factor}</span></h2>` + rows([
-    ["trader", "Largest order", eur(t.max_order_eur), scale < 1 ? `× ${scale}: VaR is over ${pct(r.var_warning_ratio)} of its limit` : ""],
-    ["trader", "Position in one asset", eur(t.max_position_eur), each("max_position_pct")],
-    ["trader", "Loss in a day, then it stops until the next day", eur(t.max_daily_loss_eur), each("daily_loss_pct")],
-    ["trader", "Confidence under which it does not trade", t.min_confidence],
-    ["trader", "Wait between two orders on one asset", `${t.cooldown_ticks} ticks`],
-    ["compliance", "Assets no order may touch (restricted list)", esc((p.restricted_list ?? c.restricted_list).join(", ")) || "none"],
-    ["compliance", "An order built on confidential news (insider information)", "refused"],
-    ["compliance", "Small orders in a row (split orders)", `${c.structuring_max_orders} under ${eur(c.small_order_eur)} in ${c.structuring_window_ticks} ticks`],
-    ["compliance", "Selling back what one bought (wash trade)", `within ${c.wash_window_ticks} ticks`],
-    ["compliance", "Cancelled orders (spoofing)", `over ${c.spoofing_max_cancels} in ${c.spoofing_window_ticks} ticks`],
-    ["compliance", "Payments: the beneficiary's KYC file is reviewed, these countries are high risk; a block is lifted only by a human", esc(c.high_risk_countries.join(", ")), blocked.length ? `${blocked.length} blocked` : ""],
-    ["risk", "Gross exposure", eur(r.max_exposure_eur), used(L.bank?.exposure_pct)],
-    ["risk", `VaR 99% one day; over ${pct(r.var_warning_ratio)} the traders' limits go × ${r.var_warning_scale}`, eur(r.max_var_eur), used(L.bank?.var_pct)],
-    ["risk", "Loss in a day, then trading halts until a human resumes it", eur(r.max_daily_loss_eur), used(L.bank?.daily_loss_pct)],
-    ["risk", "Cash floor", eur(r.min_cash_eur), L.bank?.liquidity_floor_pct != null ? `${used(L.bank.liquidity_floor_pct)} of the cash` : ""],
-    ["payment", "One transfer", eur(pay.max_transfer_eur)],
-    ["payment", "Transfers in a day", eur(pay.max_daily_eur), used(L.payments?.daily_pct)],
-    ["payment", "No payment to an account whose IBAN changed within", `${pay.iban_change_lock_ticks} ticks`],
-    ["quant", "Market data older than this is not priced", `${q.max_data_age_ticks} ticks`],
-    ["quant", `A one-tick jump over this drops its confidence to ${q.low_confidence}, under the traders' ${t.min_confidence}`, `${q.jump_threshold_pct}%`],
-  ]);
-  html += `<h2>KRYS<span class="hint">a change of threshold is signed by a human, in Improvements</span></h2>` + rows([
-    ["KRYS", "Watches every message and approves every order and payment", on(D.S.vigie?.enabled ?? GR.vigie.enabled)],
-    ["gate", `An order or payment it has not approved within this wait is ${GR.gate.default_on_timeout === "reject" ? "refused" : "approved"}`, `${GR.gate.timeout_s} s`, esc(D.S.vigie?.gate ?? "")],
-    ["agents", "An agent that hears no KRYS heartbeat for this long goes orange by itself", `${GR.vigie.heartbeat_timeout_ticks} ticks`, agentIds().filter(id => D.S.agents[id].vigie_lost).length ? `${agentIds().filter(id => D.S.agents[id].vigie_lost).length} lost it` : ""],
-    ...Object.entries(D.st.metrics?.thresholds || {}).map(([k, v]) => ["thresholds", esc(THRESHOLDS[k] || k), v]),
-    ["LLM auditor", "Reads the agents' reasoning; can raise suspicion, never approve", on(D.st.auditor_llm)],
-  ]);
-  html += `<h2>The LLM agents</h2>` + rows([
-    ["LLM", "Agents that reason with an LLM (config llm.enabled)", on(GR.llm.enabled)],
-    ["LLM", "Prompt guardrails: instruction phrases are cut from outside text and a system reminder is added", on((p.guardrails ?? GR.llm.guardrails) === "on")],
-  ]);
-  put("guardrails", html);
+  const root = $("guardrails"), make = (tag, text, cls) => {
+    const el = document.createElement(tag);
+    if (text != null) el.textContent = String(text);
+    if (cls) el.className = cls;
+    return el;
+  };
+  if (!GR) { root.replaceChildren(make("p", "Guardrail settings are unavailable. Usage cannot be assessed.", "gr-note")); root._guardrailsSignature = null; return; }
+  const {trader: t, compliance: c, risk: r, payment: pay, quant: q} = GR.agents;
+  const L = D.S.limits || {}, p = D.S.params || {};
+  const numeric = value => typeof value === "number" && Number.isFinite(value);
+  const money = value => numeric(value) ? (value / 1e6).toLocaleString("en", {minimumFractionDigits: 2, maximumFractionDigits: 8}) + " M€" : value ?? "Not supplied";
+  const unit = (value, suffix) => value == null ? "Not supplied" : `${value} ${suffix}`;
+  const ratio = value => numeric(value) ? pct(value) : value ?? "Not supplied";
+  const list = value => Array.isArray(value) ? value.join(", ") || "None" : value ?? "Not supplied";
+  const flag = value => typeof value === "boolean" ? (value ? "On" : "Off") : value ?? "Not reported";
+  const scale = D.S.agents?.risk?.status?.trader_scale ?? 1;
+  const blocked = Object.keys(D.S.agents?.compliance?.status?.blocked || {});
+  const groups = ["Trader", "Compliance", "Risk", "Payment", "Quant", "KRYS", "LLM"].map(name => ({name, items: []}));
+  const add = (group, title, value, why, usage, note = "") => groups.find(g => g.name === group).items.push({title, value, why, usage, note});
+  const traderUsage = key => Object.entries(L.traders || {}).map(([label, values]) => ({label, value: values[key]}));
+  const bankUsage = key => [{label: "Bank", value: L.bank?.[key]}];
+  add("Trader", "Largest order", money(t.max_order_eur), "Caps the size of a single order.", undefined,
+    scale < 1 ? `Current Risk size factor: × ${scale}; VaR is over ${ratio(r.var_warning_ratio)} of its limit.` : "");
+  add("Trader", "Position per asset", money(t.max_position_eur), "Limits concentration in one asset.", traderUsage("max_position_pct"));
+  add("Trader", "Daily loss stop", money(t.max_daily_loss_eur), "Stops this trader until the next day once its loss limit is reached.", traderUsage("daily_loss_pct"));
+  add("Trader", "Minimum confidence", t.min_confidence, "Does not trade below this confidence score.");
+  add("Trader", "Order cooldown", unit(t.cooldown_ticks, "ticks"), "Waits between two orders on the same asset.");
+  add("Compliance", "Restricted assets", list(p.restricted_list ?? c.restricted_list), "Refuses any order touching a listed asset.");
+  add("Compliance", "Confidential news", "Refused", "Refuses an order based on insider information.");
+  add("Compliance", "Split orders", `${c.structuring_max_orders} under ${money(c.small_order_eur)} / ${c.structuring_window_ticks} ticks`, "Checks repeated small orders over this window.");
+  add("Compliance", "Wash-trade window", unit(c.wash_window_ticks, "ticks"), "Checks selling back what was recently bought.");
+  add("Compliance", "Cancellation watch", `Over ${c.spoofing_max_cancels} / ${c.spoofing_window_ticks} ticks`, "Checks repeated cancellations for possible spoofing.");
+  add("Compliance", "High-risk countries", list(c.high_risk_countries), "Reviews the beneficiary's KYC file; only a human lifts a payment block.", undefined,
+    blocked.length ? `${blocked.length} payment blocks currently reported.` : "");
+  add("Risk", "Gross exposure", money(r.max_exposure_eur), "Caps the total exposure of the bank.", bankUsage("exposure_pct"));
+  add("Risk", "One-day VaR · 99%", money(r.max_var_eur), `Above ${ratio(r.var_warning_ratio)} of this limit, trader sizes use factor × ${r.var_warning_scale}.`, bankUsage("var_pct"));
+  add("Risk", "Daily bank loss stop", money(r.max_daily_loss_eur), "Halts trading until a human resumes it.", bankUsage("daily_loss_pct"));
+  add("Risk", "Cash floor", money(r.min_cash_eur), "Usage is the minimum floor / available cash. At 100%, no cash buffer remains.", bankUsage("liquidity_floor_pct"));
+  add("Payment", "Largest transfer", money(pay.max_transfer_eur), "Caps one transfer before it is executed.");
+  add("Payment", "Daily transfers", money(pay.max_daily_eur), "Caps the amount transferred during the day.", [{label: "Payments", value: L.payments?.daily_pct}]);
+  add("Payment", "Changed-IBAN lock", unit(pay.iban_change_lock_ticks, "ticks"), "Refuses payments soon after the destination account changes.");
+  add("Quant", "Maximum data age", unit(q.max_data_age_ticks, "ticks"), "Does not price market data older than this.");
+  add("Quant", "One-tick price jump", unit(q.jump_threshold_pct, "%"), `Drops confidence to ${q.low_confidence}, below the traders' ${t.min_confidence}, when this jump is exceeded.`);
+  add("KRYS", "Gate monitoring", flag(D.S.vigie?.enabled ?? GR.vigie.enabled), "Watches messages and approves orders and payments before execution.");
+  add("KRYS", "Approval wait", unit(GR.gate.timeout_s, "seconds"), `An unanswered request is ${GR.gate.default_on_timeout === "reject" ? "refused" : "approved"} after this wait.`, undefined,
+    D.S.vigie?.gate == null ? "" : `Current gate: ${D.S.vigie.gate}`);
+  const actors = Object.values(D.S.agents || {}), lost = actors.filter(a => a.vigie_lost).length;
+  add("KRYS", "Missing heartbeat", unit(GR.vigie.heartbeat_timeout_ticks, "ticks"), "An agent goes orange by itself after hearing no KRYS heartbeat for this long.", undefined,
+    actors.length ? `${lost} of ${actors.length} agents report a lost heartbeat.` : "No heartbeat status supplied.");
+  const thresholdTitles = {price_drift_z: "Price move alert", reconciliation_gap_pct: "Cash mismatch alert", herding_share: "Same-side traders", breach_horizon_ticks: "Limit warning horizon"};
+  const thresholdUnits = {price_drift_z: "standard deviations", reconciliation_gap_pct: "%", herding_share: "share", breach_horizon_ticks: "ticks"};
+  for (const [key, value] of Object.entries(D.st.metrics?.thresholds || {})) {
+    add("KRYS", thresholdTitles[key] || key, thresholdUnits[key] ? unit(value, thresholdUnits[key]) : value,
+      THRESHOLDS[key] || "A configured monitoring threshold; changes require a signed human decision.");
+  }
+  add("LLM", "Reasoning agents", flag(GR.llm.enabled), "Shows whether the agents use an LLM to reason.");
+  const promptGuard = p.guardrails ?? GR.llm.guardrails;
+  add("LLM", "Prompt protection", promptGuard === "on" ? "On" : promptGuard === "off" ? "Off" : promptGuard, "Cuts instruction phrases from external text and adds a system reminder.");
+  add("LLM", "Reasoning auditor", flag(D.st.auditor_llm), "May raise suspicion after reviewing reasoning; it never approves an operation.");
+  // Garder les nœuds lors d'un rafraîchissement identique évite de perdre le
+  // point de lecture ; aucune consommation n'est déduite d'un réglage seul.
+  const sampleData = D.fake.has("all"), signature = JSON.stringify([groups, sampleData, GR.vigie.orange_amount_factor]);
+  if (root._guardrailsSignature === signature) return;
+  root._guardrailsSignature = signature;
+  const state = value => value >= 100 ? "red" : value >= 80 ? "orange" : "normal";
+  const meter = (reading, title) => {
+    const line = make("div", null, "gr-reading"), status = state(reading.value);
+    if (!numeric(reading.value)) {
+      line.append(make("p", `${reading.label}: ${reading.value == null ? "Usage not supplied" : "Unusable reading: " + reading.value}`, "gr-note"));
+      return line;
+    }
+    const text = `${reading.value}%`, bounded = Math.min(100, Math.max(0, reading.value));
+    line.append(make("p", `${reading.label} · ${text} of limit`, "gr-usage-text"));
+    const gauge = make("div", null, `gr-meter gr-${status}`);
+    gauge.setAttribute("role", "meter"); gauge.setAttribute("aria-label", `${title} — ${reading.label}`);
+    gauge.setAttribute("aria-valuemin", "0"); gauge.setAttribute("aria-valuemax", "100");
+    gauge.setAttribute("aria-valuenow", bounded); gauge.setAttribute("aria-valuetext", `${text} of limit`);
+    const fill = make("span", null, "gr-fill"); fill.style.width = `${bounded}%`; gauge.append(fill);
+    line.append(gauge, make("span", status === "red" ? "At or above limit" : status === "orange" ? "Near limit" : "Within limit", `gr-state gr-${status}`));
+    return line;
+  };
+  const readings = groups.flatMap(group => group.items.flatMap(item => (item.usage || []).filter(reading => numeric(reading.value)).map(reading => ({group, item, reading}))));
+  const near = readings.filter(({reading}) => reading.value >= 80).sort((a, b) => b.reading.value - a.reading.value);
+  const summary = make("div", null, "gr-attention"); summary.id = "gr-near";
+  summary.append(make("h2", "What is approaching a limit"));
+  if (near.length) {
+    const items = make("ul", null, "gr-near-list");
+    for (const {group, item, reading} of near) {
+      const li = make("li"); li.append(make("h3", `${group.name} · ${item.title}`), meter(reading, item.title)); items.append(li);
+    }
+    summary.append(items);
+  } else summary.append(make("p", readings.length ? "No limits close to threshold" : "No usage readings available", "gr-clear"));
+  summary.append(make("p", "Readings at 80% or above are orange; at 100% or above, red. Missing usage is not zero.", "gr-note"));
+  root.replaceChildren(make("h1", "Guardrails"), summary);
+  root.append(make("p", "Each agent checks its own limits; KRYS checks the agents. Settings come from /guardrails; usage comes from the bank view.", "gr-intro"));
+  if (sampleData) root.append(make("p", "Sample bank readings — not live data", "gr-source"));
+  root.append(make("p", `On orange, order and payment limits use factor × ${GR.vigie.orange_amount_factor}. Configured settings below remain unchanged.`, "gr-note"));
+  const grid = make("div", null, "gr-grid");
+  for (const group of groups) {
+    const card = make("article", null, "gr-actor"); card.append(make("h2", group.name));
+    const settings = make("dl", null, "gr-settings");
+    for (const item of group.items) {
+      const dt = make("dt", item.title), dd = make("dd");
+      dd.append(make("p", item.value ?? "Not supplied", "gr-setting"));
+      if (item.usage) {
+        for (const reading of item.usage) dd.append(meter(reading, item.title));
+        if (!item.usage.length) dd.append(make("p", "Usage not supplied", "gr-note"));
+      }
+      if (item.note) dd.append(make("p", item.note, "gr-note"));
+      dd.append(make("p", "Why: " + item.why, "gr-why")); settings.append(dt, dd);
+    }
+    card.append(settings); grid.append(card);
+  }
+  root.append(grid);
 }
 
 // --- the details popup --------------------------------------------------------------------------------------------
