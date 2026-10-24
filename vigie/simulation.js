@@ -71,7 +71,7 @@ if (!SIDE) sec.innerHTML = `<div class="settings"><div class="fold">
       ${row("Details", choice("details", OFF_ON), "Whether the helper's box adds what an agent reads, its messages of this tick and its last event")}
       <span class="opt" data-help="Layout|Hold Option over a drop or a service to carry it: it follows the pointer until Option is let go, a role's pad with its agents|Saves where everything stands and the camera's angle as the defaults, for everyone"><span>Layout</span><span class="choice"><button type="button" id="sim-save">Save as default</button></span></span>
     </div></div></div></div>
-  <div class="sim-stage"><h2 class="sim-side">A Vigie</h2><h2 class="sim-side ours">Our Vigie</h2><ol class="sim-refused"></ol><ol class="sim-refused ours"></ol>
+  <div class="sim-stage"><h2 class="sim-side">Vigie classic</h2><h2 class="sim-side ours">Our Vigie</h2><ol class="sim-refused"></ol><ol class="sim-refused ours"></ol>
     <p class="sim-saved"><b></b>Losses avoided</p><p class="sim-saved ours"><b></b>Losses avoided</p></div>`;
 const ui = { sc: sec.querySelector("#sim-sc"), play: sec.querySelector("#sim-play"), t: sec.querySelector("#sim-t"), tick: sec.querySelector("#sim-tick"),
   refused: sec.querySelectorAll(".sim-refused"), saved: sec.querySelectorAll(".sim-saved b"), fold: sec.querySelector(".fold"), pin: sec.querySelector(".fold-pin") };
