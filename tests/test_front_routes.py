@@ -149,3 +149,12 @@ def test_regulation_serves_compliance_and_sentinel_in_argus_colours():
     # the colleague's file itself does not change
     assert 'fonts.googleapis' in (ROOT/'vendor/sentinel/docs/sentinel-demo.html').read_text()
     assert c.get('/pages/other').status_code == 404
+
+
+def test_the_pitch_page_leads_to_the_new_spaces_only():
+    html = (ROOT/'vigie/landing.html').read_text()
+    links = re.findall(r'(?:href|src)="(/[^"]*)"', html)
+    assert '/simulation?embed=simulation' in links and '/console' in links and '/simulation' in links
+    for url in links:
+        assert not re.match(r'/(dashboard|argus|demo/page)(?![/\w])', url), url
+    assert 'localhost:8000' not in html
