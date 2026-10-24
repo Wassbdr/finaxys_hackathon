@@ -195,9 +195,33 @@
   #sim-tick { font-variant-numeric: tabular-nums; }
   @media (max-width: 639px) { .settings { display: none; } }
   @media (prefers-reduced-motion: reduce) { .fold, .fold-body, .fold-pin { transition: none; } }
-  /* what stopped the replay, while it is stopped */
-  .sim-stop { position: absolute; z-index: 1; bottom: 18px; left: 50%; translate: -50%; margin: 0; padding: 7px 14px; border-radius: 2px; font-size: 13px; white-space: nowrap;
-    color: #fff; background: var(--text); box-shadow: var(--lift); }
+  /* the window's two sides, each under its title, and a soft line between them (Marius, 24-10) */
+  .sim-side { position: absolute; z-index: 1; top: 24px; left: 24px; margin: 0; pointer-events: none; white-space: nowrap; }
+  .sim-side.ours { left: calc(50% + 24px); }
+  /* what each Vigie refused last, on the left of its side, the one before fading out as it fades in, in the same place
+     (Marius, 24-10) */
+  .sim-refused { position: absolute; z-index: 1; top: 10%; left: 24px; display: grid; max-width: 360px; margin: 0; padding: 0; list-style: none;
+    font-size: 12px; line-height: 1.35; pointer-events: none; }
+  .sim-refused.ours { left: calc(50% + 24px); }
+  .sim-refused:empty { display: none; }
+  .sim-refused::before { content: "Refused"; display: block; margin-bottom: 6px; font-weight: 600; }
+  .sim-refused li { grid-area: 2 / 1; margin-bottom: 4px; line-height: 23px; animation: pop .3s .3s ease-out both; }
+  .sim-refused li.out, .sim-bubble.out { animation: fade-out .3s ease-in forwards; }
+  @keyframes fade-out { to { opacity: 0; } }
+  .sim-refused b { margin-right: 4px; white-space: pre; font-variant-numeric: tabular-nums; background: color-mix(in srgb, #7D8696 20%, white); }
+  /* a refusal too long for one line wraps only at its colon, each line a pill of its own */
+  .sim-refused span.chip { --c: var(--red); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+  .sim-refused span span { white-space: nowrap; }
+  .sim-refused .chip { border-radius: 999px; }
+  /* what each side's Vigie kept from being lost so far, in its top right corner (Marius, 24-10) */
+  .sim-saved { position: absolute; z-index: 1; top: 24px; right: calc(50% + 24px); margin: 0; text-align: right; font-size: 12px; color: var(--dim); pointer-events: none; }
+  .sim-saved.ours { right: 24px; }
+  .sim-saved b { display: block; font-size: 20px; font-weight: 400; letter-spacing: -.02em; color: var(--text); font-variant-numeric: tabular-nums; }
+  .sim-saved.worse b { color: var(--red); }
+  /* each side's scene: a layer over the whole window, clipped to its half (simulation.js) */
+  .sim-view { position: absolute; inset: 0; clip-path: inset(0 0 0 50%); }
+  .sim-view.classic { clip-path: inset(0 50% 0 0); }
+  .sim-stage::before { content: ""; position: absolute; left: 50%; top: 10%; height: 60%; border-left: 1px solid var(--line); pointer-events: none; }
   .sim-stage { position: relative; height: calc(100dvh - var(--menu)); overflow: hidden;
     background: radial-gradient(70% 60% at 50% 40%, rgb(31 91 255 / .08), transparent 70%), var(--bg); }
   .embed .sim-stage { height: 100dvh; }
