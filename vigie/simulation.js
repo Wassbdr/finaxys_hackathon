@@ -725,6 +725,9 @@ function animateServer(n, k) {
   });
   n.shell.emissiveIntensity = bad ? 0.35 + Math.sin(time * 6) * 0.25 : 0;
   n.g.position.x = POS[n.id][0] + (bad ? (Math.random() - 0.5) * 0.06 : 0);
+  // its lit front turns to the camera, as the blobs do (Marius, 24-10)
+  n.g.getWorldPosition(tmp);
+  n.g.rotation.y = Math.atan2(camera.position.x - tmp.x, camera.position.z - tmp.z) - world.rotation.y;
   n.field.scale.setScalar(THREE.MathUtils.lerp(n.field.scale.x, n.iso ? 1 : 0.001, k));
   n.field.rotation.y += 0.01;
 }
