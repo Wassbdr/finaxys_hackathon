@@ -71,9 +71,9 @@ if (!SIDE) sec.innerHTML = `<div class="settings"><div class="fold">
       <span class="opt" data-help="Layout|Hold Option over a drop or a service to carry it: it follows the pointer until Option is let go, a role's pad with its agents|Saves where everything stands and the camera's angle as the defaults, for everyone"><span>Layout</span><span class="choice"><button type="button" id="sim-save">Save as default</button></span></span>
     </div></div></div></div>
   <div class="sim-stage"><h2 class="sim-side">Vigie classic</h2><h2 class="sim-side ours">Our Vigie</h2><ol class="sim-refused"></ol><ol class="sim-refused ours"></ol>
-    <p class="sim-saved"><b></b>Losses avoided</p><p class="sim-saved ours"><b></b>Losses avoided</p></div>`;
+    <p class="sim-saved"><b></b><span></span></p><p class="sim-saved ours"><b></b><span></span></p></div>`;
 const ui = { sc: sec.querySelector("#sim-sc"), play: sec.querySelector("#sim-play"), t: sec.querySelector("#sim-t"), tick: sec.querySelector("#sim-tick"),
-  refused: sec.querySelectorAll(".sim-refused"), saved: sec.querySelectorAll(".sim-saved b"), fold: sec.querySelector(".fold"), pin: sec.querySelector(".fold-pin") };
+  refused: sec.querySelectorAll(".sim-refused"), saved: sec.querySelectorAll(".sim-saved"), fold: sec.querySelector(".fold"), pin: sec.querySelector(".fold-pin") };
 // each side draws on a layer of its own over the whole window, clipped to its half (dashboard.html), around MID of its width
 const stage = document.createElement("div"), MID = SIDE ? 0.25 : 0.75, VIGIE = SIDE ? "Vigie classic" : "Vigie";
 stage.className = "sim-view " + (SIDE ?? "ours");
@@ -520,11 +520,14 @@ function show(t) {
   nodes.vigie.asleep = !st.vigie;
   // what this side's Vigie refused so far, newest first, on the left of its side of the window, and in its top right
   // corner what it kept from being lost: its bank's net result (trading less fraud) less the bank's without a Vigie
-  // (Marius, 24-10)
+  // (Marius, 24-10); below zero, it is what the bank lost more than without one, said so in red (Marius, 24-10)
   const mine = sc.worlds[SIDE ?? "ours"], none = sc.worlds.theirs, i = SIDE ? 0 : 1;
   const html = mine.events.filter(e => e[0] <= t && REFUSED.test(e[2])).reverse().map(e => `<li><b class="chip">${String(e[0]).padStart(3, "\u2007")}</b><span class="chip"><span>${esc(e[2]).replace(": ", ":</span> <span>")}</span></span></li>`).join("");
   if (ui.refused[i].html !== html) ui.refused[i].innerHTML = ui.refused[i].html = html;
-  ui.saved[i].textContent = eur(mine.pnl[t] - mine.fraud[t] - none.pnl[t] + none.fraud[t]);
+  const gain = mine.pnl[t] - mine.fraud[t] - none.pnl[t] + none.fraud[t], worse = gain <= -0.5;
+  ui.saved[i].classList.toggle("worse", worse);
+  ui.saved[i].firstChild.textContent = eur(Math.abs(gain));
+  ui.saved[i].lastChild.textContent = worse ? "Extra losses" : "Losses avoided";
   light = st.light ?? "VERT";
   // a link turns red from its red end (a compromised service, or the agent whose ring went red first) once the other
   // end is hit too (Marius, 24-10); a pad's end is red or hit once one of its agents is
