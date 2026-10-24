@@ -28,6 +28,10 @@
   .btn:hover svg { transform: translateX(3px); }
   /* a name keeps its case in a label set in capitals: Krys is never written KRYS */
   .name { text-transform: none; letter-spacing: 0; }
+  /* the results card: the figure that matters, large, over the three others */
+  .big-fig { display: grid; justify-items: center; gap: 10px; margin-bottom: 30px; }
+  .big-fig b { font: 400 112px/1 var(--sans); letter-spacing: -.05em; color: var(--b5); }
+  .big-fig span { color: var(--dim); font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
   .btn.soft { background: var(--wash-2); color: var(--text); } .btn.soft:hover { background: var(--b1); }
   .btn.small { height: 38px; padding: 0 14px; font-size: 11.5px; }
   .marker { display: inline-flex; align-items: center; gap: 10px; margin: 0; color: var(--dim); font: 500 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
@@ -168,14 +172,9 @@
   @keyframes halt { 0% { transform: translateX(0); opacity: 0; } 6% { opacity: 1; } 40% { transform: translateX(104px); } 44%, 88% { transform: translateX(94px); opacity: 1; } 100% { transform: translateX(94px); opacity: 0; } }
   @keyframes refuse { 0%, 40% { opacity: 0; } 45%, 88% { opacity: 1; } 100% { opacity: 0; } }
 
-  .ab { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; width: 100%; max-width: 420px; }
-  .ab .col { display: grid; justify-items: center; gap: 12px; }
-  .ab .capt { color: var(--dim); font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
   .pillar { position: relative; width: 74%; height: 200px; border-top: 1.5px solid var(--text); }
   .pillar i { position: absolute; inset: 0 0 auto; height: calc(var(--h) * 100%); transform: scaleY(0); transform-origin: top; transition: transform 1.1s var(--ease);
     background: linear-gradient(180deg, var(--red), #F3A69C); }
-  .ab .with .pillar i { background: linear-gradient(180deg, var(--b5), var(--b3) 60%, var(--b2)); }
-  .ab b { font: 400 34px/1 var(--sans); letter-spacing: -.04em; color: var(--red); white-space: nowrap; } .ab .with b { color: var(--b5); }
   .card.is-active .pillar i { transform: none; transition-delay: .35s; } .card.is-active .with .pillar i { transition-delay: .8s; }
   .trio { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; max-width: 440px; margin-top: 30px; border-top: 1px solid var(--line-2); }
   .trio div { padding: 14px 10px 0; } .trio div + div { border-left: 1px solid var(--line); }
@@ -232,7 +231,7 @@
   <a class="link" href="#produit">Le produit</a>
   <a class="link" href="#recit">Le récit</a>
   <a class="link" href="#recit" data-card="6">Les résultats</a>
-  <a class="btn small" href="/dashboard">Console en direct <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a>
+  <a class="btn small" href="/console">Ouvrir la console <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a>
 </header>
 
 <main id="top">
@@ -247,9 +246,9 @@
         <a class="btn soft" href="#recit">Lire le récit en 9 fiches</a>
       </div>
     </div>
-    <div class="stats" aria-label="Le scénario PHP2Shell, sans protection puis avec Krys">
+    <div class="stats" aria-label="Le scénario PHP2Shell, avec Krys">
       <div class="stat"><b data-fig="fraud" data-count>2,85 M€</b><span>de fraude au virement bloquée</span></div>
-      <div class="stat"><b data-fig="ops">26 → 0</b><span>opérations contaminées exécutées</span></div>
+      <div class="stat"><b data-fig="opsB">0</b><span>opération contaminée exécutée</span></div>
       <div class="stat"><b data-fig="early" data-count>10 s</b><span id="early-label">de détection avant la compromission</span></div>
       <div class="stat"><b data-fig="p50" data-count>12,7 ms</b><span>pour décider au portique (p50)</span></div>
     </div>
@@ -257,8 +256,8 @@
 
   <section class="product" id="produit" aria-label="Le produit">
     <div class="window">
-      <div class="window-bar"><i></i><i></i><i></i><span>localhost:8000/dashboard · Simulation</span><a href="/dashboard#simulation">Ouvrir en plein écran ↗</a></div>
-      <iframe src="/dashboard?embed=simulation" title="Argus, simulation 3D du scénario PHP2Shell" loading="lazy"></iframe>
+      <div class="window-bar"><i></i><i></i><i></i><span>localhost:8010/simulation · le jumeau 3D</span><a href="/simulation#simulation">Ouvrir en plein écran ↗</a></div>
+      <iframe src="/simulation?embed=simulation" title="Argus, simulation 3D du scénario PHP2Shell" loading="lazy"></iframe>
     </div>
     <p class="caption"><span><b>Le vrai produit, pas une maquette.</b> La journée PHP2Shell rejouée depuis le banc d'essai : à gauche les <b>contrôles classiques</b>, à droite <b>Krys</b> ; les <b>Réglages</b> changent de scénario ou de vue.</span><span>Survolez un agent pour voir ses liens, faites tourner la scène à la souris.</span></p>
   </section>
@@ -405,22 +404,20 @@
         <div class="inner">
           <div class="copy">
             <p class="kicker"><b>07</b> Les résultats</p>
-            <h3>Même graine, même horloge. <span>Deux mondes.</span></h3>
-            <p>On rejoue la journée PHP2Shell deux fois, sans protection puis avec Krys. Rien d'autre ne change que le portique.</p>
+            <h3>La journée PHP2Shell. <span>Avec Krys.</span></h3>
+            <p>Le portique de Krys devant chaque ordre et chaque virement : voici ce que la banque garde. La comparaison avec des contrôles classiques se joue dans la Simulation.</p>
             <ul class="facts">
-              <li><span>Opérations contaminées exécutées : <b data-fig="ops">26 → 0</b></span></li>
+              <li><span>Opérations contaminées exécutées : <b data-fig="opsB">0</b></span></li>
               <li><span>Compromission repérée <b data-fig="early">10 s</b> en avance, dès la publication de la CVE</span></li>
               <li><span>Le frein a un coût, et on le mesure : <b data-fig="costAbs">857 k€</b> de trading perdu aux refus</span></li>
             </ul>
+            <p><a class="btn soft" href="/simulation">Comparer dans la Simulation <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a></p>
           </div>
           <figure class="art" style="align-content:center">
-            <div class="ab" aria-hidden="true">
-              <div class="col"><span class="capt">Sans protection</span><div class="pillar"><i id="bar-without" style="--h:1"></i></div><b data-fig="without">−2,88 M€</b></div>
-              <div class="col with"><span class="capt">Avec <span class="name">Krys</span></span><div class="pillar"><i id="bar-with" style="--h:.31"></i></div><b data-fig="with">−0,88 M€</b></div>
-            </div>
+            <div class="big-fig"><b data-fig="opsB">0</b><span>opération contaminée exécutée</span></div>
             <div class="trio">
               <div><b data-fig="fraud">2,85 M€</b><span>fraude bloquée</span></div>
-              <div><b data-fig="saved">2,00 M€</b><span>résultat net sauvé</span></div>
+              <div><b data-fig="p50">12,7 ms</b><span>par décision au portique</span></div>
               <div><b data-fig="cost">−857 k€</b><span>coût des blocages</span></div>
             </div>
           </figure>
@@ -465,14 +462,14 @@
             <h3>Lancez l'attaque <span>vous-même.</span></h3>
             <p>Toute la banque tourne en local, un processus par agent. Lancez-la, injectez le scénario PHP2Shell, et regardez Krys réagir en direct dans la console.</p>
             <div class="ctas">
-              <a class="btn" href="/dashboard">Ouvrir la console en direct <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a>
-              <a class="btn soft" href="/dashboard#simulation">Simulation 3D</a>
+              <a class="btn" href="/console">Ouvrir la console <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a>
+              <a class="btn soft" href="/simulation">La Simulation</a>
             </div>
           </div>
           <figure class="art">
             <div class="term">
               <div class="term-bar"><i></i><i></i><i></i><span>banque-horizon</span></div>
-              <pre><span class="ln" style="--i:0"><b>$</b> make run NO_LLM=1</span><span class="ln c" style="--i:1"># toute la banque, un processus par agent</span><span class="ln" style="--i:2"><b>$</b> python -m sim.inject scenario scenarios/php2shell_day.yaml</span><span class="ln c" style="--i:3"># la journée PHP2Shell, en direct</span><span class="ln" style="--i:4"><b>→</b> localhost:8000/dashboard<i class="caret"></i></span></pre>
+              <pre><span class="ln" style="--i:0"><b>$</b> make demo-live</span><span class="ln c" style="--i:1"># la journée, deux banques, un processus par agent</span><span class="ln" style="--i:2"><b>→</b> localhost:8010/simulation</span><span class="ln c" style="--i:3"># puis la console de Krys, en direct</span><span class="ln" style="--i:4"><b>→</b> localhost:8010/console<i class="caret"></i></span></pre>
             </div>
           </figure>
         </div>
@@ -492,7 +489,7 @@
     <p class="marker">La démo</p>
     <h2 id="close-title">Le reste se voit <span>en direct.</span></h2>
     <div class="ctas">
-      <a class="btn" href="/dashboard">Ouvrir la console en direct <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a>
+      <a class="btn" href="/console">Ouvrir la console <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a>
       <a class="btn soft" href="#recit">Relire le récit</a>
     </div>
   </section>
@@ -502,7 +499,7 @@
 <footer>
   <a class="logo" href="#top"><span class="mark" aria-hidden="true"></span>Argus</a>
   <p>La banque simulée est fictive : aucun vrai argent, aucune vraie donnée, aucun code vulnérable. « Compromis » est un mode des services simulés qui altère les données renvoyées. Chiffres : banc d'essai du <span data-fig="when">23 octobre 2026</span>, scénario php2shell_day, graine 42, même horloge pour les deux mondes.</p>
-  <nav aria-label="Liens"><a href="/dashboard">Console</a><a href="/dashboard#simulation">Simulation 3D</a></nav>
+  <nav aria-label="Liens"><a href="/simulation">Simulation</a><a href="/console">Console</a><a href="/regulation">Régulation</a></nav>
 </footer>
 
 <script>
@@ -555,7 +552,7 @@ const num = (v, d) => v.toFixed(d).replace(".", ",");
 const M = v => (v < 0 ? "−" : "") + num(Math.abs(v) / 1e6, 2) + " M€";
 const K = v => (v < 0 ? "−" : "") + Math.round(Math.abs(v) / 1e3) + " k€";
 const FMT = {
-  fraud: M, saved: M, without: M, with: M, cost: K, costAbs: () => K(Math.abs(FIG.cost)), opsA: v => String(v), ops: () => `${FIG.opsA} → ${FIG.opsB}`,
+  fraud: M, saved: M, without: M, with: M, cost: K, costAbs: () => K(Math.abs(FIG.cost)), opsA: v => String(v), opsB: v => String(v), ops: () => `${FIG.opsA} → ${FIG.opsB}`,
   early: v => `${Math.round(Math.abs(v))} s`, p50: v => num(v, 1) + " ms", p99: v => num(v, 1) + " ms",
   when: d => new Date(d).toLocaleDateString("fr-FR", {day: "numeric", month: "long", year: "numeric"}),
 };
@@ -564,9 +561,6 @@ function fill() {
   for (const el of $$("[data-fig]")) el.textContent = FMT[el.dataset.fig](FIG[el.dataset.fig]);
   // detected after the compromise, not before: the label says so
   if (FIG.early <= 0) $("#early-label").textContent = "pour repérer la compromission";
-  const top = Math.max(Math.abs(FIG.without), Math.abs(FIG.with)) || 1;
-  $("#bar-without").style.setProperty("--h", Math.abs(FIG.without) / top);
-  $("#bar-with").style.setProperty("--h", Math.abs(FIG.with) / top);
 }
 
 function countUp() {
