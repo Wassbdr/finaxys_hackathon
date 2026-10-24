@@ -356,18 +356,19 @@ function link(a, b, hidden) {
   if (links.has(key) || ![a, b].every(id => nodes[id] || pads.some(p => p.id === id))) return links.get(key);
   const material = new THREE.MeshBasicMaterial({ color: PLAIN, transparent: true, opacity: 0.16, depthWrite: false });
   const redMat = new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.85, depthWrite: false });
-  const l = { a, b, g: new THREE.Group(), curve: new THREE.QuadraticBezierCurve3(), material, redMat, fill: 0, redFrom: null, hidden: !!hidden, vigie: a === "vigie" || b === "vigie", svc: nodes[a]?.leds ? a : nodes[b]?.leds ? b : null };
+  const l = { a, b, g: new THREE.Group(), curve: new THREE.QuadraticBezierCurve3(), material, redMat, fill: 0, redFrom: null, hidden: !!hidden, up: false, vigie: a === "vigie" || b === "vigie", svc: nodes[a]?.leds ? a : nodes[b]?.leds ? b : null };
   shape(l);
   world.add(l.g);
   links.set(key, l);
   return l;
 }
-// a link's arc between its two ends and the tube or the dashes along it, drawn again while a drop is carried
+// a link's line between its two ends, an arc when it bridges another (relief), and the tube or the dashes along it,
+// drawn again while a drop is carried
 function shape(l) {
   const { curve, g } = l;
   curve.v0.copy(end(l.a, l.b));
   curve.v2.copy(end(l.b, l.a));
-  curve.v1.lerpVectors(curve.v0, curve.v2, 0.5).y += 1 + curve.v0.distanceTo(curve.v2) * 0.08;
+  curve.v1.lerpVectors(curve.v0, curve.v2, 0.5).y += l.up ? 1 + curve.v0.distanceTo(curve.v2) * 0.08 : 0;
   curve.needsUpdate = true;
   for (const o of g.children) o.geometry.dispose();
   g.clear();
@@ -379,6 +380,23 @@ function shape(l) {
   g.add(...path(l.material, l.hidden ? 0.03 : 0.035), ...l.red);
   g.traverse(o => (o.castShadow = false));
   redden(l);
+}
+// links run straight; where two cross on the floor, one of them arches over the other, never both (Marius, 24-10):
+// the link that crosses the most straight ones arches first, the shorter on a tie, until no two straight links cross
+function relief() {
+  const ls = [...links.values()].filter(l => !l.vigie || worldName === "ours"), seg = new Map(ls.map(l => [l, [end(l.a, l.b), end(l.b, l.a)]]));
+  const side = (a, b, c) => Math.sign((b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x));
+  const cross = ([p, q], [r, s]) => side(p, q, r) * side(p, q, s) < 0 && side(r, s, p) * side(r, s, q) < 0;
+  let open = ls.flatMap((a, i) => ls.slice(i + 1).filter(b => cross(seg.get(a), seg.get(b))).map(b => [a, b]));
+  const up = new Set(), len = l => seg.get(l)[0].distanceTo(seg.get(l)[1]);
+  while (open.length) {
+    const n = new Map();
+    for (const pair of open) for (const l of pair) n.set(l, (n.get(l) ?? 0) + 1);
+    const [top] = [...n].sort(([a, x], [b, y]) => y - x || len(a) - len(b))[0];
+    up.add(top);
+    open = open.filter(pair => !pair.includes(top));
+  }
+  for (const l of links.values()) if (l.up !== up.has(l)) (l.up = up.has(l)), shape(l);
 }
 // the problem travelling along a link: its red reaches l.fill of the way from the end it comes from (Marius, 24-10); a
 // tube's triangles run along it 36 to a step, so a draw range shows its first part
@@ -562,7 +580,7 @@ function halt(e) {
 function paint() {
   for (const b of sec.querySelectorAll(".choice [data-v]")) b.setAttribute("aria-pressed", JSON.stringify(set[b.parentElement.dataset.set]) === b.dataset.v);
 }
-const apply = { display: flatOn, helper: on => (helper.on = on), details: on => (helper.details = on), view, world: w => ((worldName = w), (W = sc.worlds[w]), seek(tick)) };
+const apply = { display: flatOn, helper: on => (helper.on = on), details: on => (helper.details = on), view, world: w => ((worldName = w), (W = sc.worlds[w]), relief(), seek(tick)) };
 for (const b of sec.querySelectorAll(".choice [data-v]"))
   b.onclick = () => {
     const k = b.parentElement.dataset.set, val = JSON.parse(b.dataset.v);
@@ -606,6 +624,7 @@ function load(n) {
       ks.forEach(k => edges.delete(k));
     }
   for (const [a, b, hidden] of edges.values()) link(a, b, hidden);
+  relief();
   W = sc.worlds[worldName];
   ui.t.max = sc.ticks - 1;
   seek(0);
@@ -1021,6 +1040,7 @@ function carry(e) {
   fitted.forEach(fitPad);
   const ends = [...ids, ...fitted.map(q => q.id)];
   for (const l of links.values()) if (ends.includes(l.a) || ends.includes(l.b)) shape(l);
+  relief();
   guide();
 }
 sec.querySelector("#sim-save").onclick = async e => {
