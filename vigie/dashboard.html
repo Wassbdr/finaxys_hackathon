@@ -52,7 +52,7 @@
   .s-red.lamp::before, .s-red .pastille::before { animation: beat 1.6s ease-out infinite; }
   @keyframes beat { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 55%, transparent); } 100% { box-shadow: 0 0 0 7px transparent; } }
   /* the simulation stopped: what stays on screen is its last state, greyed */
-  body.stale main > :not(#simulation), body.stale #light { filter: grayscale(1); opacity: .5; }
+  /* the simulation stopped: no greying any more (Edouard, 24-10): the menu's orange notice says it */
 
   main { max-width: calc(100vw * 2 / 3); margin: 0 auto; padding: 22px 24px 64px; }
   /* a tab's address opens the tab, it does not scroll its first title under the menu */
@@ -232,14 +232,11 @@
     <a href="#summary" data-tab="summary" data-name="Summary" data-help="Summary|What waits for a human now: the problems only a human clears, and the good news only a human applies">Summary</a>
     <a href="#simulation" data-tab="simulation" data-name="Simulation" data-help="Simulation|A replay of the bench without and with KRYS, in 3D or 2D">Simulation</a>
     <a href="#agents" data-tab="agents" data-name="Agents" data-help="Agents|Each agent's state and who feeds whom">Agents</a>
-    <a href="#actions" data-tab="actions" data-name="KRYS actions" data-help="KRYS actions|What KRYS did: the gate's refusals, its incidents and every decision on an agent">KRYS actions</a>
     <a href="#guardrails" data-tab="guardrails" data-name="Guardrails" data-help="Guardrails|Every limit in force, each agent's and KRYS's, with how much of it is used now">Guardrails</a>
     <a href="#metrics" data-tab="metrics" data-name="Metrics" data-help="Metrics|The live indicators and the bench's figures without and with KRYS">Metrics</a>
     <a href="#improve" data-tab="improve" data-name="Improvements" data-help="Improvements|The thresholds in force and what the replays propose to change">Improvements</a>
     <a href="#impact" data-tab="impact" data-name="Impact" data-help="Impact|Mesures archivées des trois banques, dénominateurs et limites">Impact</a>
-    <a href="#conformite" data-tab="conformite" data-name="Conformité" data-help="Conformité|Éléments de preuve, portée et limites réglementaires">Conformité</a>
     <a href="#details" data-tab="details" data-name="Détails">Détails</a>
-    <a href="#mails-chat" data-tab="mails-chat" data-name="Boîte d’envoi">Boîte d’envoi</a>
     <span class="line" aria-hidden="true"></span>
   </div>
   <div class="bank"><span id="conn"></span>Bank<span class="box lamp calm" id="light">-</span></div>
@@ -247,7 +244,7 @@
 <main>
   <section id="impact" hidden></section>
   <section id="details" hidden></section>
-  <section id="conformite" hidden></section>
+  <!-- Section sans onglet (retiré à la demande d'Édouard) : la bulle « Demandez à Krys » s'y accroche. -->
   <section id="mails-chat" hidden></section>
   <section id="agents"></section>
   <section id="summary" hidden></section>
@@ -264,6 +261,5 @@
 <script src="/console/mails-chat/mails-chat.js"></script>
 <script type="module" src="/dashboard/simulation.js"></script>
 <script src="/console/details.js"></script>
-<script src="/console/conformite/conformite.js"></script>
 </body>
 </html>

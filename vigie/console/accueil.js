@@ -5,7 +5,11 @@
   byId('argus-phrase').textContent = document.querySelector('meta[name="argus-phrase"]').content;
   // La page Régulation de l'équipe arrive plus tard : seule une adresse web ou un chemin local remplace le repli.
   const regulation = (document.querySelector('meta[name="argus-regulation-url"]') || {}).content || '';
-  if (/^(https:\/\/|\/(?!\/))/.test(regulation)) byId('regulation-link').href = regulation;
+  if (/^(https:\/\/|\/(?!\/))/.test(regulation)) {
+    byId('regulation-link').href = regulation;
+    byId('regulation-link').removeAttribute('aria-disabled');
+    byId('regulation-note').textContent = 'DORA, AI Act, MiFID II';
+  }
   const question = byId('krys-question');
   for (const suggestion of document.querySelectorAll('[data-question]')) {
     suggestion.addEventListener('click', () => {
