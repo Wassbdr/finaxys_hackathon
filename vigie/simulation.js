@@ -19,7 +19,7 @@ const TPS = 3, SPEEDS = [0.25, 0.5, 1, 2, 4], SLOW = 0.25;
 // the traders and payment, compliance, risk, the executor) climb the floor from front to back, leaning LEAN to the right,
 // each column's rows in the graph's order, and the Vigie last, after the executor (Marius, 24-10)
 const COLUMNS = [["core-ledger", "kyc-docs", "market-feed", "news-wire", "payment-gateway"], ["quant"], ["trader-1", "trader-2", "trader-3", "payment"], ["compliance"], ["risk"], ["executor"], ["vigie"]];
-const LEAN = Math.PI / 9, sin = Math.sin(LEAN), cos = Math.cos(LEAN);
+const LEAN = THREE.MathUtils.degToRad(8), sin = Math.sin(LEAN), cos = Math.cos(LEAN);
 const tilt = (c, r) => [c * sin + r * cos, r * sin - c * cos], untilt = (x, z) => [x * sin - z * cos, x * cos + z * sin];
 const POS = {};
 COLUMNS.forEach((ids, k) => ids.forEach((id, i) => (POS[id] = tilt((k - 3) * 9, (i - (ids.length - 1) / 2) * 6))));
@@ -889,8 +889,10 @@ function draw2d() {
       g2.lineWidth = 2;
       g2.stroke();
       for (const k of [-0.3, 0, 0.3]) (g2.fillStyle = led), g2.fillRect(x - 0.35 * s2, y + k * s2 - 1.5, 0.7 * s2, 3);
-      text2(n.id, x, y + h / 2 + 14, 12);
-      if (n.mode !== "normal" || n.iso) text2((n.iso ? "isolated" : n.mode).toUpperCase(), x, y + h / 2 + 27, 10.5, n.iso ? "#22d3ee" : n.mode === "compromised" ? "#f87171" : "#fbbf24", 700);
+      // the services stand almost side by side, so every other one has its name above it
+      const above = COLUMNS[0].indexOf(n.id) % 2, line = k => (above ? y - h / 2 - 6 - 13 * k : y + h / 2 + 14 + 13 * k);
+      text2(n.id, x, line(0), 12);
+      if (n.mode !== "normal" || n.iso) text2((n.iso ? "isolated" : n.mode).toUpperCase(), x, line(1), 10.5, n.iso ? "#22d3ee" : n.mode === "compromised" ? "#f87171" : "#fbbf24", 700);
       continue;
     }
     const vigie = n.id === "vigie", ring = vigie ? (n.asleep ? 0x1e293b : LIGHT[light] ?? LIGHT.VERT) : RING[n.alert] ?? RING.VERT;
