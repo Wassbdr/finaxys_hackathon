@@ -17,7 +17,7 @@
     GET  /dashboard   tableau de bord de la Vigie (7 onglets) ; ?embed=<onglet> montre l'onglet seul, sans menu
     GET  /dashboard/{dashboard.js,dashboard-demo.json}  its script and the sample data it shows when no run is live
     GET  /dashboard/{simulation.js,dashboard-sim.json}  the Simulation tab's 3D scene and the bench replays it plays
-    GET  /dashboard/sim-layout.json  where its nodes stand, once saved; POST /dashboard/sim-layout {"quant": [x, z], …} saves it
+    GET  /dashboard/sim-layout.json  where its nodes stand, once saved; POST /dashboard/sim-layout {"quant": [x, z], …, "camera": [azimuth, polar]} saves it
 
 Toutes les routes acceptent ?world=A|B en mode comparaison.
     python -m api.app
@@ -191,7 +191,7 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
 
     @app.post("/dashboard/sim-layout")
     def save_sim_layout(layout: dict[str, list[float]]):
-        """The Simulation tab's Layout › Save as default: where each node stands on the floor, its new default."""
+        """The Simulation tab's Layout › Save as default: where each node stands on the floor, and the camera's angle."""
         if len(layout) > 50 or any(not k.replace("-", "").isalnum() or len(p) != 2 or not all(-50 <= c <= 50 for c in p)
                                    for k, p in layout.items()):
             raise HTTPException(400, "expected {node id: [x, z]}, |x|, |z| <= 50")

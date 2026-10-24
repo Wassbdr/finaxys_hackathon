@@ -65,7 +65,7 @@ sec.innerHTML = `<div class="settings"><div class="fold">
       ${row("Bubbles", choice("bubbles", OFF_ON), "What each agent says, over its head")}
       ${row("Helper", choice("helper", OFF_ON), "A box that follows the pointer: what is under it, or what happens at this tick")}
       ${row("Details", choice("details", OFF_ON), "Whether the helper's box adds what an agent reads, its messages of this tick and its last event")}
-      <span class="opt" data-help="Layout|Hold Option over a drop or a service to carry it: it follows the pointer until Option is let go, a role's pad with its agents|Saves where everything stands as the default layout, for everyone"><span>Layout</span><span class="choice"><button type="button" id="sim-save">Save as default</button></span></span>
+      <span class="opt" data-help="Layout|Hold Option over a drop or a service to carry it: it follows the pointer until Option is let go, a role's pad with its agents|Saves where everything stands and the camera's angle as the defaults, for everyone"><span>Layout</span><span class="choice"><button type="button" id="sim-save">Save as default</button></span></span>
     </div></div></div></div>
   <div class="sim-stage"><p class="sim-stop" hidden></p></div>`;
 const ui = { sc: sec.querySelector("#sim-sc"), play: sec.querySelector("#sim-play"), t: sec.querySelector("#sim-t"), tick: sec.querySelector("#sim-tick"),
@@ -534,6 +534,9 @@ function view(k) {
   const target = V.on ? blobs.reduce((c, n) => c.add(n.g.position), v(0, 0, 0)).divideScalar(blobs.length).setY(1) : v(-1.5, 0.8, -1);
   goal = { target, pos: v(...V.dir).setLength(V.dist * fit).add(target) };
 }
+// the angle saved with the layout (Layout › Save as default) becomes the default 3/4 view, the distance fitted on load
+// (Marius, 24-10)
+if (SAVED.camera) VIEWS["3/4"].dir = v(0, 0, 0).setFromSphericalCoords(1, SAVED.camera[1], SAVED.camera[0]).toArray();
 view(VIEWS[set.view] ? set.view : "3/4");
 camera.position.copy(goal.pos);
 controls.target.copy(goal.target);
@@ -1022,6 +1025,8 @@ function carry(e) {
 }
 sec.querySelector("#sim-save").onclick = async e => {
   const b = e.currentTarget, layout = Object.fromEntries(Object.entries(POS).map(([id, [x, z]]) => [id, [+x.toFixed(2), +z.toFixed(2)]]));
+  const angle = new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
+  layout.camera = [+angle.theta.toFixed(3), +angle.phi.toFixed(3)];
   const r = await fetch("/dashboard/sim-layout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(layout) }).catch(() => null);
   b.textContent = r?.ok ? "Saved" : "Not saved";
   if (r?.ok) moved = false;
