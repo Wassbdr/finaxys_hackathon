@@ -198,7 +198,7 @@
   .sim-refused:empty { display: none; }
   .sim-refused::before { content: "Refused"; display: block; margin-bottom: 6px; font-weight: 600; }
   .sim-refused li { margin-bottom: 4px; line-height: 23px; }
-  .sim-refused b { display: inline-block; min-width: 40px; margin-right: 4px; text-align: center; font-variant-numeric: tabular-nums; }
+  .sim-refused b { margin-right: 4px; white-space: pre; font-variant-numeric: tabular-nums; background: color-mix(in srgb, #7D8696 20%, white); }
   /* a refusal too long for one line wraps only at its colon, each line a pill of its own */
   .sim-refused span.chip { --c: var(--red); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
   .sim-refused span span { white-space: nowrap; }
