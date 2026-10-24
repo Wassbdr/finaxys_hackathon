@@ -717,7 +717,8 @@ function animateBlob(b, dt, k) {
   if (time > b.blinkAt + 0.15) b.blinkAt = time + 1.5 + Math.random() * 4;
   const shut = b.asleep || time >= b.blinkAt;
   if (b.look && time < b.lookUntil && nodes[b.look]) world.localToWorld(look.copy(at(b.look)));
-  else if (b.id === "vigie") world.localToWorld(look.set(Math.sin(time * 0.5) * 12, 0, 2));
+  // the Vigie, idle, sweeps the floor 45° either side of straight ahead (Marius, 24-10)
+  else if (b.id === "vigie") (w => b.body.localToWorld(look.set(Math.sin(w) * 10, -2, Math.cos(w) * 10)))(Math.sin(time * 0.5) * Math.PI / 4);
   else look.copy(camera.position);
   b.body.worldToLocal(look);
   for (const { e, pupil } of b.eyes) {
