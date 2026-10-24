@@ -638,8 +638,8 @@ function frameAll(start) {
   const c = new THREE.Box3().setFromPoints(pts).getCenter(v(0, 0, 0)), dir = camera.position.clone().sub(controls.target).normalize(), cam = camera.clone();
   const tan = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)), right = v(0, 0, 0), up = v(0, 0, 0);
   let d = 40;
-  // the distance at which the points span 90% of the screen's width and 78% of its height, the top and bottom agents
-  // getting more room (Marius, 24-10), and the aim that centres them on screen: seen at an angle, the near agents look
+  // the distance at which the points span 75% of the screen's width and 65% of its height, a margin of floor all round
+  // and the top and bottom agents getting more room (Marius, 24-10), and the aim that centres them on screen: seen at an angle, the near agents look
   // bigger than the far ones, so the middle of the box is not the middle of the picture; found in a few steps
   for (let i = 0; i < 6; i++) {
     cam.position.copy(dir).multiplyScalar(d).add(c);
@@ -650,7 +650,7 @@ function frameAll(start) {
     right.setFromMatrixColumn(cam.matrixWorld, 0);
     up.setFromMatrixColumn(cam.matrixWorld, 1);
     c.addScaledVector(right, ((x0 + x1) / 2) * d * tan * cam.aspect).addScaledVector(up, ((y0 + y1) / 2) * d * tan);
-    d *= Math.max((x1 - x0) / 2 / 0.9, (y1 - y0) / 2 / 0.78);
+    d *= Math.max((x1 - x0) / 2 / 0.75, (y1 - y0) / 2 / 0.65);
   }
   goal = { target: c, pos: dir.multiplyScalar(d).add(c) };
   if (start) return camera.position.copy(goal.pos), controls.target.copy(goal.target), (goal = null);
@@ -746,7 +746,8 @@ function fit2d(w, h) {
   const dpr = Math.min(devicePixelRatio, 2);
   Object.assign(flat, { width: w * dpr, height: h * dpr });
   g2.setTransform(dpr, 0, 0, dpr, 0, 0);
-  s2 = Math.min(w / (MAP.x1 - MAP.x0), h / (MAP.z1 - MAP.z0));
+  // a little further out than the agents' own box, as in 3D (Marius, 24-10)
+  s2 = 0.85 * Math.min(w / (MAP.x1 - MAP.x0), h / (MAP.z1 - MAP.z0));
   o2 = [w / 2 - ((MAP.x0 + MAP.x1) / 2) * s2, h / 2 - ((MAP.z0 + MAP.z1) / 2) * s2];
 }
 function flatOn(d) {
