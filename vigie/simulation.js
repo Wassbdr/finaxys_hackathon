@@ -899,12 +899,12 @@ function fit2d(w, h) {
   s2 = Math.min((WIDE * w) / (MAP.x1 - MAP.x0), (b - a - 17) / (bottom - top));
   o2 = [MID * w - ((MAP.x0 + MAP.x1) / 2) * s2, (a + b - 17) / 2 - ((top + bottom) / 2) * s2];
 }
-// the band the graph fills, in the scene's pixels: the window under the menu as the page opens but 3% of the window's
+// the band the graph fills, in the scene's pixels: the window under the menu as the page opens but 1% of the window's
 // diagonal above and below, the scene's buttons and titles standing over it (Marius, 24-10); a scene further down the
 // page, under a demo's figures, keeps those margins inside itself
 function band() {
   const top = stage.getBoundingClientRect().top + scrollY, menu = document.querySelector("header.top")?.offsetHeight ?? 0;
-  const m = 0.03 * Math.hypot(innerWidth, innerHeight), h = stage.clientHeight;
+  const m = 0.01 * Math.hypot(innerWidth, innerHeight), h = stage.clientHeight;
   return innerHeight - top > h / 2 ? [Math.max(0, menu + m - top), Math.min(h, innerHeight - m - top)] : [m, h - m];
 }
 function flatOn(d) {
