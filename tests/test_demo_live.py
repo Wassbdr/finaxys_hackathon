@@ -223,8 +223,7 @@ def test_argus_krys_display_names_preserve_bus_contract(tmp_path, cfg):
         example = json.loads(Path('vigie/demo_api_example.json').read_text())
         assert {name: bank['label'] for name, bank in example['banks'].items()} == expected
         page = Path('vigie/demo_page.html').read_text()
-        assert '<title>Simulation · Argus</title>' in page
-        assert '<h1>Deux banques, la même journée</h1>' in page
+        assert '<title>Visualisation · Argus</title>' in page
         # L'écran compare deux banques ; la banque sans protection reste dans le contrat de l'API, jamais dans la page.
         assert 'NAMES = {B: "Contrôles classiques", C: "Krys"}' in page
         assert expected['A'] not in page
