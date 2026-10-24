@@ -58,6 +58,8 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
     """sources : monde -> LiveSource | ReplaySource ; targets : monde -> cible d'injection."""
     app = FastAPI(title="Banque Horizon : API de simulation", version="1.0")
     app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+    from vigie.console.impact_api import impact_router
+    app.include_router(impact_router)
     targets = targets or {}
 
     def source(world: str | None):

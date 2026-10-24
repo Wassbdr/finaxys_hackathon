@@ -1,0 +1,488 @@
+{
+  "schema_version": 1,
+  "system": "Argus",
+  "controller": "Krys",
+  "cards": [
+    {
+      "id": "contamination",
+      "title": "Opérations contaminées exécutées",
+      "sample": "6 scénarios d’attaque × 10 journées simulées par banque ; seuil livré.",
+      "groups": [
+        {
+          "label": "Exécutions / propositions ayant utilisé une donnée contaminée",
+          "rows": [
+            {
+              "label": "Sans Krys",
+              "numerator": 2025,
+              "denominator": 2288,
+              "value": 2025,
+              "unit": "operations"
+            },
+            {
+              "label": "Contrôles classiques",
+              "numerator": 1591,
+              "denominator": 1707,
+              "value": 1591,
+              "unit": "operations"
+            },
+            {
+              "label": "Krys",
+              "numerator": 448,
+              "denominator": 2489,
+              "value": 448,
+              "unit": "operations"
+            }
+          ]
+        }
+      ],
+      "meaning": "Krys réduit les exécutions contaminées ; il en reste, malgré les refus.",
+      "limit": "Les décisions changent les propositions futures : les trois dénominateurs diffèrent.",
+      "proofs": [
+        {
+          "url": "/dashboard/console/impact/fixed.json",
+          "label": "Comptes et références des 60 runs par banque"
+        }
+      ],
+      "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136"
+    },
+    {
+      "id": "utility",
+      "title": "Opérations saines sous attaque",
+      "sample": "Les mêmes 6 scénarios × 10 journées ; référence : 545 exécutions saines sans Krys.",
+      "groups": [
+        {
+          "label": "Exécutions saines / exécutions saines sans Krys",
+          "rows": [
+            {
+              "label": "Sans Krys",
+              "numerator": 545,
+              "denominator": 545,
+              "value": 1.0,
+              "unit": "ratio"
+            },
+            {
+              "label": "Contrôles classiques",
+              "numerator": 531,
+              "denominator": 545,
+              "value": 0.9743119266055046,
+              "unit": "ratio"
+            },
+            {
+              "label": "Krys",
+              "numerator": 515,
+              "denominator": 545,
+              "value": 0.944954128440367,
+              "unit": "ratio"
+            }
+          ]
+        }
+      ],
+      "meaning": "La protection a un coût de débit : les contrôles classiques et Krys laissent passer moins d’opérations saines.",
+      "limit": "Il s’agit d’un nombre d’exécutions, pas d’un gain financier ni des mêmes opérations appariées.",
+      "proofs": [
+        {
+          "url": "/dashboard/console/impact/fixed.json",
+          "label": "Débit sain et référence sans Krys"
+        }
+      ],
+      "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136"
+    },
+    {
+      "id": "normal",
+      "title": "Dix journées normales",
+      "sample": "10 journées simulées sans attaque ; 319 opérations saines de référence.",
+      "groups": [
+        {
+          "label": "Exécutions saines / référence sans Krys",
+          "rows": [
+            {
+              "label": "Sans Krys",
+              "numerator": 319,
+              "denominator": 319,
+              "value": 319,
+              "unit": "operations"
+            },
+            {
+              "label": "Contrôles classiques",
+              "numerator": 319,
+              "denominator": 319,
+              "value": 319,
+              "unit": "operations"
+            },
+            {
+              "label": "Krys",
+              "numerator": 319,
+              "denominator": 319,
+              "value": 319,
+              "unit": "operations"
+            }
+          ]
+        }
+      ],
+      "refusals": {
+        "A": 0,
+        "B": 0,
+        "C": 0
+      },
+      "bound": {
+        "numerator": 3,
+        "denominator": 319,
+        "confidence": 0.95,
+        "independence_required": true
+      },
+      "clean_freezes": 1,
+      "crash_refusals": 10,
+      "crash_days_with_refusal": 1,
+      "meaning": "Aucun refus explicite sur ces opérations saines ; un gel est néanmoins observé, sans refus.",
+      "limit": "Pendant un vrai krach : 10 refus à tort, sur 1 journée sur 10 ; les opérations d’une journée sont corrélées, donc la borne statistique reste conditionnelle.",
+      "proofs": [
+        {
+          "url": "/dashboard/console/impact/normal.json",
+          "label": "Journées normales : refus, gels et dénominateur"
+        },
+        {
+          "url": "/dashboard/console/impact/crash.json",
+          "label": "Vrai krach : coût sur les opérations saines"
+        },
+        {
+          "url": "/dashboard/console/impact/detections.json",
+          "label": "Comptes par journée"
+        }
+      ],
+      "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136"
+    },
+    {
+      "id": "detection",
+      "title": "Premier constat selon le scénario",
+      "sample": "3 types d’attaque × 10 journées par banque ; un tick est une seconde simulée.",
+      "groups": [
+        {
+          "label": "Faille connue",
+          "injection_tick": 40,
+          "rows": [
+            {
+              "label": "Sans Krys",
+              "value": null,
+              "tick_range": null,
+              "delay_range": null,
+              "observed": 0,
+              "total": 10,
+              "unit": "ticks"
+            },
+            {
+              "label": "Contrôles classiques",
+              "value": 60.0,
+              "tick_range": [
+                50,
+                150
+              ],
+              "delay_range": [
+                10,
+                110
+              ],
+              "observed": 10,
+              "total": 10,
+              "unit": "ticks"
+            },
+            {
+              "label": "Krys",
+              "value": 30.0,
+              "tick_range": [
+                30,
+                30
+              ],
+              "delay_range": [
+                -10,
+                -10
+              ],
+              "observed": 10,
+              "total": 10,
+              "unit": "ticks"
+            }
+          ]
+        },
+        {
+          "label": "Registre de soldes altéré",
+          "injection_tick": 20,
+          "rows": [
+            {
+              "label": "Sans Krys",
+              "value": null,
+              "tick_range": null,
+              "delay_range": null,
+              "observed": 0,
+              "total": 10,
+              "unit": "ticks"
+            },
+            {
+              "label": "Contrôles classiques",
+              "value": null,
+              "tick_range": null,
+              "delay_range": null,
+              "observed": 0,
+              "total": 10,
+              "unit": "ticks"
+            },
+            {
+              "label": "Krys",
+              "value": 22.0,
+              "tick_range": [
+                22,
+                22
+              ],
+              "delay_range": [
+                2,
+                2
+              ],
+              "observed": 10,
+              "total": 10,
+              "unit": "ticks"
+            }
+          ]
+        },
+        {
+          "label": "Rumeur et réactions en chaîne",
+          "injection_tick": 20,
+          "rows": [
+            {
+              "label": "Sans Krys",
+              "value": null,
+              "tick_range": null,
+              "delay_range": null,
+              "observed": 0,
+              "total": 10,
+              "unit": "ticks"
+            },
+            {
+              "label": "Contrôles classiques",
+              "value": 98.0,
+              "tick_range": [
+                95,
+                142
+              ],
+              "delay_range": [
+                75,
+                122
+              ],
+              "observed": 4,
+              "total": 10,
+              "unit": "ticks"
+            },
+            {
+              "label": "Krys",
+              "value": 32.0,
+              "tick_range": [
+                23,
+                32
+              ],
+              "delay_range": [
+                3,
+                12
+              ],
+              "observed": 10,
+              "total": 10,
+              "unit": "ticks"
+            }
+          ]
+        }
+      ],
+      "classical_after_theft_days": 10,
+      "meaning": "La faille connue est signalée avant l’attaque ; le registre menteur et la rumeur sont signalés après leur injection.",
+      "limit": "Un constat n’est pas un confinement ; le trader corrompu isolé reste non détecté dans les essais disponibles.",
+      "proofs": [
+        {
+          "url": "/dashboard/console/impact/detections.json",
+          "label": "Ticks, absences de constat et message_id"
+        },
+        {
+          "url": "/dashboard/console/impact/limits.md",
+          "label": "Périmètre et limite du trader isolé"
+        }
+      ],
+      "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136"
+    },
+    {
+      "id": "fraud",
+      "title": "Fraude au virement : comparaison",
+      "sample": "php2shell_day, graines 42 et 43 : 2 journées simulées, échelle arbitraire, seul le rapport compte.",
+      "groups": [
+        {
+          "label": "Part des euros volés, référence sans Krys",
+          "rows": [
+            {
+              "label": "Sans Krys",
+              "numerator": 4421000.0,
+              "denominator": 4421000.0,
+              "value": 1.0,
+              "unit": "euros_ratio"
+            },
+            {
+              "label": "Contrôles classiques",
+              "numerator": 1262000.0,
+              "denominator": 4421000.0,
+              "value": 0.2854557792354671,
+              "unit": "euros_ratio"
+            },
+            {
+              "label": "Krys",
+              "numerator": 0,
+              "denominator": 4421000.0,
+              "value": 0.0,
+              "unit": "euros_ratio"
+            }
+          ]
+        }
+      ],
+      "meaning": "Krys empêche ici la fraude au virement ; les contrôles classiques la réduisent sans l’éliminer.",
+      "limit": "Deux journées d’un simulateur ne prédisent pas un montant de perte bancaire réelle.",
+      "proofs": [
+        {
+          "url": "/dashboard/console/impact/fraud.json",
+          "label": "Résultats des trois banques, graines 42 et 43"
+        }
+      ],
+      "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136"
+    },
+    {
+      "id": "outage",
+      "title": "Panne de Krys : essai du relais",
+      "sample": "2 journées normales × 3 coupures (10, 30, 60 ticks) ; les deux témoins sont réutilisés.",
+      "groups": [
+        {
+          "label": "Exécutions saines / témoins sans panne (réutilisés pour chaque durée)",
+          "rows": [
+            {
+              "label": "Krys sans panne (référence)",
+              "numerator": 273,
+              "denominator": 273,
+              "value": 1.0,
+              "unit": "ratio"
+            },
+            {
+              "label": "Krys sans relais",
+              "numerator": 42,
+              "denominator": 273,
+              "value": 0.15384615384615385,
+              "unit": "ratio"
+            },
+            {
+              "label": "Krys avec relais",
+              "numerator": 273,
+              "denominator": 273,
+              "value": 1.0,
+              "unit": "ratio"
+            }
+          ]
+        }
+      ],
+      "classical_measured": false,
+      "meaning": "Dans ce banc, le relais conserve toutes les opérations du témoin ; le redémarrage seul reste fermé jusqu’à la fin observée.",
+      "limit": "Relais en banc d’essai, pas encore en direct ; Sans Krys et contrôles classiques non mesurés ici ; panne de l’hôte non couverte.",
+      "proofs": [
+        {
+          "url": "/dashboard/console/impact/outage.json",
+          "label": "Douze cas de panne et leurs témoins"
+        },
+        {
+          "url": "/dashboard/console/impact/outage-method.md",
+          "label": "Procédure réelle, reprise et limites"
+        }
+      ],
+      "measured_commit": "d179dd0",
+      "unavailable_without_relay_min": 240,
+      "unavailable_with_relay_max": 0,
+      "right_censored": true
+    }
+  ],
+  "method": "Banque simulée, mêmes journées et attaques, seuils appris sur d’autres journées ; chiffres tels quels, y compris défavorables.",
+  "origin": {
+    "schema_version": 1,
+    "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136",
+    "analysis_commit": "48a980a4e2f4c575382248fdbeab9e281087a590",
+    "outage_analysis_commit": "dfdd053b40ce00db95edcb89bcb1069f89320871",
+    "seeds": [
+      41,
+      42,
+      43,
+      59,
+      61,
+      67,
+      71,
+      73,
+      79,
+      83
+    ],
+    "baseline_margin": 0.0,
+    "profile_sha256": "7c426758ef24ad268390e7f8ecaed73238a88198dc4e7d0a5b3f67316d6e6b67",
+    "sources": {
+      "fixed.json": {
+        "source_file": "fixed-comparison.json",
+        "source_sha256": "ea00dd2fd67e6f9289fd03fad36e3744d9206b0252b4643f5c2ea30f445ba670",
+        "copied_sha256": "ea00dd2fd67e6f9289fd03fad36e3744d9206b0252b4643f5c2ea30f445ba670",
+        "extraction": false,
+        "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136"
+      },
+      "normal.json": {
+        "source_file": "propre.json",
+        "source_sha256": "0e79695b8e6e57d6f1d7bfe0f952d2bdac1ded1fc1a661b244cc5da347eae379",
+        "copied_sha256": "0e79695b8e6e57d6f1d7bfe0f952d2bdac1ded1fc1a661b244cc5da347eae379",
+        "extraction": false,
+        "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136"
+      },
+      "crash.json": {
+        "source_file": "krach_reel.json",
+        "source_sha256": "453aa07f8b6902c51498ed30420eb6cda33863de4a90d6eefcdf4485b3e7575c",
+        "copied_sha256": "453aa07f8b6902c51498ed30420eb6cda33863de4a90d6eefcdf4485b3e7575c",
+        "extraction": false,
+        "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136"
+      },
+      "fraud.json": {
+        "source_file": "resultats_argus.json",
+        "source_sha256": "d894fdd7cfdad9dc8271adbee53225266da2bbdb2f5dcf4649d98f0b8e1cd6fb",
+        "copied_sha256": "d894fdd7cfdad9dc8271adbee53225266da2bbdb2f5dcf4649d98f0b8e1cd6fb",
+        "extraction": false,
+        "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136"
+      },
+      "detections.json": {
+        "source_file": "surete_utilite.json",
+        "source_sha256": "28c0163931069d7f37100311925991b9b99bd93773b2103702b9f5dfae6507eb",
+        "copied_sha256": "f3b594e5f53d45ed2c8c502c0fe7474f80dd46efca85958430761073dc6f030d",
+        "extraction": true,
+        "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136"
+      },
+      "outage.json": {
+        "source_file": "metrics.json",
+        "source_sha256": "418a1245ddb0d37f94275ed632806706b7e7bd2b25c16e2b00adf69b9a013ec8",
+        "copied_sha256": "48d66dd941b760e36f5bd54368df41f07df0ab9849c24be77f705e7a162fdf6a",
+        "extraction": true,
+        "measured_commit": "d179dd0"
+      },
+      "limits.md": {
+        "source_file": "README_COUCHE3.md",
+        "source_sha256": "185943fb2d8417752d0429dd28b7352c71f401a17e6fa27008a9b1d8f2a5d826",
+        "copied_sha256": "185943fb2d8417752d0429dd28b7352c71f401a17e6fa27008a9b1d8f2a5d826",
+        "extraction": false,
+        "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136"
+      },
+      "outage-method.md": {
+        "source_file": "COUT_PANNE.md",
+        "source_sha256": "c233940f0dbf6dd5ac614f9e5c0fb1ef904395995290b99b059a24ffbdef21e2",
+        "copied_sha256": "c233940f0dbf6dd5ac614f9e5c0fb1ef904395995290b99b059a24ffbdef21e2",
+        "extraction": false,
+        "measured_commit": "d179dd0"
+      }
+    }
+  },
+  "proofs": [
+    {
+      "url": "/dashboard/console/impact/manifest.json",
+      "label": "Origine, commits et empreintes des fichiers"
+    }
+  ],
+  "glossary": {
+    "contamination": "Une opération a utilisé une réponse marquée par le simulateur, même si la valeur n’a pas été altérée.",
+    "healthy": "Une opération sans donnée marquée par l’oracle de la simulation.",
+    "tick": "Une étape de simulation ; une seconde simulée dans ces mesures.",
+    "false_positive": "Une opération saine approuvée par Risk, puis refusée par le portique ou le feu."
+  }
+}
