@@ -19,7 +19,7 @@ const TPS = 3, SPEEDS = [0.25, 0.5, 1, 2, 4], SLOW = 0.25;
 // the traders and payment, compliance, risk, the executor) climb the floor from front to back, leaning LEAN to the right,
 // each column's rows in the graph's order, and the Vigie last, after the executor (Marius, 24-10)
 const COLUMNS = [["core-ledger", "kyc-docs", "market-feed", "news-wire", "payment-gateway"], ["quant"], ["trader-1", "trader-2", "trader-3", "payment"], ["compliance"], ["risk"], ["executor"], ["vigie"]];
-const LEAN = THREE.MathUtils.degToRad(8), sin = Math.sin(LEAN), cos = Math.cos(LEAN);
+const LEAN = THREE.MathUtils.degToRad(5), sin = Math.sin(LEAN), cos = Math.cos(LEAN);
 const tilt = (c, r) => [c * sin + r * cos, r * sin - c * cos], untilt = (x, z) => [x * sin - z * cos, x * cos + z * sin];
 const POS = {};
 COLUMNS.forEach((ids, k) => ids.forEach((id, i) => (POS[id] = tilt((k - 3) * 9, (i - (ids.length - 1) / 2) * 6))));
@@ -33,7 +33,7 @@ const PLAIN = 0x0e1726, SKY = 0x2b6bff;
 const WHY = { ours: "With our Vigie: one view of every agent and service, and a gate before each execution.", theirs: "Without it: each agent checks only its own rules, nothing watches the whole bank." };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 // Camera presets, to get back to a simple view after orbiting: where the camera looks from, how far, and what it looks at.
-const VIEWS = { "3/4": { dir: [0.5, 13.2, 24.5], dist: 42 }, Top: { dir: [0, 1, 0.02], dist: 49 }, Front: { dir: [0, 0.25, 1], dist: 45 }, Agents: { dir: [0, 1.3, 1], dist: 31, on: "agents" } };
+const VIEWS = { "3/4": { dir: [0.5, 20.5, 24.5], dist: 42 }, Top: { dir: [0, 1, 0.02], dist: 49 }, Front: { dir: [0, 0.25, 1], dist: 45 }, Agents: { dir: [0, 1.3, 1], dist: 31, on: "agents" } };
 
 // What stops the replay when its setting is on: the kinds of event simulation.py writes
 const STOPS = { stopBad: ["bad", "warn"], stopGood: ["good"] };
