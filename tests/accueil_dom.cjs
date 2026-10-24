@@ -33,7 +33,7 @@ async function run(impact) {
     }
   });
   await new Promise(resolve => setImmediate(resolve));
-  assert.deepEqual(network, ['/dashboard', '/demo']);
+  assert.deepEqual(network, ['/console', '/demo']);
   suggestion.listeners.click.listener();
   assert.equal(get('krys-question').value, '<script>question</script>');
   assert.equal(get('krys-question').focused, true);
@@ -42,7 +42,7 @@ async function run(impact) {
   assert.equal(get('console-nav').hidden, false);
   assert.equal(get('nav-toggle').getAttribute('aria-expanded'), 'true');
   assert.equal(get('krys-question-form').listeners.submit, undefined);
-  assert.equal(get('metrics-link').href, impact ? '/dashboard#impact' : '/dashboard#metrics');
+  assert.equal(get('metrics-link').href, impact ? '/console#impact' : '/dashboard#metrics');
   assert.equal(get('proof-status').textContent, impact
     ? 'Démo active. Les réponses de Krys restent limitées aux preuves signées disponibles.' : 'attente');
 }

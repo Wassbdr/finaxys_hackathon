@@ -5,20 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Argus — trois banques, une journée</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 8' shape-rendering='crispEdges'%3E%3Crect x='5' y='0' width='1' height='1' fill='%23A8C8FF'/%3E%3Crect x='0' y='1' width='2' height='1' fill='%236AA6FF'/%3E%3Crect x='4' y='1' width='3' height='1' fill='%236AA6FF'/%3E%3Crect x='9' y='1' width='2' height='1' fill='%236AA6FF'/%3E%3Crect x='5' y='2' width='1' height='1' fill='%232B6BFF'/%3E%3Crect x='4' y='3' width='3' height='1' fill='%231446C8'/%3E%3Crect x='4' y='4' width='3' height='1' fill='%230B2A6F'/%3E%3Crect x='3' y='5' width='5' height='2' fill='%230B2A6F'/%3E%3Crect x='2' y='7' width='7' height='1' fill='%23081B45'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/console/static/tokens.css">
 <style>
 /* La charte de la console garde une identité neutre entre banques : les
-   couleurs des blocs ne décrivent que le feu reçu, jamais un classement. */
-:root {
-  --menu: 56px; --bg: #F8F6F0; --surface: #FFFFFF; --wash: #EEF3FB; --wash-2: #E2EBFA;
-  --text: #0E1726; --dim: #455064; --faint: #7D8696; --line: rgb(14 23 38 / .1); --line-2: rgb(14 23 38 / .18);
-  --green: #16A34A; --orange: #D97706; --red: #E0412F; --grey: #7D8696; --blue: #1F5BFF; --cyan: #0891B2;
-  --b1: #DDEBFF; --b2: #A8C8FF; --b3: #6AA6FF; --b4: #2B6BFF; --b5: #1446C8; --b6: #0B2A6F; --navy: #081B45;
-  --sans: "Geist", "Helvetica Neue", Arial, system-ui, sans-serif; --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  --lift: 0 1px 0 rgb(14 23 38 / .04), -8px 18px 44px rgb(20 60 140 / .1);
-}
+   couleurs des blocs ne décrivent que le feu reçu, jamais un classement.
+   Ses jetons viennent de tokens.css, partagé par toutes les pages. */
 * { box-sizing: border-box; }
 html { color-scheme: light; scroll-padding-top: calc(var(--menu) + 20px); }
 body { margin: 0; background: var(--bg); color: var(--text); font: 400 16px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
@@ -47,11 +38,12 @@ h2, h3 { font-weight: 400; letter-spacing: -.025em; }
 .conn { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .conn input { width: 24ch; }
 .conn .status:last-child { flex-basis: 100%; }
-input, select { min-height: 40px; min-width: 0; max-width: 100%; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 2px; background: var(--surface); }
-input { font-family: var(--mono); font-size: 14px; }
-button { min-height: 40px; padding: 8px 14px; border-radius: 2px; border: 1px solid var(--line-2); background: var(--surface); font: 500 14px var(--sans); cursor: pointer; }
-button:hover:not(:disabled) { background: var(--wash); border-color: var(--dim); }
-button:disabled { opacity: .5; cursor: not-allowed; }
+/* Les commandes de la page seulement : les Réglages de la 3D gardent leur propre style. */
+:where(.conn, #krys-panel) :is(input, select) { min-height: 40px; min-width: 0; max-width: 100%; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 2px; background: var(--surface); }
+:where(.conn, #krys-panel) input { font-family: var(--mono); font-size: 14px; }
+:where(.conn, #krys-panel) button { min-height: 40px; padding: 8px 14px; border-radius: 2px; border: 1px solid var(--line-2); background: var(--surface); font: 500 14px var(--sans); cursor: pointer; }
+:where(.conn, #krys-panel) button:hover:not(:disabled) { background: var(--wash); border-color: var(--dim); }
+:where(.conn, #krys-panel) button:disabled { opacity: .5; cursor: not-allowed; }
 .primary { background: var(--text); color: var(--surface); }
 .primary:hover:not(:disabled) { background: var(--navy); }
 .status { font: 12px var(--mono); color: var(--dim); }
@@ -90,7 +82,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .legend { display: flex; gap: 24px; flex-wrap: wrap; font-size: 14px; color: var(--dim); }
 .legend i { display: inline-block; width: 24px; height: 0; border-top: 3px solid var(--text); vertical-align: middle; margin-right: 8px; }
 .legend .dashed { border-top-style: dashed; } .legend .dotted { border-top-style: dotted; }
-canvas { width: 100%; height: 260px; display: block; margin-top: 12px; }
+#chart { width: 100%; height: 260px; display: block; margin-top: 12px; }
 .note { margin: 0; max-width: 110ch; color: var(--dim); font-size: 13px; }
 .final { padding: 20px 24px; font-size: 17px; }
 .krys-intro { max-width: 92ch; color: var(--dim); margin: 0 0 20px; }
@@ -111,12 +103,19 @@ details p { color: var(--dim); }
 @media (max-width: 1100px) { .menu { padding: 0 120px; } .menu-note { display: none; } .banks { grid-template-columns: 1fr; } .bank h2 { min-height: 0; } .big { max-width: 620px; } .small { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .menu { padding: 0 0 0 62px; justify-content: flex-start; } .brand span { display: none; } .tabs a { padding: 0 12px; font-size: 14px; } main { padding: 20px 14px 32px; } .small { grid-template-columns: repeat(3, minmax(0, 1fr)); } #krys-question-form { grid-template-columns: 1fr; } .chart { padding: 20px; } .conn { width: 100%; } }
 @media (prefers-reduced-motion: reduce) { .progress > div, .bank { transition: none; } }
+/* Dans la fenêtre de la page de présentation (?embed) : le jumeau 3D seul, sans menu */
+.embed .menu, .embed main > :not(#simulation) { display: none !important; }
+.embed main { display: block; max-width: none; padding: 0; }
 </style>
+<link rel="stylesheet" href="/console/static/simulation.css">
+<link rel="stylesheet" href="/console/static/helper.css">
+<script>document.documentElement.classList.toggle("embed", new URLSearchParams(location.search).has("embed"));</script>
+<script type="importmap">{ "imports": { "three": "/console/static/three/three.module.js", "three/addons/": "/console/static/three/addons/" } }</script>
 </head>
 <body>
 <nav class="menu" aria-label="Navigation de la démonstration">
   <a class="brand" href="/" aria-label="Argus, page de présentation"><svg viewBox="0 0 11 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="5" y="0" width="1" height="1" fill="#A8C8FF"/><rect x="0" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="4" y="1" width="3" height="1" fill="#6AA6FF"/><rect x="9" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="5" y="2" width="1" height="1" fill="#2B6BFF"/><rect x="4" y="3" width="3" height="1" fill="#1446C8"/><rect x="4" y="4" width="3" height="1" fill="#0B2A6F"/><rect x="3" y="5" width="5" height="2" fill="#0B2A6F"/><rect x="2" y="7" width="7" height="1" fill="#081B45"/></svg><span>Argus</span></a>
-  <div class="tabs"><a href="#banks" aria-current="page">Journée</a><a href="#results">Résultats</a><a href="#krys-panel">Demandez à Krys</a><a href="/argus">Accueil Argus</a></div>
+  <div class="tabs"><a href="#banks" aria-current="page">Journée</a><a href="#results">Résultats</a><a href="#simulation">Jumeau 3D</a><a href="#krys-panel">Demandez à Krys</a><a href="/argus">Accueil Argus</a></div>
   <span class="menu-note">Banque simulée</span>
 </nav>
 <main>
@@ -149,6 +148,8 @@ details p { color: var(--dim); }
   </section>
 
   <section class="final block" id="final" hidden></section>
+
+  <section id="simulation" aria-label="Jumeau numérique : la journée rejouée en 3D"><p class="empty">Chargement de la scène 3D…</p></section>
 
   <section class="chart block" id="krys-panel" aria-labelledby="krys-heading">
     <h2 id="krys-heading">Demandez à Krys</h2>
@@ -337,9 +338,12 @@ buildBanks();
 $("connect").addEventListener("click", connect);
 $("replay").addEventListener("click", replayLocal);
 window.addEventListener("resize", () => drawChart(lastShown));
-connect();
+// dans la fenêtre de la présentation, seule la 3D se montre : pas de flux à ouvrir
+if (!document.documentElement.classList.contains("embed")) connect();
 </script>
 <script src="/demo/krys.js"></script>
 <script src="/dashboard/console/impact.js"></script>
+<script src="/console/static/helper.js"></script>
+<script type="module" src="/dashboard/simulation.js"></script>
 </body>
 </html>

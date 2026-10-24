@@ -13,8 +13,12 @@
     GET  /vigie/findings latest Findings of every layer
     GET  /improvements dernier rapport de `python -m vigie.improve`
     GET  /guardrails  the limits of each agent and the Vigie's settings, from config.yaml
-    GET  /            page de présentation de la Vigie (le récit en 9 fiches, les chiffres du banc A/B)
-    GET  /dashboard   tableau de bord de la Vigie (7 onglets) ; ?embed=<onglet> montre l'onglet seul, sans menu
+    GET  /            page de présentation d'Argus (le récit en 9 fiches, les chiffres du banc A/B)
+    GET  /simulation  les banques de la démo en direct et le jumeau 3D ; ?embed montre la 3D seule, pour la présentation
+    GET  /console     la console de Krys ; ?embed=<onglet> montre l'onglet seul, sans menu
+    GET  /dashboard   ancienne adresse de la console : redirige vers /console, requête comprise (?embed=simulation vers /simulation)
+    GET  /regulation  l'espace Régulation : Sentinel, la détection d'abus de marché
+    GET  /console/static/<fichier>  jetons de la charte, polices et three.js servis depuis le dépôt (liste fermée)
     GET  /dashboard/{dashboard.js,dashboard-demo.json}  its script and the sample data it shows when no run is live
     GET  /dashboard/{simulation.js,dashboard-sim.json}  the Simulation tab's 3D scene and the bench replays it plays
     GET  /dashboard/sim-layout.json  where its nodes stand, once saved; POST /dashboard/sim-layout {"quant": [x, z], …, "camera": [azimuth, polar]} saves it
@@ -31,9 +35,9 @@ import shutil
 import threading
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import BaseModel
 
 from sim.config import ROOT, load_config
@@ -205,10 +209,29 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
         return FileResponse(ROOT / "vigie" / "console" / name)
     from vigie.console.conformite import router as conformite_router
     app.include_router(conformite_router)
+    from vigie.console.static import router as static_router
+    app.include_router(static_router)
+
+    @app.get("/console")
+    def console():
+        return FileResponse(ROOT / "vigie" / "dashboard.html")
 
     @app.get("/dashboard")
-    def dashboard():
-        return FileResponse(ROOT / "vigie" / "dashboard.html")
+    def dashboard(request: Request):
+        # L'ancienne adresse de la console reste valable : la requête suit, le navigateur garde l'ancre de lui-même,
+        # et la 3D que demande la fenêtre de la présentation a désormais sa propre page.
+        query = request.url.query
+        if request.query_params.get("embed") == "simulation":
+            return RedirectResponse("/simulation?" + query)
+        return RedirectResponse("/console" + ("?" + query if query else ""))
+
+    @app.get("/simulation")
+    def simulation():
+        return FileResponse(ROOT / "vigie" / "demo_page.html")
+
+    @app.get("/regulation")
+    def regulation():
+        return FileResponse(ROOT / "vigie" / "regulation.html")
 
     @app.get("/dashboard/{name}")
     def dashboard_file(name: str):

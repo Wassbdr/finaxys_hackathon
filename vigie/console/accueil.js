@@ -36,12 +36,12 @@
   }).observe(byId('krys-log'), {childList: true});
 
   /* L'onglet Impact arrive dans un lot distinct : le repli est une ancre réelle. */
-  fetch('/dashboard', {credentials: 'omit', redirect: 'error'})
+  fetch('/console', {credentials: 'omit', redirect: 'error'})
     .then(response => response.ok ? response.text() : '')
     .then(html => {
       const dashboard = new DOMParser().parseFromString(html, 'text/html');
       if (dashboard.querySelector('section#impact') && dashboard.querySelector('.tabs a[data-tab="impact"]')) {
-        byId('metrics-link').href = '/dashboard#impact';
+        byId('metrics-link').href = '/console#impact';
       }
     }).catch(() => { /* La navigation statique reste utilisable sans API. */ });
 

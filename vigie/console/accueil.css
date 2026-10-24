@@ -1,12 +1,4 @@
-/* Les jetons viennent de la console : aucune police distante n'est nécessaire. */
-:root {
-  --bg: #F8F6F0; --surface: #FFFFFF; --wash: #EEF3FB; --wash-2: #E2EBFA;
-  --text: #0E1726; --dim: #455064; --faint: #7D8696; --line: rgb(14 23 38 / .1); --line-2: rgb(14 23 38 / .18);
-  --green: #16A34A; --orange: #D97706; --red: #E0412F; --grey: #7D8696; --blue: #1F5BFF; --cyan: #0891B2;
-  --b1: #DDEBFF; --b2: #A8C8FF; --b3: #6AA6FF; --b5: #1446C8; --navy: #081B45;
-  --sans: "Geist", "Helvetica Neue", Arial, system-ui, sans-serif;
-  --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
-}
+/* Les jetons et les polices viennent de tokens.css, servi depuis le dépôt : aucune police distante n'est nécessaire. */
 * { box-sizing: border-box; }
 html { color-scheme: light; }
 body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); font: 16px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }

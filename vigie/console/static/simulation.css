@@ -1,0 +1,75 @@
+/* The Simulation's 3D scene (simulation.js), moved from the console's stylesheet when the Simulation got its own page.
+   Its Settings box stands in a row of its own above the scene, so that it hides neither the page's menu nor the titles
+   of the scene's two sides; the scene fills the window under the menu once scrolled to. */
+#simulation { position: relative; padding-top: 44px; }
+#simulation .empty { color: var(--faint); margin: 0; }
+#simulation .chip { font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 2px; color: var(--c, var(--dim)); background: color-mix(in srgb, var(--c, #7D8696) 10%, white); }
+@keyframes pop { from { opacity: 0; scale: .97; } }
+
+/* The recon dashboard's Settings box (recon-v3-mr/web: helper.tsx Settings and Choice, map.tsx Fold, globals.css
+   .fold): above the scene and under the popups; 100 px folded, 236 px under the pointer, with the keyboard in it or
+   pinned, its body unrolling in .3 s; the body keeps the open width so that its lines do not wrap while it opens */
+.settings { position: absolute; top: 4px; left: 0; z-index: 40; border-radius: 4px; background: var(--surface); box-shadow: var(--lift); }
+.fold { position: relative; display: flex; flex-direction: column; width: 100px; overflow: hidden; border-radius: 4px; border: 1px solid var(--line-2);
+  background: var(--surface); color: var(--dim); transition: width .3s ease-out; }
+.fold-head { display: flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 14px; line-height: 1.25; font-weight: 500; white-space: nowrap; }
+.fold-head svg { width: 16px; height: 16px; flex-shrink: 0; }
+.fold-pin { position: absolute; top: 6px; right: 6px; display: flex; padding: 2px; border: 0; border-radius: 2px; background: none; color: var(--faint); cursor: pointer; opacity: 0; transition: opacity .3s ease-out; }
+.fold-pin svg { width: 14px; height: 14px; }
+.fold-pin:hover, .fold-pin[aria-pressed=true] { color: var(--blue); }
+.fold-pin[aria-pressed=true] svg { fill: currentColor; }
+.fold-body { display: grid; grid-template-rows: minmax(0, 0fr); opacity: 0; transition: grid-template-rows .3s ease-out, opacity .3s ease-out; }
+.fold-in { display: flex; flex-direction: column; gap: 6px; width: 234px; min-height: 0; overflow: hidden; padding: 0 10px 8px; }
+.fold:is(:hover, :has(:focus-visible, select:focus), .pinned) { width: 236px; }
+.fold:is(:hover, :has(:focus-visible, select:focus), .pinned) .fold-body { grid-template-rows: minmax(0, 1fr); opacity: 1; }
+.fold:is(:hover, :has(:focus-visible, select:focus), .pinned) .fold-pin { opacity: 1; }
+.fold :focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+.fold .opt { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 12px; font-weight: 500; white-space: nowrap; color: var(--text); }
+.choice { display: flex; padding: 2px; border-radius: 2px; border: 1px solid var(--line-2); }
+.choice button { padding: 2px 6px; border: 0; border-radius: 1px; background: none; color: var(--faint); cursor: pointer; transition: color .15s; }
+.choice button:hover { color: var(--text); }
+.choice button[aria-pressed=true], #sim-play { background: var(--text); color: #fff; }
+.fold select { min-width: 0; max-width: 140px; padding: 2px 4px; border-radius: 2px; border: 1px solid var(--line-2); background: var(--surface); color: var(--text); font: inherit; }
+.fold input[type=range] { flex: 1; min-width: 0; }
+#sim-tick { font-variant-numeric: tabular-nums; }
+@media (max-width: 639px) { .settings { display: none; } }
+@media (prefers-reduced-motion: reduce) { .fold, .fold-body, .fold-pin { transition: none; } }
+/* the window's two sides, each under its title, and a soft line between them (Marius, 24-10) */
+.sim-side { position: absolute; z-index: 1; top: 24px; left: 24px; margin: 0; pointer-events: none; white-space: nowrap;
+  font-size: 20px; font-weight: 400; letter-spacing: -.02em; color: var(--text); }
+.sim-side.ours { left: calc(50% + 24px); }
+/* what each Vigie refused last, on the left of its side, the one before fading out as it fades in, in the same place
+   (Marius, 24-10) */
+.sim-refused { position: absolute; z-index: 1; top: 10%; left: 24px; display: grid; max-width: 360px; margin: 0; padding: 0; list-style: none;
+  font-size: 12px; line-height: 1.35; pointer-events: none; }
+.sim-refused.ours { left: calc(50% + 24px); }
+.sim-refused:empty { display: none; }
+.sim-refused::before { content: "Refused"; display: block; margin-bottom: 6px; font-weight: 600; }
+.sim-refused li { grid-area: 2 / 1; margin-bottom: 4px; line-height: 23px; animation: pop .3s .3s ease-out both; }
+.sim-refused li.out, .sim-bubble.out { animation: fade-out .3s ease-in forwards; }
+@keyframes fade-out { to { opacity: 0; } }
+.sim-refused b { margin-right: 4px; white-space: pre; font-variant-numeric: tabular-nums; background: color-mix(in srgb, #7D8696 20%, white); }
+/* a refusal too long for one line wraps only at its colon, each line a pill of its own */
+.sim-refused span.chip { --c: var(--red); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.sim-refused span span { white-space: nowrap; }
+.sim-refused .chip { border-radius: 999px; }
+/* what each side's Vigie kept from being lost so far, in its top right corner (Marius, 24-10) */
+.sim-saved { position: absolute; z-index: 1; top: 24px; right: calc(50% + 24px); margin: 0; text-align: right; font-size: 12px; color: var(--dim); pointer-events: none; }
+.sim-saved.ours { right: 24px; }
+.sim-saved b { display: block; font-size: 20px; font-weight: 400; letter-spacing: -.02em; color: var(--text); font-variant-numeric: tabular-nums; }
+.sim-saved.worse b { color: var(--red); }
+/* each side's scene: a layer over the whole window, clipped to its half (simulation.js) */
+.sim-view { position: absolute; inset: 0; clip-path: inset(0 0 0 50%); }
+.sim-view.classic { clip-path: inset(0 50% 0 0); }
+.sim-stage::before { content: ""; position: absolute; left: 50%; top: 10%; height: 60%; border-left: 1px solid var(--line); pointer-events: none; }
+.sim-stage { position: relative; height: calc(100dvh - var(--menu) - 44px); overflow: hidden;
+  background: radial-gradient(70% 60% at 50% 40%, rgb(31 91 255 / .08), transparent 70%), var(--bg); }
+.embed .sim-stage { height: calc(100dvh - 44px); }
+.sim-stage canvas { display: block; }
+.sim-stage .sim-2d { position: absolute; inset: 0; width: 100%; height: 100%; }
+.sim-labels { position: absolute; inset: 0; pointer-events: none; }
+.sim-label { font-size: 12px; font-weight: 500; text-align: center; white-space: nowrap; color: var(--text); text-shadow: 0 0 2px #fff, 0 0 6px #fff, 0 1px 0 #fff; }
+.sim-label small { display: block; font: 500 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+.sim-label .m-stale, .sim-label .m-slow, .sim-label .m-down { color: var(--orange); } .sim-label .m-compromised { color: var(--red); } .sim-label .m-iso { color: var(--cyan); }
+.sim-bubble { max-width: 220px; padding: 5px 10px; border-radius: 2px; font-size: 12px; line-height: 1.3; color: var(--text); background: var(--surface); box-shadow: var(--lift); animation: pop .15s ease-out; }
+.sim-bubble.k-bad { background: #FBE0DC; color: #7f1d1d; } .sim-bubble.k-good { background: #DCF5E3; color: #14532d; } .sim-bubble.k-warn { background: #FDEBD3; color: #7c2d12; }

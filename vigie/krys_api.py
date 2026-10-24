@@ -3,7 +3,7 @@ from collections import deque
 import threading
 
 from fastapi import HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
@@ -72,4 +72,5 @@ def attach_krys(app, knowledge, actions=None, *, rephraser=None):
 
     @app.get('/demo/page')
     def page():
-        return FileResponse(Path(__file__).with_name('demo_page.html'), media_type='text/html')
+        # Les banques en direct vivent désormais dans l'espace Simulation, avec le jumeau 3D.
+        return RedirectResponse('/simulation')

@@ -1,0 +1,16 @@
+/* La charte d'Argus, une seule fois pour toutes les pages : ivoire, encre bleu nuit, Geist et Geist Mono à 400 et 500,
+   coins nets. La couleur ne dit qu'un état (vert, orange, rouge, et cyan pour ce que Krys isole) ; les bleus sont la
+   marque. Les polices sont servies depuis le dépôt : la démo tourne sans réseau. */
+@font-face { font-family: "Geist"; font-style: normal; font-weight: 400; font-display: swap; src: url("/console/static/fonts/Geist-Regular.woff2") format("woff2"); }
+@font-face { font-family: "Geist"; font-style: normal; font-weight: 500; font-display: swap; src: url("/console/static/fonts/Geist-Medium.woff2") format("woff2"); }
+@font-face { font-family: "Geist Mono"; font-style: normal; font-weight: 400; font-display: swap; src: url("/console/static/fonts/GeistMono-Regular.woff2") format("woff2"); }
+@font-face { font-family: "Geist Mono"; font-style: normal; font-weight: 500; font-display: swap; src: url("/console/static/fonts/GeistMono-Medium.woff2") format("woff2"); }
+:root {
+  --menu: 56px; --bg: #F8F6F0; --surface: #FFFFFF; --wash: #EEF3FB; --wash-2: #E2EBFA;
+  --text: #0E1726; --dim: #455064; --faint: #7D8696; --line: rgb(14 23 38 / .1); --line-2: rgb(14 23 38 / .18);
+  --green: #16A34A; --orange: #D97706; --red: #E0412F; --grey: #7D8696; --blue: #1F5BFF; --cyan: #0891B2;
+  --b1: #DDEBFF; --b2: #A8C8FF; --b3: #6AA6FF; --b4: #2B6BFF; --b5: #1446C8; --b6: #0B2A6F; --navy: #081B45;
+  --sans: "Geist", "Helvetica Neue", Arial, system-ui, sans-serif; --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --ease: cubic-bezier(.22, .9, .25, 1);
+  --lift: 0 1px 0 rgb(14 23 38 / .04), -8px 18px 44px rgb(20 60 140 / .1);
+}
