@@ -1,5 +1,6 @@
 """The Simulation tab's film: each scenario of the last bench, replayed without (A, "theirs") and with (B, "ours")
-the Vigie, cut down to what the 3D scene animates: who sends what to whom, each node's state, the money.
+the Vigie, and with the classic Vigie (C, "classic", vigie/classique.py), cut down to what the 3D scene animates: who
+sends what to whom, each node's state, the money.
 
     python -m vigie.simulation        # after make metrics: runs/vigie-improve/improvements.json → vigie/dashboard-sim.json
 """
@@ -12,6 +13,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from sim.config import ROOT, load_config
+from sim.inject import load_scenario
+from sim.lockstep import Lockstep
+from vigie.classique import Classique
+from vigie.improve import scenario_paths
+from vigie.scenario import install
 
 OUT = ROOT / "vigie" / "dashboard-sim.json"
 PITCH = "php2shell_day"
@@ -74,7 +80,7 @@ def world(directory: Path, ticks: int) -> dict:
             target = "payment" if p.get("kind") == "payment" else p.get("trader") or (TRADER.match(p.get("proposal_id", "")) or [None])[0]
             bad = int(bool(p.get("compromised_sources")))
             gate = p.get("gate") or {}
-            if gate.get("decided_by") == "vigie":
+            if gate.get("decided_by") in ("vigie", "vigie-classique"):
                 msgs.append([t, "executor", "vigie", "approve" if gate.get("approved") else "refuse", bad])
             if p.get("status") == "refused":
                 what = "a payment" if p.get("kind") == "payment" else f"{target}'s order"
@@ -139,7 +145,21 @@ def scenario(directory: Path, cfg: dict) -> dict:
     reads = [[e["source"], e["target"], round(e["calls"] / ticks, 3), int(e["hidden"])]
              for e in graph["edges"] if e.get("kind") == "data" and not e.get("transitive") and e.get("calls")]
     return {"ticks": ticks, "agents": agents, "services": [n["id"] for n in graph["nodes"] if n["kind"] == "service"], "reads": reads,
-            "worlds": {"theirs": world(directory / "A", ticks), "ours": world(directory / "B", ticks)}}
+            "worlds": {"theirs": world(directory / "A", ticks), "ours": world(directory / "B", ticks), "classic": world(directory / "C", ticks)}}
+
+
+def classic(directory: Path, path: Path) -> None:
+    """Replays a scenario of the bench with the classic Vigie (fixed rules on the signed bus only), with the seed and
+    settings of its A and B runs, into its C directory, as vigie/classique_eval.py runs it."""
+    cfg = load_config(directory.parent.parent / f"config-baseline-{directory.name}.yaml",
+                      overrides={"llm": {"enabled": False, "cache": False}, "vigie": {"enabled": True, "stub": True}, "gate": {"impl": "stub"}})
+    ls = Lockstep(cfg, no_llm=True, run_dir=directory / "C")
+    ls.vigie = ls.gate = ls.world.gate = ls.world.executor.gate = Classique(cfg, ls.keyring)
+    install(ls, load_scenario(path))
+    try:
+        ls.run(json.loads((directory / "comparison.json").read_text())["ticks"])
+    finally:
+        ls.close()
 
 
 def main() -> None:
@@ -147,6 +167,10 @@ def main() -> None:
     report = json.loads((ROOT / cfg["runs_dir"] / "vigie-improve" / "improvements.json").read_text())
     base = ROOT / report["evidence_dir"] / "baseline"
     names = sorted((d.name for d in base.iterdir() if (d / "A").is_dir() and (d / "B").is_dir()), key=lambda n: (n != PITCH, n))
+    paths = {load_scenario(p)["name"]: p for p in scenario_paths()}
+    for n in names:
+        if not (base / n / "C").is_dir():
+            classic(base / n, paths[n])
     film = {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "evidence_dir": report["evidence_dir"],
             "scenarios": {n: scenario(base / n, cfg) for n in names}}
     OUT.write_text(json.dumps(film, separators=(",", ":"), ensure_ascii=False))
