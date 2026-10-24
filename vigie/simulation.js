@@ -837,7 +837,8 @@ function draw2d() {
     g2.beginPath();
     g2.roundRect(-(p.hx + p.r) * s2, -(p.hz + p.r) * s2, 2 * (p.hx + p.r) * s2, 2 * (p.hz + p.r) * s2, p.r * s2);
     g2.fillStyle = p.c;
-    alpha(0.16), g2.fill(), alpha(0.9);
+    const f = padLit(p) ? 1 : FADE;
+    alpha(0.16 * f), g2.fill(), alpha(0.9 * f);
     g2.strokeStyle = p.c;
     g2.lineWidth = 2;
     g2.stroke(), alpha();
@@ -962,6 +963,8 @@ function draw2d() {
 // for the frame's drawing only and put back after it, so show() and the animations keep their own.
 const FADE = 0.15, IVORY = new THREE.Color(0xf8f6f0);
 let hovered = null, dim = new Set(), near = new Set(), tint = "";
+// a pad fades with its agents when none of them is hovered or linked to what is (Marius, 24-10)
+const padLit = p => !hovered || p.ids.some(a => a === hovered || near.has(a));
 stage.addEventListener("pointermove", e => (carry(e), hover(held ?? pick(e.clientX, e.clientY))));
 stage.addEventListener("pointerleave", () => hover(null));
 function hover(id) {
@@ -989,6 +992,7 @@ function hover(id) {
       if (fade) dim.add(o.material);
     });
   }
+  for (const p of pads) if (!padLit(p)) p.zone.children.forEach(m => dim.add(m.material));
 }
 function hoverPaint() {
   if (!hovered) return () => {};
