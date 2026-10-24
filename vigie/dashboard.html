@@ -188,8 +188,8 @@
   @media (max-width: 639px) { .settings { display: none; } }
   @media (prefers-reduced-motion: reduce) { .fold, .fold-body, .fold-pin { transition: none; } }
   /* the window's two sides, each under its title, and a soft line between them (Marius, 24-10) */
-  .sim-side { position: absolute; z-index: 1; top: 24px; left: 25%; translate: -50%; margin: 0; pointer-events: none; white-space: nowrap; }
-  .sim-side.ours { left: 75%; }
+  .sim-side { position: absolute; z-index: 1; top: 24px; left: 24px; margin: 0; pointer-events: none; white-space: nowrap; }
+  .sim-side.ours { left: calc(50% + 24px); }
   /* what each Vigie refused, newest first, on the left of its side (Marius, 24-10) */
   .sim-refused { position: absolute; z-index: 1; top: 10%; left: 24px; max-width: 360px; max-height: 34vh; overflow: hidden; margin: 0; padding: 0; list-style: none;
     font-size: 12px; line-height: 1.35; pointer-events: none;
