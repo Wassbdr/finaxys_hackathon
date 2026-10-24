@@ -6,6 +6,7 @@
 <title>Simulation · Argus</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 8' shape-rendering='crispEdges'%3E%3Crect x='5' y='0' width='1' height='1' fill='%23A8C8FF'/%3E%3Crect x='0' y='1' width='2' height='1' fill='%236AA6FF'/%3E%3Crect x='4' y='1' width='3' height='1' fill='%236AA6FF'/%3E%3Crect x='9' y='1' width='2' height='1' fill='%236AA6FF'/%3E%3Crect x='5' y='2' width='1' height='1' fill='%232B6BFF'/%3E%3Crect x='4' y='3' width='3' height='1' fill='%231446C8'/%3E%3Crect x='4' y='4' width='3' height='1' fill='%230B2A6F'/%3E%3Crect x='3' y='5' width='5' height='2' fill='%230B2A6F'/%3E%3Crect x='2' y='7' width='7' height='1' fill='%23081B45'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/console/static/tokens.css">
+<link rel="stylesheet" href="/console/static/header.css">
 <style>
 /* La charte de la console garde une identité neutre entre banques : les
    couleurs des blocs ne décrivent que le feu reçu, jamais un classement.
@@ -19,18 +20,21 @@ a { color: inherit; }
 button, input, select { font: inherit; color: inherit; }
 button, input, select, summary, a { touch-action: manipulation; }
 :focus-visible { outline: 3px solid rgb(31 91 255 / .35); outline-offset: 3px; }
-.menu { position: sticky; top: 0; z-index: 20; height: var(--menu); display: flex; justify-content: center; padding: 0 200px;
-  border-bottom: 1px solid var(--line); background: var(--bg); }
-.brand { position: absolute; left: 20px; top: 0; height: 100%; display: flex; align-items: center; gap: 10px;
-  color: var(--text); text-decoration: none; font: 500 17px var(--sans); letter-spacing: -.03em; }
-.brand svg { width: 26px; height: 19px; }
-.tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
-.tabs a { display: flex; align-items: center; padding: 0 18px; font-size: 15px; white-space: nowrap; color: var(--dim); text-decoration: none; border-bottom: 2px solid transparent; }
-.tabs a:hover, .tabs a[aria-current] { color: var(--text); border-bottom-color: var(--text); }
-.tabs a[aria-current] { font-weight: 500; }
-.menu-note { position: absolute; right: 20px; top: 0; height: 100%; display: flex; align-items: center; color: var(--dim); font: 12px var(--mono); }
+/* the Krys bank's light in the common header, the Direct / Rejeu switch, the measures folded under the scene */
+.s-green { --c: var(--green); } .s-orange { --c: var(--orange); } .s-red { --c: var(--red); }
+.intro { margin: 8px 0 0; max-width: 70ch; color: var(--dim); }
+.switch { display: inline-flex; padding: 2px; border: 1px solid var(--line-2); border-radius: 2px; background: var(--surface); }
+.switch button { min-height: 34px; padding: 4px 16px; border: 0; border-radius: 1px; background: none; font: 500 14px var(--sans); color: var(--dim); cursor: pointer; }
+.switch button[aria-pressed=true] { background: var(--text); color: #fff; }
+.switch button:disabled { opacity: .45; cursor: not-allowed; }
+.link-more summary { font: 12px var(--mono); color: var(--dim); cursor: pointer; }
+.link-more[open] { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.no-demo .banner, .no-demo #banks, .no-demo #results, .no-demo .switch, .no-demo .meta, .no-demo .top .bank { display: none; }
+.empty-state { padding: 18px 24px; } .empty-state h2 { margin: 0 0 6px; font-size: 21px; } .empty-state p { margin: 0; color: var(--dim); }
+details.measures { padding: 14px 18px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
+details.measures > summary { font-weight: 500; }
 main { max-width: 1500px; margin: 0 auto; padding: 28px 24px 48px; display: grid; gap: 20px; }
-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 16px 24px; }
+main > header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 16px 24px; }
 .eyebrow { margin: 0 0 6px; color: var(--dim); font: 500 11px var(--mono); letter-spacing: .09em; text-transform: uppercase; }
 h1 { margin: 0; font: 400 clamp(26px, 2.6vw, 38px)/1.15 var(--sans); letter-spacing: -.035em; }
 h2, h3 { font-weight: 400; letter-spacing: -.025em; }
@@ -39,11 +43,11 @@ h2, h3 { font-weight: 400; letter-spacing: -.025em; }
 .conn input { width: 24ch; }
 .conn .status:last-child { flex-basis: 100%; }
 /* Les commandes de la page seulement : les Réglages de la 3D gardent leur propre style. */
-:where(.conn, #krys-panel) :is(input, select) { min-height: 40px; min-width: 0; max-width: 100%; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 2px; background: var(--surface); }
-:where(.conn, #krys-panel) input { font-family: var(--mono); font-size: 14px; }
-:where(.conn, #krys-panel) button { min-height: 40px; padding: 8px 14px; border-radius: 2px; border: 1px solid var(--line-2); background: var(--surface); font: 500 14px var(--sans); cursor: pointer; }
-:where(.conn, #krys-panel) button:hover:not(:disabled) { background: var(--wash); border-color: var(--dim); }
-:where(.conn, #krys-panel) button:disabled { opacity: .5; cursor: not-allowed; }
+:where(.link-more) :is(input, select) { min-height: 40px; min-width: 0; max-width: 100%; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 2px; background: var(--surface); }
+:where(.link-more) input { font-family: var(--mono); font-size: 14px; }
+:where(.link-more) button { min-height: 40px; padding: 8px 14px; border-radius: 2px; border: 1px solid var(--line-2); background: var(--surface); font: 500 14px var(--sans); cursor: pointer; }
+:where(.link-more) button:hover:not(:disabled) { background: var(--wash); border-color: var(--dim); }
+:where(.link-more) button:disabled { opacity: .5; cursor: not-allowed; }
 .primary { background: var(--text); color: var(--surface); }
 .primary:hover:not(:disabled) { background: var(--navy); }
 .status { font: 12px var(--mono); color: var(--dim); }
@@ -84,26 +88,14 @@ h2, h3 { font-weight: 400; letter-spacing: -.025em; }
 #chart { width: 100%; height: 260px; display: block; margin-top: 12px; }
 .note { margin: 0; max-width: 110ch; color: var(--dim); font-size: 13px; }
 .final { padding: 20px 24px; font-size: 17px; }
-.krys-intro { max-width: 92ch; color: var(--dim); margin: 0 0 20px; }
-.krys-access { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 12px 16px; background: var(--wash); border-radius: 2px; font-size: 13px; color: var(--dim); }
-.krys-access input { flex: 1 1 240px; }
-#krys-question-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; margin-top: 20px; }
-#krys-question-form label { grid-column: 1 / -1; }
-#krys-log { margin: 18px 0; padding-left: 24px; max-height: 24rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
-#krys-log li { padding: 0 0 12px 8px; }
-#krys-log p { margin: 0 0 6px; }
-#krys-log code { font: 12px var(--mono); color: var(--dim); }
 details { padding: 16px; border: 1px solid var(--line); border-radius: 2px; }
 summary { font-weight: 500; cursor: pointer; }
 details p { color: var(--dim); }
-#krys-action-form { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: end; }
-.field { display: grid; gap: 6px; flex: 1 1 200px; }
-#krys-recap { white-space: pre-wrap; overflow-wrap: anywhere; }
-@media (max-width: 1100px) { .menu { padding: 0 120px; } .menu-note { display: none; } .banks { grid-template-columns: 1fr; } .bank h2 { min-height: 0; } .big { max-width: 620px; } .small { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
-@media (max-width: 760px) { .menu { padding: 0 0 0 62px; justify-content: flex-start; } .brand span { display: none; } .tabs a { padding: 0 12px; font-size: 14px; } main { padding: 20px 14px 32px; } .small { grid-template-columns: repeat(3, minmax(0, 1fr)); } #krys-question-form { grid-template-columns: 1fr; } .chart { padding: 20px; } .conn { width: 100%; } }
+@media (max-width: 1100px) { .banks { grid-template-columns: 1fr; } .bank h2 { min-height: 0; } .big { max-width: 620px; } .small { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@media (max-width: 760px) { main { padding: 20px 14px 32px; } .small { grid-template-columns: repeat(3, minmax(0, 1fr)); } .chart { padding: 20px; } .conn { width: 100%; } }
 @media (prefers-reduced-motion: reduce) { .progress > div, .bank { transition: none; } }
 /* Dans la fenêtre de la page de présentation (?embed) : le jumeau 3D seul, sans menu */
-.embed .menu, .embed main > :not(#simulation) { display: none !important; }
+.embed .top, .embed main > :not(#simulation) { display: none !important; }
 .embed main { display: block; max-width: none; padding: 0; }
 </style>
 <link rel="stylesheet" href="/console/static/simulation.css">
@@ -112,25 +104,37 @@ details p { color: var(--dim); }
 <script type="importmap">{ "imports": { "three": "/console/static/three/three.module.js", "three/addons/": "/console/static/three/addons/" } }</script>
 </head>
 <body>
-<nav class="menu" aria-label="Navigation de la démonstration">
+<header class="top">
   <a class="brand" href="/" aria-label="Argus, page de présentation"><svg viewBox="0 0 11 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="5" y="0" width="1" height="1" fill="#A8C8FF"/><rect x="0" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="4" y="1" width="3" height="1" fill="#6AA6FF"/><rect x="9" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="5" y="2" width="1" height="1" fill="#2B6BFF"/><rect x="4" y="3" width="3" height="1" fill="#1446C8"/><rect x="4" y="4" width="3" height="1" fill="#0B2A6F"/><rect x="3" y="5" width="5" height="2" fill="#0B2A6F"/><rect x="2" y="7" width="7" height="1" fill="#081B45"/></svg><span>Argus</span></a>
-  <div class="tabs"><a href="#banks" aria-current="page">Journée</a><a href="#results">Résultats</a><a href="#simulation">Jumeau 3D</a><a href="#krys-panel">Demandez à Krys</a><a href="/console">Console</a></div>
-  <span class="menu-note">Banque simulée</span>
-</nav>
+  <nav class="spaces" aria-label="Espaces d'Argus"><a href="/simulation" aria-current="page">Simulation</a><a href="/console">Console</a><a href="/regulation">Régulation</a></nav>
+  <div class="bank"><span class="mode" id="mode"></span>Krys<span class="box lamp calm" id="light">-</span></div>
+</header>
 <main>
   <header>
-    <div class="page-heading"><p class="eyebrow">Simulation · même scénario, deux banques</p>
+    <div class="page-heading"><p class="eyebrow">Simulation · le même scénario, deux banques</p>
       <h1>Deux banques, la même journée</h1>
+      <p class="intro">Mêmes agents, mêmes attaques, même graine : l'une est protégée par des contrôles classiques, l'autre par Krys.</p>
       <span class="meta" id="meta">graine — · direct</span></div>
     <div class="conn">
-      <label for="url" class="status">Serveur</label>
-      <input id="url" value="ws://127.0.0.1:8010" spellcheck="false">
-      <button id="connect" type="button">Se connecter</button>
-      <button id="replay" type="button" title="Rejoue l'animation depuis le début, à partir des ticks déjà reçus">Rejouer</button>
-      <span class="status" id="status">déconnecté</span>
+      <div class="switch" role="group" aria-label="Ce que montrent les banques">
+        <button id="go-live" type="button" aria-pressed="true" title="Suivre la journée en cours">Direct</button>
+        <button id="go-replay" type="button" aria-pressed="false" title="Revoir depuis le début les ticks déjà reçus">Rejeu</button>
+      </div>
+      <span class="status" id="status" role="status">connexion…</span>
+      <details class="link-more"><summary>Connexion</summary>
+        <label for="url" class="status">Serveur</label>
+        <input id="url" value="ws://127.0.0.1:8010" spellcheck="false">
+        <button id="connect" type="button">Se connecter</button>
+      </details>
     </div>
   </header>
-  <aside id="impact-summary" aria-label="Impact mesuré sur les journées archivées"></aside>
+
+  <!-- Sans démo en direct, la page le dit ; le jumeau 3D, lui, rejoue les journées archivées. -->
+  <section class="block empty-state" id="no-demo" hidden>
+    <h2>Aucune démo ne tourne</h2>
+    <p>Lancez <code>make demo-live</code> pour voir les deux banques jouer la journée en direct, ou <code>make demo-replay</code> pour revoir un enregistrement.
+      Le jumeau 3D ci-dessous rejoue déjà les journées archivées.</p>
+  </section>
 
   <section class="banner block" aria-live="polite">
     <div class="tick" id="tick">tick —</div>
@@ -150,38 +154,13 @@ details p { color: var(--dim); }
 
   <section id="simulation" aria-label="Jumeau numérique : la journée rejouée en 3D"><p class="empty">Chargement de la scène 3D…</p></section>
 
-  <section class="chart block" id="krys-panel" aria-labelledby="krys-heading">
-    <h2 id="krys-heading">Demandez à Krys</h2>
-    <p><a href="/console">Chat « Demandez à Krys » disponible dans tous les onglets de la console</a></p>
-    <p class="krys-intro">Réponses sourcées sur la couche 3 et le texte de référence. Reformulation Mistral facultative, désactivée par défaut.
-      Les chiffres du simulateur affichés au-dessus ne sont pas des sources du chat.</p>
-
-    <form id="krys-question-form">
-      <label for="krys-question">Question : alertes, R0, gels, propositions, pourquoi message_id…</label>
-      <input id="krys-question" maxlength="1000" required autocomplete="off">
-      <button class="primary" type="submit">Demander à Krys</button>
-    </form>
-    <ol id="krys-log" role="log" aria-live="polite" aria-label="Réponses et preuves de Krys"></ol>
-    <details>
-      <summary>Commandes humaines — autorisation distincte, confirmation en deux temps</summary>
-      <p>Lecture seule par défaut. Un message dans le chat ne confirme rien.
-        La sortie de quarantaine d’agent n’est pas implémentée.</p>
-      <form id="krys-action-form">
-        <div class="field"><label for="krys-action">Action</label>
-        <select id="krys-action"><option value="unfreeze">Lever un gel</option><option value="resume">Reprendre après un rouge</option></select></div>
-        <div class="field"><label for="krys-target">Actif gelé ou * pour la reprise</label>
-        <input id="krys-target" maxlength="128" required autocomplete="off"></div>
-        <button type="submit">Préparer le récapitulatif</button>
-      </form>
-      <p id="krys-recap" aria-live="polite"></p>
-      <button id="krys-confirm" type="button" disabled>Confirmer</button>
-    </details>
-  </section>
+  <details class="measures"><summary>Mesures archivées · contrôles classiques et Krys</summary>
+    <section id="impact" data-banks="deux"></section>
+  </details>
 
   <p class="note">Même journée, même graine, mêmes attaques pour les deux banques. Les pertes réelles ne servent qu'à afficher et à noter :
   Krys ne les lit pas. « Bloquées » compte les refus explicites du portique ; une banque en rouge ne propose plus d'opérations,
   ce n'est donc pas « aucune protection ». Un feu VERT ne veut pas dire qu'aucune opération n'est bloquée.</p>
-  <aside aria-label="Détails techniques"><h2>Preuves et limites</h2><p>Provenance depuis un message_id, journal chaîné, décisions du portique et mesures sur 10 journées simulées avec comparaison aux contrôles classiques. Limite : données simulées ; relais évalué au banc d’essai.</p><a href="/console#details">Ouvrir les Détails dans la console</a></aside>
 </main>
 
 <script>
@@ -195,6 +174,8 @@ const TOTAL_TICKS = 180;
 const LIGHTS = new Set(["VERT", "ORANGE", "ROUGE"]);
 const packets = new Map();   // tick -> paquet complet ; sert au replay local sans reconnecter
 let ws = null, animTimer = null, lastShown = -1, seed = null, isReplay = false;
+// Direct follows the day as the server plays it; Rejeu plays again from the start the ticks already received
+let following = true, tried = false;
 
 const $ = (id) => document.getElementById(id);
 const euro = (v) => v == null ? "—" : (Math.abs(v) >= 1e6 ? (v / 1e6).toLocaleString("fr-FR", {maximumFractionDigits: 2}) + " M€"
@@ -227,7 +208,26 @@ function eventText(events) {
   return events.map((e) => typeof e === "string" ? e : (e.note || e.text || e.do || e.command || JSON.stringify(e))).join(" · ");
 }
 
+// the common header: whether the server plays live or a recording, and the Krys bank's light
+function header(p) {
+  const mode = $("mode"), lamp = $("light"), light = p.banks?.C?.light;
+  mode.textContent = p.replay || isReplay ? "Rejeu" : "Direct";
+  mode.className = p.replay || isReplay ? "mode" : "mode live";
+  const c = {VERT: "green", ORANGE: "orange", ROUGE: "red"}[light];
+  lamp.className = !c || c === "green" ? "box lamp calm" : `box lamp s-${c}`;
+  lamp.textContent = !c ? "-" : c === "green" ? "normal" : LIGHT_WORDS[light];
+}
+function setSwitch() {
+  $("go-live").setAttribute("aria-pressed", String(following));
+  $("go-replay").setAttribute("aria-pressed", String(!following));
+  $("go-live").disabled = !packets.size; $("go-replay").disabled = !packets.size;
+  // without a demo (once the stream was tried), the live parts give way to what says so
+  const none = tried && !packets.size;
+  $("no-demo").hidden = !none; document.body.classList.toggle("no-demo", none);
+}
+
 function render(p) {
+  header(p);
   $("tick").textContent = `tick ${p.tick}`;
   $("bar").style.width = `${Math.max(0, Math.min(100, (p.tick + 1) / TOTAL_TICKS * 100))}%`;
   const ev = eventText(p.events);
@@ -316,10 +316,12 @@ function connect() {
     // Un nouveau run repart du tick 0 : on vide l'historique pour ne pas mélanger deux journées.
     if (p.tick === 0 && lastShown > 0) { packets.clear(); lastShown = -1; $("final").hidden = true; }
     packets.set(p.tick, p); isReplay = !!p.replay;
-    if (p.tick >= lastShown) { lastShown = p.tick; render(p); }
+    if (following && p.tick >= lastShown) { lastShown = p.tick; render(p); }
+    $("status").textContent = p.complete ? "journée terminée" : isReplay ? "enregistrement en lecture" : "en direct";
+    setSwitch();
   };
-  ws.onclose = () => { $("status").textContent = "déconnecté — vérifier le tunnel, puis Se connecter"; };
-  ws.onerror = () => { $("status").textContent = "connexion impossible (tunnel ouvert ? démo lancée ?)"; };
+  ws.onclose = () => { tried = true; $("status").textContent = packets.size ? "flux terminé" : "aucune démo en cours"; setSwitch(); };
+  ws.onerror = () => { tried = true; $("status").textContent = "aucune démo en cours"; setSwitch(); };
 }
 
 function stopAnimation() { if (animTimer) { clearInterval(animTimer); animTimer = null; } }
@@ -327,7 +329,8 @@ function stopAnimation() { if (animTimer) { clearInterval(animTimer); animTimer 
 function replayLocal() {
   // Rejoue ce qui a déjà été reçu, à la cadence du direct (1,2 tick/s), sans relancer la simulation.
   const ticks = [...packets.keys()].sort((a, b) => a - b);
-  if (!ticks.length) { $("status").textContent = "rien à rejouer : se connecter d'abord"; return; }
+  if (!ticks.length) return;
+  following = false; setSwitch();
   stopAnimation(); $("final").hidden = true; let i = 0; lastShown = -1;
   animTimer = setInterval(() => {
     if (i >= ticks.length) { stopAnimation(); return; }
@@ -339,12 +342,21 @@ buildBanks();
 // le flux vient du serveur qui sert la page, quel que soit son port ; le champ reste modifiable
 if (/^https?:$/.test(location.protocol)) $("url").value = location.protocol.replace("http", "ws") + "//" + location.host;
 $("connect").addEventListener("click", connect);
-$("replay").addEventListener("click", replayLocal);
+$("go-replay").addEventListener("click", replayLocal);
+$("go-live").addEventListener("click", () => {
+  // back to the day as it plays: the last tick received, then each new one
+  stopAnimation(); following = true; setSwitch();
+  const last = packets.size ? Math.max(...packets.keys()) : -1;
+  if (last >= 0) { lastShown = last; render(packets.get(last)); }
+});
+setSwitch();
 window.addEventListener("resize", () => drawChart(lastShown));
 // dans la fenêtre de la présentation, seule la 3D se montre : pas de flux à ouvrir
-if (!document.documentElement.classList.contains("embed")) connect();
+// without a demo the page says so at once, rather than opening a stream that is not there
+if (!document.documentElement.classList.contains("embed"))
+  fetch("/demo", {credentials: "omit", redirect: "error"}).then(r => r.ok ? connect() : Promise.reject())
+    .catch(() => { tried = true; $("status").textContent = "aucune démo en cours"; setSwitch(); });
 </script>
-<script src="/demo/krys.js"></script>
 <script src="/dashboard/console/impact.js"></script>
 <script src="/console/static/helper.js"></script>
 <script type="module" src="/dashboard/simulation.js"></script>

@@ -42,6 +42,6 @@ def test_titles_and_tabs_are_french():
 def test_the_unprotected_bank_is_never_shown_by_its_old_name():
     for rel in SHOWN:
         for line in shown(rel).split('\n'):
-            # impact.js renames the archived label, the only place where the old name may still be written
+            # impact.js renames the archived label, or leaves its bank out: the only places the old name may be written
             if 'Sans Krys' in line:
-                assert rel == 'vigie/console/impact.js' and 'Sans protection' in line, (rel, line.strip()[:120])
+                assert rel == 'vigie/console/impact.js' and ('Sans protection' in line or "!== 'Sans Krys'" in line), (rel, line.strip()[:120])
