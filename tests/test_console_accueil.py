@@ -29,7 +29,7 @@ def test_accueil_route_local_resources_and_console_anchors():
     response = client.get('/argus')
     assert response.status_code == 200
     html = response.text
-    assert 'Voit. Isole. Prouve.' in html
+    assert 'Vos agents décident. Krys vérifie.' in html
     assert 'En attente des premières preuves signées' in html
     for resource in re.findall(r'(?:src|href)="([^"]+)"', html):
         assert not resource.startswith(('http:', 'https:', '//'))
