@@ -20,37 +20,11 @@ a { color: inherit; }
 button, input, select { font: inherit; color: inherit; }
 button, input, select, summary, a { touch-action: manipulation; }
 :focus-visible { outline: 3px solid rgb(31 91 255 / .35); outline-offset: 3px; }
-/* the Krys bank's light in the common header, the Direct / Rejeu switch, the measures folded under the scene */
+/* the Krys bank's light in the common header */
 .s-green { --c: var(--green); } .s-orange { --c: var(--orange); } .s-red { --c: var(--red); }
-.intro { margin: 8px 0 0; max-width: 70ch; color: var(--dim); }
-.switch { display: inline-flex; padding: 2px; border: 1px solid var(--line-2); border-radius: 2px; background: var(--surface); }
-.switch button { min-height: 34px; padding: 4px 16px; border: 0; border-radius: 1px; background: none; font: 500 14px var(--sans); color: var(--dim); cursor: pointer; }
-.switch button[aria-pressed=true] { background: var(--text); color: #fff; }
-.switch button:disabled { opacity: .45; cursor: not-allowed; }
-.link-more summary { font: 12px var(--mono); color: var(--dim); cursor: pointer; }
-.link-more[open] { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.no-demo .banner, .no-demo #banks, .no-demo #results, .no-demo .switch, .no-demo .meta, .no-demo .top .bank { display: none; }
-.empty-state { padding: 18px 24px; } .empty-state h2 { margin: 0 0 6px; font-size: 21px; } .empty-state p { margin: 0; color: var(--dim); }
-details.measures { padding: 14px 18px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
-details.measures > summary { font-weight: 500; }
+.no-demo .banner, .no-demo #banks, .no-demo #results, .no-demo .top .bank { display: none; }
 main { max-width: 1500px; margin: 0 auto; padding: 28px 24px 48px; display: grid; gap: 20px; }
-main > header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 16px 24px; }
-.eyebrow { margin: 0 0 6px; color: var(--dim); font: 500 11px var(--mono); letter-spacing: .09em; text-transform: uppercase; }
-h1 { margin: 0; font: 400 clamp(26px, 2.6vw, 38px)/1.15 var(--sans); letter-spacing: -.035em; }
 h2, h3 { font-weight: 400; letter-spacing: -.025em; }
-.meta { display: block; margin-top: 8px; color: var(--dim); font: 13px var(--mono); }
-.conn { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.conn input { width: 24ch; }
-.conn .status:last-child { flex-basis: 100%; }
-/* Les commandes de la page seulement : les Réglages de la 3D gardent leur propre style. */
-:where(.link-more) :is(input, select) { min-height: 40px; min-width: 0; max-width: 100%; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 2px; background: var(--surface); }
-:where(.link-more) input { font-family: var(--mono); font-size: 14px; }
-:where(.link-more) button { min-height: 40px; padding: 8px 14px; border-radius: 2px; border: 1px solid var(--line-2); background: var(--surface); font: 500 14px var(--sans); cursor: pointer; }
-:where(.link-more) button:hover:not(:disabled) { background: var(--wash); border-color: var(--dim); }
-:where(.link-more) button:disabled { opacity: .5; cursor: not-allowed; }
-.primary { background: var(--text); color: var(--surface); }
-.primary:hover:not(:disabled) { background: var(--navy); }
-.status { font: 12px var(--mono); color: var(--dim); }
 .block { --c: var(--faint); position: relative; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); overflow: hidden; }
 .block::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--c); }
 .bank.VERT { --c: var(--green); } .bank.ORANGE { --c: var(--orange); } .bank.ROUGE { --c: var(--red); }
@@ -86,13 +60,9 @@ h2, h3 { font-weight: 400; letter-spacing: -.025em; }
 .legend i { display: inline-block; width: 24px; height: 0; border-top: 3px solid var(--text); vertical-align: middle; margin-right: 8px; }
 .legend .dashed { border-top-style: dashed; } .legend .dotted { border-top-style: dotted; }
 #chart { width: 100%; height: 260px; display: block; margin-top: 12px; }
-.note { margin: 0; max-width: 110ch; color: var(--dim); font-size: 13px; }
 .final { padding: 20px 24px; font-size: 17px; }
-details { padding: 16px; border: 1px solid var(--line); border-radius: 2px; }
-summary { font-weight: 500; cursor: pointer; }
-details p { color: var(--dim); }
 @media (max-width: 1100px) { .banks { grid-template-columns: 1fr; } .bank h2 { min-height: 0; } .big { max-width: 620px; } .small { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
-@media (max-width: 760px) { main { padding: 20px 14px 32px; } .small { grid-template-columns: repeat(3, minmax(0, 1fr)); } .chart { padding: 20px; } .conn { width: 100%; } }
+@media (max-width: 760px) { main { padding: 20px 14px 32px; } .small { grid-template-columns: repeat(3, minmax(0, 1fr)); } .chart { padding: 20px; } }
 @media (prefers-reduced-motion: reduce) { .progress > div, .bank { transition: none; } }
 /* Dans la fenêtre de la page de présentation (?embed) : le jumeau 3D seul, sans menu */
 .embed .top, .embed main > :not(#simulation) { display: none !important; }
@@ -103,39 +73,13 @@ details p { color: var(--dim); }
 <script>document.documentElement.classList.toggle("embed", new URLSearchParams(location.search).has("embed"));</script>
 <script type="importmap">{ "imports": { "three": "/console/static/three/three.module.js", "three/addons/": "/console/static/three/addons/" } }</script>
 </head>
-<body>
+<body class="no-demo">
 <header class="top">
   <a class="brand" href="/" aria-label="Argus, page de présentation"><svg viewBox="0 0 11 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="5" y="0" width="1" height="1" fill="#A8C8FF"/><rect x="0" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="4" y="1" width="3" height="1" fill="#6AA6FF"/><rect x="9" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="5" y="2" width="1" height="1" fill="#2B6BFF"/><rect x="4" y="3" width="3" height="1" fill="#1446C8"/><rect x="4" y="4" width="3" height="1" fill="#0B2A6F"/><rect x="3" y="5" width="5" height="2" fill="#0B2A6F"/><rect x="2" y="7" width="7" height="1" fill="#081B45"/></svg><span>Argus</span></a>
   <nav class="spaces" aria-label="Espaces d'Argus"><a href="/simulation" aria-current="page">Visualisation</a><a href="/console">Console</a><a href="/regulation">Régulation</a></nav>
   <div class="bank"><span class="mode" id="mode"></span>Krys<span class="box lamp calm" id="light">-</span></div>
 </header>
 <main>
-  <header>
-    <div class="page-heading"><p class="eyebrow">Simulation · le même scénario, deux banques</p>
-      <h1>Deux banques, la même journée</h1>
-      <p class="intro">Mêmes agents, mêmes attaques, même graine : l'une est protégée par des contrôles classiques, l'autre par Krys.</p>
-      <span class="meta" id="meta">graine — · direct</span></div>
-    <div class="conn">
-      <div class="switch" role="group" aria-label="Ce que montrent les banques">
-        <button id="go-live" type="button" aria-pressed="true" title="Suivre la journée en cours">Direct</button>
-        <button id="go-replay" type="button" aria-pressed="false" title="Revoir depuis le début les ticks déjà reçus">Rejeu</button>
-      </div>
-      <span class="status" id="status" role="status">connexion…</span>
-      <details class="link-more"><summary>Connexion</summary>
-        <label for="url" class="status">Serveur</label>
-        <input id="url" value="ws://127.0.0.1:8010" spellcheck="false">
-        <button id="connect" type="button">Se connecter</button>
-      </details>
-    </div>
-  </header>
-
-  <!-- Sans démo en direct, la page le dit ; le jumeau 3D, lui, rejoue les journées archivées. -->
-  <section class="block empty-state" id="no-demo" hidden>
-    <h2>Aucune démo ne tourne</h2>
-    <p>Lancez <code>make demo-live</code> pour voir les deux banques jouer la journée en direct, ou <code>make demo-replay</code> pour revoir un enregistrement.
-      Le jumeau 3D ci-dessous rejoue déjà les journées archivées.</p>
-  </section>
-
   <section class="banner block" aria-live="polite">
     <div class="tick" id="tick">tick —</div>
     <div class="progress" aria-hidden="true"><div id="bar"></div></div>
@@ -153,14 +97,6 @@ details p { color: var(--dim); }
   <section class="final block" id="final" hidden></section>
 
   <section id="simulation" aria-label="Jumeau numérique : la journée rejouée en 3D"><p class="empty">Chargement de la scène 3D…</p></section>
-
-  <details class="measures"><summary>Mesures archivées · contrôles classiques et Krys</summary>
-    <section id="impact" data-banks="deux"></section>
-  </details>
-
-  <p class="note">Même journée, même graine, mêmes attaques pour les deux banques. Les pertes réelles ne servent qu'à afficher et à noter :
-  Krys ne les lit pas. « Bloquées » compte les refus explicites du portique ; une banque en rouge ne propose plus d'opérations,
-  ce n'est donc pas « aucune protection ». Un feu VERT ne veut pas dire qu'aucune opération n'est bloquée.</p>
 </main>
 
 <script>
@@ -172,10 +108,8 @@ const NAMES = {B: "Contrôles classiques", C: "Krys"};
 const LIGHT_WORDS = {VERT: "vert", ORANGE: "orange", ROUGE: "rouge"};
 const TOTAL_TICKS = 180;
 const LIGHTS = new Set(["VERT", "ORANGE", "ROUGE"]);
-const packets = new Map();   // tick -> paquet complet ; sert au replay local sans reconnecter
-let ws = null, animTimer = null, lastShown = -1, seed = null, isReplay = false;
-// Direct follows the day as the server plays it; Rejeu plays again from the start the ticks already received
-let following = true, tried = false;
+const packets = new Map();   // tick -> paquet complet
+let ws = null, lastShown = -1, isReplay = false;
 
 const $ = (id) => document.getElementById(id);
 const euro = (v) => v == null ? "—" : (Math.abs(v) >= 1e6 ? (v / 1e6).toLocaleString("fr-FR", {maximumFractionDigits: 2}) + " M€"
@@ -217,14 +151,8 @@ function header(p) {
   lamp.className = !c || c === "green" ? "box lamp calm" : `box lamp s-${c}`;
   lamp.textContent = !c ? "-" : c === "green" ? "normal" : LIGHT_WORDS[light];
 }
-function setSwitch() {
-  $("go-live").setAttribute("aria-pressed", String(following));
-  $("go-replay").setAttribute("aria-pressed", String(!following));
-  $("go-live").disabled = !packets.size; $("go-replay").disabled = !packets.size;
-  // without a demo (once the stream was tried), the live parts give way to what says so
-  const none = tried && !packets.size;
-  $("no-demo").hidden = !none; document.body.classList.toggle("no-demo", none);
-}
+// the live parts show only once a demo sends its first tick (Marius, 24-10: no heading, no connection, no empty state)
+function showLive() { document.body.classList.toggle("no-demo", !packets.size); }
 
 function render(p) {
   header(p);
@@ -232,8 +160,6 @@ function render(p) {
   $("bar").style.width = `${Math.max(0, Math.min(100, (p.tick + 1) / TOTAL_TICKS * 100))}%`;
   const ev = eventText(p.events);
   if (ev) $("event").innerHTML = `<b>t${p.tick}</b> — ${escapeHtml(ev)}`;
-  if (p.seed != null) seed = p.seed;
-  $("meta").textContent = `graine ${seed ?? "—"} · ${p.replay || isReplay ? "rejeu" : "direct"}`;
   for (const [k] of BANKS) {
     const b = (p.banks || {})[k]; if (!b) continue;
     $(`label-${k}`).textContent = NAMES[k];
@@ -302,62 +228,27 @@ function drawChart(uptoTick) {
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c])); }
 
 function connect() {
-  stopAnimation(); if (ws) { try { ws.close(); } catch (e) {} }
-  const base = $("url").value.trim().replace(/\/$/, "");
   const since = packets.size ? Math.max(...packets.keys()) : -1;
-  $("status").textContent = "connexion…";
-  try { ws = new WebSocket(`${base}/demo/stream?since_tick=${since}`); }
-  catch (e) { $("status").textContent = "adresse invalide"; return; }
-  ws.onopen = () => { $("status").textContent = "connecté"; };
+  // le flux vient du serveur qui sert la page, quel que soit son port
+  try { ws = new WebSocket(`${location.protocol.replace("http", "ws")}//${location.host}/demo/stream?since_tick=${since}`); }
+  catch (e) { return; }
   ws.onmessage = (m) => {
     let p; try { p = JSON.parse(m.data); } catch (e) { return; }
-    if (p.error) { $("status").textContent = `erreur serveur : ${p.error}`; return; }
-    if (typeof p.tick !== "number" || p.tick < 0) return;
+    if (p.error || typeof p.tick !== "number" || p.tick < 0) return;
     // Un nouveau run repart du tick 0 : on vide l'historique pour ne pas mélanger deux journées.
     if (p.tick === 0 && lastShown > 0) { packets.clear(); lastShown = -1; $("final").hidden = true; }
     packets.set(p.tick, p); isReplay = !!p.replay;
-    if (following && p.tick >= lastShown) { lastShown = p.tick; render(p); }
-    $("status").textContent = p.complete ? "journée terminée" : isReplay ? "enregistrement en lecture" : "en direct";
-    setSwitch();
+    if (p.tick >= lastShown) { lastShown = p.tick; render(p); }
+    showLive();
   };
-  ws.onclose = () => { tried = true; $("status").textContent = packets.size ? "flux terminé" : "aucune démo en cours"; setSwitch(); };
-  ws.onerror = () => { tried = true; $("status").textContent = "aucune démo en cours"; setSwitch(); };
-}
-
-function stopAnimation() { if (animTimer) { clearInterval(animTimer); animTimer = null; } }
-
-function replayLocal() {
-  // Rejoue ce qui a déjà été reçu, à la cadence du direct (1,2 tick/s), sans relancer la simulation.
-  const ticks = [...packets.keys()].sort((a, b) => a - b);
-  if (!ticks.length) return;
-  following = false; setSwitch();
-  stopAnimation(); $("final").hidden = true; let i = 0; lastShown = -1;
-  animTimer = setInterval(() => {
-    if (i >= ticks.length) { stopAnimation(); return; }
-    const p = packets.get(ticks[i++]); lastShown = p.tick; render(p);
-  }, 1000 / 1.2);
 }
 
 buildBanks();
-// le flux vient du serveur qui sert la page, quel que soit son port ; le champ reste modifiable
-if (/^https?:$/.test(location.protocol)) $("url").value = location.protocol.replace("http", "ws") + "//" + location.host;
-$("connect").addEventListener("click", connect);
-$("go-replay").addEventListener("click", replayLocal);
-$("go-live").addEventListener("click", () => {
-  // back to the day as it plays: the last tick received, then each new one
-  stopAnimation(); following = true; setSwitch();
-  const last = packets.size ? Math.max(...packets.keys()) : -1;
-  if (last >= 0) { lastShown = last; render(packets.get(last)); }
-});
-setSwitch();
 window.addEventListener("resize", () => drawChart(lastShown));
 // dans la fenêtre de la présentation, seule la 3D se montre : pas de flux à ouvrir
-// without a demo the page says so at once, rather than opening a stream that is not there
 if (!document.documentElement.classList.contains("embed"))
-  fetch("/demo", {credentials: "omit", redirect: "error"}).then(r => r.ok ? connect() : Promise.reject())
-    .catch(() => { tried = true; $("status").textContent = "aucune démo en cours"; setSwitch(); });
+  fetch("/demo", {credentials: "omit", redirect: "error"}).then(r => r.ok && connect(), () => {});
 </script>
-<script src="/dashboard/console/impact.js"></script>
 <script src="/console/static/helper.js"></script>
 <script type="module" src="/dashboard/simulation.js"></script>
 </body>
