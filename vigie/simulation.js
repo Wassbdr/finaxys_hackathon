@@ -518,12 +518,18 @@ function show(t) {
     if (n.html !== html) n.div.innerHTML = n.html = html;
   }
   nodes.vigie.asleep = !st.vigie;
-  // what this side's Vigie refused so far, newest first, on the left of its side of the window, and in its top right
+  // what this side's Vigie refused last, on the left of its side of the window, the one before fading out as it fades
+  // in (Marius, 24-10), and in its top right
   // corner what it kept from being lost: its bank's net result (trading less fraud) less the bank's without a Vigie
   // (Marius, 24-10); below zero, it is what the bank lost more than without one, said so in red (Marius, 24-10)
   const mine = sc.worlds[SIDE ?? "ours"], none = sc.worlds.theirs, i = SIDE ? 0 : 1;
-  const html = mine.events.filter(e => e[0] <= t && REFUSED.test(e[2])).reverse().map(e => `<li><b class="chip">${String(e[0]).padStart(3, "\u2007")}</b><span class="chip"><span>${esc(e[2]).replace(": ", ":</span> <span>")}</span></span></li>`).join("");
-  if (ui.refused[i].html !== html) ui.refused[i].innerHTML = ui.refused[i].html = html;
+  const e = mine.events.findLast(e => e[0] <= t && REFUSED.test(e[2])), list = ui.refused[i];
+  const html = e ? `<li><b class="chip">${String(e[0]).padStart(3, "\u2007")}</b><span class="chip"><span>${esc(e[2]).replace(": ", ":</span> <span>")}</span></span></li>` : "";
+  if (list.html !== html) {
+    list.html = html;
+    for (const li of list.children) (li.className = "out"), (li.onanimationend = li.onanimationcancel = () => li.remove());
+    list.insertAdjacentHTML("beforeend", html);
+  }
   const gain = mine.pnl[t] - mine.fraud[t] - none.pnl[t] + none.fraud[t], worse = gain <= -0.5;
   ui.saved[i].classList.toggle("worse", worse);
   ui.saved[i].firstChild.textContent = eur(Math.abs(gain));

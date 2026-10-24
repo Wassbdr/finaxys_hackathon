@@ -190,14 +190,16 @@
   /* the window's two sides, each under its title, and a soft line between them (Marius, 24-10) */
   .sim-side { position: absolute; z-index: 1; top: 24px; left: 24px; margin: 0; pointer-events: none; white-space: nowrap; }
   .sim-side.ours { left: calc(50% + 24px); }
-  /* what each Vigie refused, newest first, on the left of its side (Marius, 24-10) */
-  .sim-refused { position: absolute; z-index: 1; top: 10%; left: 24px; max-width: 360px; max-height: 34vh; overflow: hidden; margin: 0; padding: 0; list-style: none;
-    font-size: 12px; line-height: 1.35; pointer-events: none;
-    mask-image: linear-gradient(#000 calc(34vh - 28px), transparent 34vh); }
+  /* what each Vigie refused last, on the left of its side, the one before fading out as it fades in, in the same place
+     (Marius, 24-10) */
+  .sim-refused { position: absolute; z-index: 1; top: 10%; left: 24px; display: grid; max-width: 360px; margin: 0; padding: 0; list-style: none;
+    font-size: 12px; line-height: 1.35; pointer-events: none; }
   .sim-refused.ours { left: calc(50% + 24px); }
   .sim-refused:empty { display: none; }
   .sim-refused::before { content: "Refused"; display: block; margin-bottom: 6px; font-weight: 600; }
-  .sim-refused li { margin-bottom: 4px; line-height: 23px; }
+  .sim-refused li { grid-area: 2 / 1; margin-bottom: 4px; line-height: 23px; animation: pop .3s .3s ease-out both; }
+  .sim-refused li.out { animation: fade-out .3s ease-in forwards; }
+  @keyframes fade-out { to { opacity: 0; } }
   .sim-refused b { margin-right: 4px; white-space: pre; font-variant-numeric: tabular-nums; background: color-mix(in srgb, #7D8696 20%, white); }
   /* a refusal too long for one line wraps only at its colon, each line a pill of its own */
   .sim-refused span.chip { --c: var(--red); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
