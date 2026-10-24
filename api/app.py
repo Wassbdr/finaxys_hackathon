@@ -181,10 +181,8 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
     def landing():
         return FileResponse(ROOT / "vigie" / "landing.html")
 
-    # Les pages du collègue (branche argus) servies telles quelles, dans une liste fermée : la console les montre en onglets.
-    COLLEAGUE_PAGES = {"presentation": "argus-presentation.html",
-                       "exchange": "sites/trader-exchange/dist/index.html",
-                       "sentinel": "vendor/sentinel/docs/sentinel-demo.html"}
+    # La page visuelle Sentinel du collègue (branche argus), servie telle quelle dans une liste fermée : un onglet de la console.
+    COLLEAGUE_PAGES = {"sentinel": "vendor/sentinel/docs/sentinel-demo.html"}
 
     @app.get("/console/colleague-pages.js")
     def colleague_pages_script():
