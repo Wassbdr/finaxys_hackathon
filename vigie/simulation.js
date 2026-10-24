@@ -64,7 +64,7 @@ if (!SIDE) sec.innerHTML = `<div class="settings"><div class="fold">
       ${row("Vigie", choice("world", Object.entries(WHY).map(([w, why]) => [w, w === "ours" ? "Ours" : "Theirs", why])), `Ours: ${WHY.ours} Theirs: ${WHY.theirs}`)}
       ${row("Stop on a problem", choice("stopBad", OFF_ON), "Pauses when a service is compromised, an agent acts on compromised data, money leaves to a rerouted IBAN, the bank light turns orange or red, a CVE is published, a trader stops or the Vigie's heartbeat is lost")}
       ${row("Stop on an action", choice("stopGood", OFF_ON), "Pauses when the gate or the executor refuses, the Vigie raises a level, isolates a service or turns the bank red, compliance blocks, or a forged signature is rejected")}
-      ${row("Focus on a stop", choice("focus", OFF_ON), "When the replay stops, the camera flies to whoever caused it")}
+      ${row("Focus on a stop", choice("focus", OFF_ON), "When the replay stops, the camera flies to whoever caused it, then back 3 s later")}
       ${row("Background reads", choice("reads", OFF_ON), "The dots of the agents' routine reads of the services; off, only their messages fly")}
       ${row("Bubbles", choice("bubbles", OFF_ON), "What each agent says, over its head")}
       ${row("Helper", choice("helper", OFF_ON), "A box that follows the pointer: what is under it, or what happens at this tick")}
@@ -601,13 +601,13 @@ function halt(e) {
   playing = false;
   unfly();
   acc = 0;
-  zoom = null;
-  const id = actor(e[2]), n = nodes[id];
+  // the camera flies to whoever caused the stop, then goes back to where it was 3 s later, as after a refusal (Marius, 24-10)
+  const back = zoom?.back ?? { target: controls.target.clone(), pos: camera.position.clone() }, id = actor(e[2]), n = nodes[id];
+  zoom = { p: null, until: time, back };
   if (set.focus && n && (id !== "vigie" || worldName !== "theirs")) {
     const target = n.g.getWorldPosition(v(0, 0, 0)).add(v(0, 1, 0));
     goal = { target, pos: camera.position.clone().sub(controls.target).setLength(16 * fit).add(target) };
-    set.view = null;
-    paint();
+    zoom.until = time + 3;
   }
   hud();
 }
