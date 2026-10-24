@@ -19,6 +19,7 @@
     GET  /argus       ancienne page du chat : redirige vers /console, dont Krys est la vue par défaut
     GET  /dashboard   ancienne adresse de la console : redirige vers /console, requête comprise (?embed=simulation vers /simulation)
     GET  /regulation  l'espace Régulation : Sentinel, la détection d'abus de marché
+    GET  /sentinel    la présentation de Sentinel (argus-presentation.html), l'onglet des espaces
     GET  /console/static/<fichier>  jetons de la charte, polices et three.js servis depuis le dépôt (liste fermée)
     GET  /dashboard/{dashboard.js,dashboard-demo.json}  its script and the sample data it shows when no run is live
     GET  /dashboard/{simulation.js,dashboard-sim.json}  the Simulation tab's 3D scene and the bench replays it plays
@@ -237,6 +238,10 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
     @app.get("/regulation")
     def regulation():
         return FileResponse(ROOT / "vigie" / "regulation.html")
+
+    @app.get("/sentinel")
+    def sentinel():
+        return FileResponse(ROOT / "argus-presentation.html")
 
     @app.get("/dashboard/{name}")
     def dashboard_file(name: str):

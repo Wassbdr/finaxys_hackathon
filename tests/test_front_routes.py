@@ -131,7 +131,7 @@ def test_the_console_reads_the_krys_bank_and_says_live_or_replay():
         assert f'getJson("{route}" + WORLD)' in code, route
     assert 'WORLD = h?.worlds?.includes("C") ? "?world=C" : ""' in code and 'getJson("/health")' in code
     html = (ROOT/'vigie/dashboard.html').read_text()
-    assert '<a href="/console" aria-current="page">Console</a>' in html and '<a href="/regulation">Régulation</a>' in html
+    assert '<a href="/console" aria-current="page">Console</a>' in html and '<a href="/sentinel">Sentinel</a>' in html
     assert 'id="mode"' in html and 'id="light"' in html and 'id="waiting"' in html
 
 
