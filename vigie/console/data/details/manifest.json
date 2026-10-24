@@ -1,0 +1,51 @@
+{
+  "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136",
+  "evidence_commit": "48a980a4e2f4c575382248fdbeab9e281087a590",
+  "outage_commit": "dfdd053b40ce00db95edcb89bcb1069f89320871",
+  "files": {
+    "curve.json": {
+      "source": "/home/dantenos/projects/finaxys_hackathon/.worktrees/remesure-fusion/runs/remesure-fusion-cf4973a-surete-v2/curve.json",
+      "sha256": "c082d0daf36e93e31de519ca87e6b76aa14965bcd08e3e80f26241b1ac360c51"
+    },
+    "fixed-comparison.json": {
+      "source": "/home/dantenos/projects/finaxys_hackathon/.worktrees/remesure-fusion/runs/remesure-fusion-cf4973a-surete-v2/fixed-comparison.json",
+      "sha256": "ea00dd2fd67e6f9289fd03fad36e3744d9206b0252b4643f5c2ea30f445ba670"
+    },
+    "plan.json": {
+      "source": "/home/dantenos/projects/finaxys_hackathon/.worktrees/remesure-fusion/runs/remesure-fusion-cf4973a-surete-v2/plan.json",
+      "sha256": "07cfaa321aa11c8b4c325358170c60911db065db78fed0dfa0c8cc470cc55ccb"
+    },
+    "resultats_argus.json": {
+      "source": "/home/dantenos/projects/finaxys_hackathon/.worktrees/remesure-fusion/runs/remesure-fusion-cf4973a-surete-v2/resultats_argus.json",
+      "sha256": "d894fdd7cfdad9dc8271adbee53225266da2bbdb2f5dcf4649d98f0b8e1cd6fb"
+    },
+    "SURETE_UTILITE.md": {
+      "source": "/home/dantenos/projects/finaxys_hackathon/.worktrees/remesure-fusion/vigie/SURETE_UTILITE.md",
+      "sha256": "8ebc3aee57153a3227c4ddd131824f015c666d295304a2851fd87857e0baa942"
+    },
+    "RESULTATS_ARGUS.md": {
+      "source": "/home/dantenos/projects/finaxys_hackathon/.worktrees/remesure-fusion/vigie/RESULTATS_ARGUS.md",
+      "sha256": "b711f5e35704054add95b0ffde68721c41f7b2eccbd177f824b74d53cf3b8c83"
+    },
+    "journal.jsonl": {
+      "source": "/home/dantenos/projects/finaxys_hackathon/.worktrees/remesure-fusion/runs/remesure-fusion-cf4973a-surete-v2/php2shell_day/42/C-margin-0.0/journal.jsonl",
+      "sha256": "97b7be469b10be7a2a13f8d4e2720082c1b311cad36b77ee5dc656f0e38bdc0e"
+    },
+    "example-result.json": {
+      "source": "/home/dantenos/projects/finaxys_hackathon/.worktrees/remesure-fusion/runs/remesure-fusion-cf4973a-surete-v2/php2shell_day/42/C-margin-0.0/result.json",
+      "sha256": "53e1c30693ddd3c40fcad9037593a006da0a3e65e66e29821a7f8948870b549a"
+    },
+    "ANNEXE_INVARIANT.md": {
+      "source": "vigie/ANNEXE_INVARIANT.md",
+      "sha256": "c9d569f5f5a1af8103229706cf50c49e40e6614c1406996c6ac09471e6fb653b"
+    },
+    "PANNE.md": {
+      "source": "/home/dantenos/.cache/tako/hackathon/cout-panne.md",
+      "sha256": "a55e09c45e28dd5c7fb9781ebf5aac2ad000c9333f05d19ab237d19787e1e13a"
+    },
+    "panne.json": {
+      "source": "/home/dantenos/projects/finaxys_hackathon/.worktrees/cout-panne/runs/cout-panne-20261024-001421-11dc876dc19e4d9186a8d2a9e7130c83/metrics.json",
+      "sha256": "418a1245ddb0d37f94275ed632806706b7e7bd2b25c16e2b00adf69b9a013ec8"
+    }
+  }
+}
