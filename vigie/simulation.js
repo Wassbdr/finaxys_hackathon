@@ -412,14 +412,21 @@ let flying = [], fx = [], sc, W, worldName = set.world, tick = 0, acc = 0, playi
 // a message to or from an agent of a pad rides the pad's link when the pad stands for it
 const team = id => pads.find(p => p.ids.includes(id))?.id;
 const wire = (a, b) => [[a, b], [team(a), b], [a, team(b)]].map(k => links.get(k.sort().join("|"))).find(Boolean);
+// one dot at a time on a link (Marius, 24-10): a message like the one already on it (a price to the three traders)
+// rides with it, another waits until it has arrived, and one that would wait more than a tick is dropped; a dot crosses
+// its link within a tick, so a link keeps up with a message a tick
 function send(from, to, kind, bad, delay) {
   const l = wire(from, to);
   if (!l || (l.vigie && worldName !== "ours")) return;
+  const back = from !== l.a && team(from) !== l.a, q = flying.includes(l.last) && l.last;
+  if (q && q.kind === kind && q.back === back && q.bad === !!bad) return;
+  const wait = Math.max(delay, q ? q.dur - q.at : 0);
+  if (wait > delay + 1 / TPS) return;
   const shape = kind === "wire" || kind === "fraud" ? "coin" : kind === "order" || kind === "payment" ? "box" : "dot";
   const m = mesh(GEO[shape], shine(bad && shape !== "coin" ? DOT.bad : DOT[kind]));
   m.visible = false;
   world.add(m);
-  flying.push({ m, l, back: from !== l.a && team(from) !== l.a, from, to, kind, at: -delay, dur: Math.min(1.1, 0.35 + l.curve.getLength() / 30) });
+  flying.push((l.last = { m, l, back, from, to, kind, bad: !!bad, at: -wait, dur: Math.min(0.3, 0.12 + l.curve.getLength() / 100) }));
 }
 
 function burst(id, color, size = 2) {
