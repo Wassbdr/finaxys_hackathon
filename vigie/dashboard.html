@@ -194,7 +194,7 @@
   .sim-side { position: absolute; z-index: 1; top: 24px; left: 25%; translate: -50%; margin: 0; pointer-events: none; white-space: nowrap; }
   .sim-side.ours { left: 75%; }
   /* what each Vigie refused, newest first, on the left of its side (Marius, 24-10) */
-  .sim-refused { position: absolute; z-index: 1; top: 20%; left: 24px; width: 260px; max-height: 34vh; overflow: hidden; margin: 0; padding: 0; list-style: none;
+  .sim-refused { position: absolute; z-index: 1; top: 10%; left: 24px; width: 260px; max-height: 34vh; overflow: hidden; margin: 0; padding: 0; list-style: none;
     font-size: 12px; line-height: 1.35; pointer-events: none;
     mask-image: linear-gradient(#000 calc(34vh - 28px), transparent 34vh); }
   .sim-refused.ours { left: calc(50% + 24px); }
@@ -202,7 +202,7 @@
   .sim-refused::before { content: "Refused"; display: block; margin-bottom: 6px; font-weight: 600; }
   .sim-refused li { margin-bottom: 5px; }
   .sim-refused b { margin-right: 4px; font-weight: 500; color: var(--dim); font-variant-numeric: tabular-nums; }
-  .sim-stage::before { content: ""; position: absolute; left: 50%; top: 20%; height: 60%; border-left: 1px solid var(--line); pointer-events: none; }
+  .sim-stage::before { content: ""; position: absolute; left: 50%; top: 10%; height: 60%; border-left: 1px solid var(--line); pointer-events: none; }
   .sim-stage { position: relative; height: calc(100dvh - var(--menu)); overflow: hidden;
     background: radial-gradient(70% 60% at 50% 40%, rgb(31 91 255 / .08), transparent 70%), var(--bg); }
   .embed .sim-stage { height: 100dvh; }
