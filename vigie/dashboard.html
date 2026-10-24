@@ -190,6 +190,10 @@
   /* what stopped the replay, while it is stopped */
   .sim-stop { position: absolute; z-index: 1; bottom: 18px; left: 50%; translate: -50%; margin: 0; padding: 7px 14px; border-radius: 2px; font-size: 13px; white-space: nowrap;
     color: #fff; background: var(--text); box-shadow: var(--lift); }
+  /* the window's two sides, each under its title, and a soft line between them (Marius, 24-10) */
+  .sim-side { position: absolute; z-index: 1; top: 24px; left: 25%; translate: -50%; margin: 0; pointer-events: none; white-space: nowrap; }
+  .sim-side.ours { left: 75%; }
+  .sim-stage::before { content: ""; position: absolute; left: 50%; top: 20%; height: 60%; border-left: 1px solid var(--line); pointer-events: none; }
   .sim-stage { position: relative; height: calc(100dvh - var(--menu)); overflow: hidden;
     background: radial-gradient(70% 60% at 50% 40%, rgb(31 91 255 / .08), transparent 70%), var(--bg); }
   .embed .sim-stage { height: 100dvh; }
