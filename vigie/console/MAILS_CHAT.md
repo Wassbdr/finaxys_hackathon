@@ -1,8 +1,8 @@
 # Boîte d’envoi et Krys dans la console
 
-`make demo-live` ou `make demo-replay`, puis `/dashboard#mails-chat` : le même
-journal C vérifié et la même borne de relecture que le chatbot de `/demo/page`.
-La bulle demeure disponible en changeant d’onglet. Une question se pose directement,
+`make demo-live` ou `make demo-replay`, puis `/console` : le même journal C vérifié
+et la même borne de relecture que la vue Krys. La bulle « Demandez à Krys » des autres
+vues ouvre ce même chat, déplacé dans la bulle : la conversation suit d’une vue à l’autre. Une question se pose directement,
 sans champ d’accès supplémentaire ; les écritures exigent une origine exacte
 autorisée et un contenu JSON.
 Préparer puis confirmer une commande conserve les contrôles existants. Aucune
@@ -44,7 +44,7 @@ Il refuse un journal incomplet. Il n’accepte ni destinataire ni contenu libre.
 Le corps ne contient ni cible, ni document, ni texte d’alerte : seulement les
 libellés fixes, compteurs d’observation et identifiants techniques de preuve filtrés.
 L’adresse personnelle configurée n’est utilisée que dans l’enveloppe d’acheminement.
-Le lien relatif `/dashboard#mails-chat` vise la console locale ; il suppose l’accès
+Le lien relatif `/console#krys` vise la console locale ; il suppose l’accès
 au poste de démo, pas un service public déployé.
 
 Au plus un envoi par incident et dix réservations sur une heure glissante, y compris

@@ -15,7 +15,8 @@
     GET  /guardrails  the limits of each agent and the Vigie's settings, from config.yaml
     GET  /            page de présentation d'Argus (le récit en 9 fiches, les chiffres du banc A/B)
     GET  /simulation  les banques de la démo en direct et le jumeau 3D ; ?embed montre la 3D seule, pour la présentation
-    GET  /console     la console de Krys ; ?embed=<onglet> montre l'onglet seul, sans menu
+    GET  /console     la console de Krys : cinq vues, Krys par défaut ; ?embed=<vue> montre la vue seule, sans menus
+    GET  /argus       ancienne page du chat : redirige vers /console, dont Krys est la vue par défaut
     GET  /dashboard   ancienne adresse de la console : redirige vers /console, requête comprise (?embed=simulation vers /simulation)
     GET  /regulation  l'espace Régulation : Sentinel, la détection d'abus de marché
     GET  /console/static/<fichier>  jetons de la charte, polices et three.js servis depuis le dépôt (liste fermée)
@@ -200,13 +201,8 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
 
     @app.get("/argus")
     def argus():
-        return FileResponse(ROOT / "vigie" / "argus.html")
-
-    @app.get("/argus/{name}")
-    def argus_file(name: str):
-        if name not in ("accueil.js", "accueil.css"):
-            raise HTTPException(404)
-        return FileResponse(ROOT / "vigie" / "console" / name)
+        # Le chat de l'ancienne page d'accueil est la vue Krys de la console.
+        return RedirectResponse("/console")
     from vigie.console.conformite import router as conformite_router
     app.include_router(conformite_router)
     from vigie.console.static import router as static_router

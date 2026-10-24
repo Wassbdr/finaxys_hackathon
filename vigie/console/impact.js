@@ -100,7 +100,7 @@
     target.replaceChildren();
     if (compact) {
       const heading = node(doc, 'a', 'Impact · mesures archivées et limites');
-      heading.href = '/dashboard#impact';
+      heading.href = '/console#impact';
       const counts = data.cards[0].groups[0].rows;
       const utility = data.cards[1].groups[0].rows;
       target.append(heading, node(doc, 'p', `6 attaques × 10 journées simulées : opérations contaminées exécutées / proposées — ${counts.map(r => `${r.label} ${number(r.numerator)}/${number(r.denominator)}`).join(' ; ')}.`));

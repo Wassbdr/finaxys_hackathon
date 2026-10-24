@@ -48,6 +48,9 @@ const order = id => ORDER.indexOf(id.split("-")[0]) * 10 + (+id.split("-")[1] ||
 
 let DEMO = null, S = {}, V = {status: {}, decisions: []}, G = {nodes: []}, I = null, GR = null;
 let live = false, stale = false, moved = 0, showApprovals = false, detail = null, D = null;
+// Argus shows the Krys bank only: in the three-bank demo its world is C, elsewhere the only world there is. MODE is
+// /health's: live or replay.
+let WORLD = "", MODE = null;
 
 // --- data -------------------------------------------------------------------------------------------------------
 
@@ -65,15 +68,17 @@ function compose() {
   else if (!imp.metrics) { imp = {...imp, metrics: DEMO.improvements.metrics}; fake.add("eval"); }
   D = {S: base.state, st, decisions: base.vigie.decisions || [], G: base.graph?.nodes?.length ? base.graph : DEMO.graph, I: imp, fake};
 }
-const sample = (...keys) => keys.some(k => D.fake.has(k)) ? `<span class="sample" title="le serveur ne publie pas encore cette donnée : exemple tiré de dashboard-demo.json">exemple</span>` : "";
+const SAMPLE = `<span class="sample" title="le serveur ne publie pas encore cette donnée : exemple tiré de dashboard-demo.json">exemple</span>`;
+const sample = (...keys) => keys.some(k => D.fake.has(k)) ? SAMPLE : "";
 
 async function poll() {
-  const [s, v] = await Promise.all([getJson("/state"), getJson("/vigie")]);
+  const [s, v] = await Promise.all([getJson("/state" + WORLD), getJson("/vigie" + WORLD)]);
   // stale: the API is gone, or it still answers but the world's tick has not moved for 5 s
   if (s && v) { live = true; if (s.tick !== S.tick) moved = Date.now(); stale = Date.now() - moved > 5000; S = s; V = v; } else if (live) stale = true;
   render();
 }
-async function pollGraph() { const g = await getJson("/graph"); if (g) G = g; }
+async function pollGraph() { const g = await getJson("/graph" + WORLD); if (g) G = g; }
+async function pollHealth() { const h = await getJson("/health"); MODE = h?.mode ?? null; WORLD = h?.worlds?.includes("C") ? "?world=C" : ""; }
 async function pollImprovements() { I = await getJson("/improvements"); }
 async function pollGuardrails() { GR = await getJson("/guardrails"); }
 
@@ -131,10 +136,14 @@ function renderBar() {
   const [c, word] = STATE[bankLight()] || ["grey", bankLight()], lamp = $("light");
   // no green pastille anywhere (Marius): a green bank shows a plain "normal", the lamp lights only for orange and red
   lamp.className = c === "green" ? "box lamp calm" : `box lamp s-${c}`; lamp.textContent = c === "green" ? "normal" : word;
-  const conn = $("conn");
+  const conn = $("conn"), mode = $("mode");
+  // live or a recording, as /health says it; without a running simulation, the sample data says so
+  mode.textContent = !live ? "Données d'exemple" : MODE === "replay" ? "Rejeu" : "Direct";
+  mode.className = !live ? "mode warn" : MODE === "replay" ? "mode" : "mode live";
+  mode.title = !live ? "Aucune simulation en cours : la console montre des données d'exemple" : "";
   // a finished day is not a breakdown (Edouard, 24-10): say which one it is
-  conn.textContent = !live ? "données d'exemple, aucune simulation en cours" : stale ? (S.tick >= 179 ? "journée terminée" : `en pause · tick ${S.tick}`) : "";
-  conn.className = !live || stale ? "warn" : "";
+  conn.textContent = live && stale ? (S.tick >= 179 ? "journée terminée" : `en pause · tick ${S.tick}`) : "";
+  conn.className = live && stale ? "warn" : "";
   document.body.classList.toggle("stale", stale);
 }
 
@@ -331,8 +340,8 @@ function renderMetrics() {
   const alerts = (st.metrics?.alerts || []).slice().reverse().slice(0, 12);
   html += `<h2>Dernières alertes des indicateurs</h2>` + (alerts.length ? table(`<th>tick</th><th>règle</th><th>cible</th><th class="num">valeur</th><th class="num">seuil</th><th>ce que cela signifie</th>`,
     alerts.map(a => `<tr><td>${a.tick}</td><td>${esc(a.rule)}</td><td>${esc(a.target)}</td><td class="num">${a.value}</td><td class="num">${a.threshold ?? ""}</td><td>${esc(a.text)}</td></tr>`)) : `<p class="empty">aucune</p>`);
-  html += evaluation();
   put("metrics", html);
+  put("evaluation", evaluation());
 }
 
 /** The replays of every scenario without (A) and with (B) KRYS, and the bench's metrics. */
@@ -386,23 +395,31 @@ function renderImprove() {
 /** What waits for a human: the problems only a human clears, and the replays' good news only a human applies (Marius, 23-10). */
 function renderSummary() {
   const st = D.st, bad = [], good = [];
-  const ask = (list, text, command, label, ghost) => list.push(`<tr><td>${text}</td><td class="num">${command ? `<button class="act${ghost ? " ghost" : ""}" onclick="${command.startsWith("#") ? `location.hash='${command}'` : `human('${esc(command)}')`}">${label}</button>` : ""}</td></tr>`);
+  // a row read from the sample does not wait for anyone: it says so, and the Alertes view counts only the problems read live
+  let waiting = 0;
+  const real = (...keys) => live && !keys.some(k => D.fake.has(k));
+  const ask = (list, text, command, label, ghost, counts = live) => (list === bad && counts && waiting++, list.push(`<tr><td>${text}${counts ? "" : SAMPLE}</td><td class="num">${command ? `<button class="act${ghost ? " ghost" : ""}" onclick="${command.startsWith("#") ? `location.hash='${command}'` : `human('${esc(command)}')`}">${label}</button>` : ""}</td></tr>`));
   if (bankLight() === "ROUGE") ask(bad, "La banque est au rouge : tous les agents sont en pause.", "human resume", "Reprendre");
   const risk = D.S.agents?.risk?.status;
   if (risk?.halted) ask(bad, `Risk a arrêté le trading (${esc(risk.halt_reason)}) : seul un humain le relance.`, "human resume_trading", "Reprendre le trading");
-  for (const a of st.quarantined || []) ask(bad, `${esc(a)} est en quarantaine : sa clé est révoquée et ses outils coupés.`, `human unblock ${a}`, "Lever la quarantaine");
-  for (const [s, f] of Object.entries(suspects())) ask(bad, `${esc(s)} est suspect depuis le tick ${esc(f.since_tick)} : toute action qu'il a alimentée est refusée.`, `human unblock ${s}`, "Lui refaire confiance", true);
+  for (const a of st.quarantined || []) ask(bad, `${esc(a)} est en quarantaine : sa clé est révoquée et ses outils coupés.`, `human unblock ${a}`, "Lever la quarantaine", false, real("quarantined"));
+  for (const [s, f] of Object.entries(suspects())) ask(bad, `${esc(s)} est suspect depuis le tick ${esc(f.since_tick)} : toute action qu'il a alimentée est refusée.`, `human unblock ${s}`, "Lui refaire confiance", true, real("metrics", "isolated_services"));
   for (const [who, why] of Object.entries(D.S.agents?.compliance?.status?.blocked || {})) ask(bad, `Compliance a bloqué ${esc(who)} (${esc(why)}) : seul un humain le débloque.`, `human unblock ${who}`, "Débloquer", true);
   const lost = agentIds().filter(id => D.S.agents[id].vigie_lost);
   if (lost.length) ask(bad, `${esc(lost.join(", "))} ${lost.length === 1 ? "a perdu le battement de Krys et est passé" : "ont perdu le battement de Krys et sont passés"} seul${lost.length === 1 ? "" : "s"} à l'orange : vérifiez que Krys tourne.`);
   const props = D.I.proposals || [], th = st.metrics?.thresholds || {}, open = props.filter(p => p.kind !== "threshold");
-  if (open.length) ask(bad, `Les rejeux ont trouvé ${open.length} trou${open.length === 1 ? "" : "s"} ou règle${open.length === 1 ? "" : "s"} à revoir : ${esc(open.map(p => p.target).join(", "))}.`, "#improve", "Les lire", true);
-  for (const p of props.filter(p => p.kind === "threshold" && p.proven && th[p.target] !== p.proposed)) ask(good, `Les rejeux confirment : ${esc(p.why)}`, p.apply, `Appliquer ${p.current} → ${p.proposed}`);
+  if (open.length) ask(bad, `Les rejeux ont trouvé ${open.length} trou${open.length === 1 ? "" : "s"} ou règle${open.length === 1 ? "" : "s"} à revoir : ${esc(open.map(p => p.target).join(", "))}.`, "#improve", "Les lire", true, real("improvements"));
+  for (const p of props.filter(p => p.kind === "threshold" && p.proven && th[p.target] !== p.proposed)) ask(good, `Les rejeux confirment : ${esc(p.why)}`, p.apply, `Appliquer ${p.current} → ${p.proposed}`, false, real("improvements"));
   const n = (k, one, many) => `<b>${k}</b> ${k === 1 ? one : many}`;
   let html = `<p class="lead">${n(bad.length, "problème", "problèmes")} et ${n(good.length, "bonne nouvelle", "bonnes nouvelles")} vous attendent${live && !stale ? "" : " : aucune simulation ne tourne, aucune décision ne peut donc être envoyée"}</p>`;
   html += `<h2>Problèmes que seul un humain lève</h2>` + (bad.length ? table(`<th>quoi</th><th class="num">votre décision</th>`, bad) : `<p class="empty">aucun</p>`);
   html += `<h2>Bonnes nouvelles que seul un humain applique</h2>` + (good.length ? table(`<th>quoi</th><th class="num">votre décision</th>`, good) : `<p class="empty">aucune</p>`);
   put("summary", html);
+  const count = $("waiting");
+  count.hidden = !live;
+  count.textContent = waiting;
+  count.classList.toggle("none", !waiting);
+  count.setAttribute("aria-label", `${waiting} décision${waiting === 1 ? "" : "s"} en attente`);
 }
 
 /** Every guardrail in force: each agent's limits as config.yaml sets them with how much of each is used now, KRYS's, the LLM's. */
@@ -502,7 +519,7 @@ function renderGuardrails() {
     summary.append(items);
   } else summary.append(make("p", readings.length ? "Aucune limite proche de son seuil" : "Aucune lecture d'usage disponible", "gr-clear"));
   summary.append(make("p", "Les lectures à 80 % ou plus sont en orange ; à 100 % ou plus, en rouge. Un usage manquant n'est pas un zéro.", "gr-note"));
-  root.replaceChildren(make("h1", "Garde-fous"), summary);
+  root.replaceChildren(summary);
   root.append(make("p", "Chaque agent contrôle ses propres limites ; Krys contrôle les agents. Les réglages viennent de /guardrails, l'usage de la vue de la banque.", "gr-intro"));
   if (sampleData) root.append(make("p", "Lectures d'exemple de la banque, pas des données en direct", "gr-source"));
   root.append(make("p", `À l'orange, les limites d'ordres et de paiements sont multipliées par ${GR.vigie.orange_amount_factor}. Les réglages ci-dessous restent inchangés.`, "gr-note"));
@@ -560,37 +577,43 @@ async function human(command) {
   toast(r?.ok ? `Envoyé, signé par un humain : ${command}` : `Refusé : ${body?.detail || r?.status || "API injoignable"}`);
 }
 
-// --- the page: its menu, its polling ---------------------------------------------------------------------------
+// --- the page: its views, its polling ----------------------------------------------------------------------------
 
-// a tab is what names a section: the Simulation and Sentinel in the menu are plain links to their own pages
-const tabs = [...document.querySelectorAll("[data-tab]")], line = document.querySelector(".tabs .line");
-function placeLine() {
-  const t = tabs.find(t => t.hasAttribute("aria-current"));
-  if (t) line.style.transform = `translateX(${t.offsetLeft + 12}px) scaleX(${t.offsetWidth - 24})`;
-}
+// the five views of the sidebar; a section of main that no view names (the outbox) stays hidden
+const tabs = [...document.querySelectorAll("[data-tab]")];
 function go(id) {
   for (const t of tabs) t.toggleAttribute("aria-current", t.dataset.tab === id);
-  for (const s of document.querySelectorAll("main section")) s.hidden = s.id !== id;
-  placeLine();
+  for (const s of document.querySelectorAll("main > section")) s.hidden = s.id !== id;
 }
-for (const t of tabs) t.onclick = e => { e.preventDefault(); go(t.dataset.tab); history.replaceState(null, "", "#" + t.dataset.tab); };
-// ?embed=simulation names the tab without an anchor: an anchor in a frame scrolls the page around it to the frame
+for (const t of tabs) t.onclick = e => { e.preventDefault(); go(t.dataset.tab); history.replaceState(null, "", location.pathname + location.search + "#" + t.dataset.tab); };
+// up and down move along the views, Enter opens the one in focus
+document.querySelector(".views").addEventListener("keydown", e => {
+  const i = tabs.indexOf(document.activeElement);
+  if (i < 0 || !["ArrowDown", "ArrowUp"].includes(e.key)) return;
+  e.preventDefault();
+  tabs[(i + (e.key === "ArrowDown" ? 1 : tabs.length - 1)) % tabs.length].focus();
+});
+// a view's anchor opens it; a former tab's opens the view that took its content, scrolled to its block (anchor() is the
+// head script's); ?embed=<view> names it without an anchor, as an anchor in a frame scrolls the page around it
 const fromHash = () => {
-  const want = location.hash.slice(1) || new URLSearchParams(location.search).get("embed");
-  go(tabs.some(t => t.dataset.tab === want) ? want : "agents");
+  const {view, block} = anchor(location.hash.slice(1) || new URLSearchParams(location.search).get("embed") || "");
+  go(tabs.some(t => t.dataset.tab === view) ? view : "krys");
+  if (!block) return;
+  history.replaceState(null, "", location.pathname + location.search + "#" + view);
+  requestAnimationFrame(() => $(block)?.scrollIntoView({block: "start"}));
 };
 fromHash();
 addEventListener("hashchange", fromHash);
-line.style.transition = "none"; placeLine(); line.getBoundingClientRect(); line.style.transition = "";
-new ResizeObserver(placeLine).observe(document.querySelector(".tabs"));
 
 // --- the helper: /console/static/helper.js, shared with the Simulation --------------------------------------------
 
 (async () => {
   DEMO = await getJson("/dashboard/dashboard-demo.json");
+  await pollHealth();
   await Promise.all([pollGraph(), pollImprovements(), pollGuardrails()]);
   await poll();
   setInterval(poll, 1000);
   setInterval(pollGraph, 5000);
+  setInterval(pollHealth, 5000);
   setInterval(pollImprovements, 30000);
 })();

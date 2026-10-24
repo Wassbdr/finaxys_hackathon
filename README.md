@@ -80,7 +80,8 @@ See [Sentinel documentation](vendor/sentinel/README.md) and [results](vendor/sen
 
 Cette partie vient de la branche d'Édouard (couche 3, console fusionnée avec Marius, page `/argus`).
 Lancer la démonstration : `make demo-live SCENARIO=vigie/scenarios/jour_noir.yaml`, puis ouvrir
-`http://127.0.0.1:8010/argus` (page d'accueil et chatbot), `/dashboard` (console) et `/demo/page` (trois banques en direct).
+`http://127.0.0.1:8010/` (présentation), `/simulation` (les banques en direct et le jumeau 3D), `/console` (la console, Krys
+par défaut) et `/regulation` (Sentinel). Les anciennes adresses `/argus`, `/dashboard` et `/demo/page` y redirigent.
 Détails : `vigie/README.md`, `vigie/DEMO_API.md`, `vigie/KRYS.md`.
 
 # ARGUS : environnement de simulation

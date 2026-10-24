@@ -1,7 +1,7 @@
 # Onglet Impact — Argus / Krys
 
-L’onglet `/dashboard#impact` lit uniquement les archives publiées dans
-`vigie/console/data/impact/`. Le résumé de `/demo/page` pointe vers cet onglet.
+Le bloc Impact de la vue Gouvernance (`/console#impact`) lit uniquement les archives publiées dans
+`vigie/console/data/impact/`. Le résumé de la page `/simulation` pointe vers ce bloc.
 Les noms et valeurs du direct ne remplacent jamais les mesures archivées.
 
 Six cartes montrent les comparaisons, leurs dénominateurs, l’échantillon et

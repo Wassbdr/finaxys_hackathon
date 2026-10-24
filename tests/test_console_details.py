@@ -20,7 +20,10 @@ def test_details_routes_and_no_arbitrary_file_read():
         assert c.get(path).status_code == 200
     assert c.get('/console/details/data/no-such-file').status_code == 404
     assert c.post('/console/details/provenance').status_code == 405
-    assert c.get('/dashboard').text.count('data-tab="details"') == 1
+    # Détails est un bloc de la vue Gouvernance, et l'ancienne adresse y mène
+    console = c.get('/console').text
+    assert console.count('id="details"') == 1 and console.count('data-tab="gouvernance"') == 1
+    assert c.get('/dashboard').text == console
 
 
 def test_archive_verification_rejects_tampering(tmp_path):

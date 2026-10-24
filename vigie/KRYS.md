@@ -1,7 +1,7 @@
 # Argus — Demandez à Krys
 
 Depuis la racine, lancer `make demo-live`, puis ouvrir
-`http://127.0.0.1:8010/demo/page` ou `/argus`. Poser directement une question,
+`http://127.0.0.1:8010/console` : Krys en est la vue par défaut. Poser directement une question,
 sans champ d’accès ni secret de lancement à saisir. La bulle de la console et
 le brouillon DORA utilisent le même accès local. L’API écoute sur 127.0.0.1 ; conserver le tunnel
 SSH habituel. Une page ouverte directement en `file://` ne peut pas commander

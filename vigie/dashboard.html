@@ -5,8 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Console · Argus</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 8' shape-rendering='crispEdges'%3E%3Crect x='5' y='0' width='1' height='1' fill='%23A8C8FF'/%3E%3Crect x='0' y='1' width='2' height='1' fill='%236AA6FF'/%3E%3Crect x='4' y='1' width='3' height='1' fill='%236AA6FF'/%3E%3Crect x='9' y='1' width='2' height='1' fill='%236AA6FF'/%3E%3Crect x='5' y='2' width='1' height='1' fill='%232B6BFF'/%3E%3Crect x='4' y='3' width='3' height='1' fill='%231446C8'/%3E%3Crect x='4' y='4' width='3' height='1' fill='%230B2A6F'/%3E%3Crect x='3' y='5' width='5' height='2' fill='%230B2A6F'/%3E%3Crect x='2' y='7' width='7' height='1' fill='%23081B45'/%3E%3C/svg%3E">
+<!-- La phrase se change ici sans modifier le moteur de conversation. -->
+<meta name="argus-phrase" content="Vos agents décident. Krys vérifie.">
 <link rel="stylesheet" href="/console/static/tokens.css">
+<link rel="stylesheet" href="/console/static/header.css">
 <link rel="stylesheet" href="/console/static/helper.css">
+<link rel="stylesheet" href="/console/static/accueil.css">
 <style>
   /* The console, on the pitch page's paper: its tokens (ivory, a deep-sea ink, Geist at 400 and 500, the ramp of blues
      for the brand, colour otherwise only for a state) are tokens.css, shared by every page. */
@@ -17,36 +21,33 @@
   [hidden] { display: none !important; }
   ::selection { background: var(--b2); }
 
-  /* the menu: the mark and its name, home to the pitch page; the tabs and the bank's light */
-  .menu { position: sticky; top: 0; z-index: 20; height: var(--menu); display: flex; justify-content: center; padding: 0 200px;
-    border-bottom: 1px solid var(--line); background: var(--bg); }
-  .brand { position: absolute; left: 20px; top: 0; height: 100%; display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font: 500 17px var(--sans); letter-spacing: -.03em; }
-  .brand svg { width: 26px; height: 19px; }
-  .tabs { position: relative; display: flex; gap: 2px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
-  .tabs a { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 13px; font-size: 14.5px; white-space: nowrap; color: var(--dim);
-    text-decoration: none; outline: none; transition: color .2s; }
-  /* a tab is as wide as its name in bold, chosen or not: the menu does not move when the choice does */
-  .tabs a::after { content: attr(data-name); height: 0; overflow: hidden; visibility: hidden; font-weight: 500; }
-  .tabs a:hover, .tabs a[aria-current] { color: var(--text); }
-  .tabs a[aria-current] { font-weight: 500; }
-  .tabs a:focus-visible { text-decoration: underline; }
-  .tabs .line { position: absolute; bottom: 0; left: 0; width: 1px; height: 2px; background: var(--blue); transform-origin: left; transition: transform .3s ease-out; pointer-events: none; }
-
-  /* only the bank's light stays of the old Bank / Tick / P&L row: tick, P&L and prices are the market's, not KRYS's (Marius, 23-10) */
-  .bank { position: absolute; right: 16px; top: 0; height: 100%; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); }
-  .bank .box { display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px; border: 1px solid var(--line-2); border-radius: 2px; background: var(--surface); font-weight: 500; }
-  .bank .warn { color: var(--orange); font-weight: 500; }
-  .lamp { color: var(--c); }
-  .lamp::before { content: ""; width: .5em; height: .5em; background: var(--c); }
-  .lamp.calm { color: var(--text); } .lamp.calm::before { display: none; }
-  .s-red.lamp::before, .s-red .pastille::before { animation: beat 1.6s ease-out infinite; }
-  @keyframes beat { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 55%, transparent); } 100% { box-shadow: 0 0 0 7px transparent; } }
-  /* the simulation stopped: what stays on screen is its last state, greyed */
-  /* the simulation stopped: no greying any more (Edouard, 24-10): the menu's orange notice says it */
-
-  main { max-width: calc(100vw * 2 / 3); margin: 0 auto; padding: 22px 24px 64px; }
-  /* a tab's address opens the tab, it does not scroll its first title under the menu */
+  /* The console: the common header (header.css), the five views on the left, the chosen one on the right. Krys's view
+     is the chat; the others gather the blocks of the former tabs, each under a small title of its part. */
+  :root { --side: 232px; }
+  .views { position: fixed; z-index: 15; top: var(--menu); bottom: 0; left: 0; width: var(--side); display: flex; flex-direction: column; gap: 4px;
+    padding: 20px 12px; border-right: 1px solid var(--line); background: var(--bg); overflow-y: auto; }
+  .views a { position: relative; display: block; padding: 9px 44px 9px 14px; border-left: 3px solid transparent; border-radius: 0 2px 2px 0;
+    color: var(--dim); text-decoration: none; font-size: 15px; transition: color .2s, background-color .2s; }
+  .views a small { display: block; margin-top: 2px; color: var(--faint); font-size: 12px; font-weight: 400; line-height: 1.35; }
+  .views a:hover { color: var(--text); background: var(--wash); }
+  .views a[aria-current] { color: var(--text); font-weight: 500; border-left-color: var(--blue); background: var(--surface); }
+  .views a:focus-visible { outline: 3px solid rgb(31 91 255 / .35); outline-offset: -3px; }
+  /* what waits for a human decision, counted on live data only: a sample does not wait for anyone */
+  .views .waiting { position: absolute; top: 10px; right: 10px; min-width: 22px; padding: 0 6px; border-radius: 2px; text-align: center;
+    font: 500 11px/19px var(--mono); color: #fff; background: var(--red); }
+  .views .waiting.none { color: var(--dim); background: var(--wash-2); }
+  main { margin-left: var(--side); padding: 24px 40px 72px; }
+  main > section { max-width: 1120px; margin: 0 auto; }
+  /* a view's address opens the view, it does not scroll its first title under the header; a block's scrolls to it */
   main > section { scroll-margin-top: 100vh; }
+  main > section [id] { scroll-margin-top: calc(var(--menu) + 16px); }
+  .view-title { margin: 4px 0 4px; font-size: 30px; font-weight: 400; letter-spacing: -.03em; }
+  .view-lead { margin: 0 0 8px; color: var(--dim); font-size: 15px; }
+  h2.part { margin: 40px 0 14px; padding-top: 14px; border-top: 1px solid var(--line); font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+  .view-lead + h2.part { margin-top: 22px; padding-top: 0; border-top: 0; }
+  #krys { max-width: 900px; }
+  .skip:not(:focus) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .skip:focus { position: fixed; top: 10px; left: 10px; z-index: 50; padding: 10px 14px; background: var(--surface); }
   h2 { font-size: 20px; font-weight: 400; letter-spacing: -.02em; color: var(--text); margin: 34px 0 12px; }
   h2:first-child { margin-top: 4px; }
   .lead { margin: 0 0 16px; color: var(--dim); font-size: 15px; } .lead b { color: var(--text); font-weight: 500; }
@@ -54,6 +55,7 @@
   .empty { color: var(--faint); margin: 0; }
   .sample { margin-left: 8px; padding: 1px 6px; border: 1px dashed var(--b3); border-radius: 2px; color: var(--blue); font: 500 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; vertical-align: 3px; }
   .s-green { --c: var(--green); } .s-orange { --c: var(--orange); } .s-red { --c: var(--red); } .s-grey { --c: var(--grey); }
+  .s-red .pastille::before { animation: beat 1.6s ease-out infinite; }
 
   /* A block: its name, what it does and its state, as a pastille and as the bar on its left; a click opens the rest */
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; }
@@ -144,11 +146,18 @@
   .x:hover { background: var(--wash); }
 
   .toast { position: fixed; bottom: 20px; right: 20px; z-index: 30; padding: 10px 14px; border-radius: 2px; color: #fff; background: var(--text); box-shadow: var(--lift); }
-  /* ?embed=<tab>: the tab alone, without the menu */
-  .embed .menu { display: none !important; }
-  @media (prefers-reduced-motion: reduce) { .tabs .line, dialog.glass[open] { transition: none; animation: none; } .lamp::before, .pastille::before { animation: none !important; } }
-  @media (max-width: 1100px) { .menu { padding: 0 150px 0 64px; } .brand span { display: none; } }
-  @media (max-width: 760px) { main { max-width: none; } .menu { padding: 0; justify-content: flex-start; } .brand, .bank { display: none; } .grid.three { grid-template-columns: 1fr; } }
+  /* ?embed=<view>: the view alone, without the header and the views */
+  .embed .top, .embed .views { display: none !important; }
+  .embed main { margin-left: 0; }
+  @media (prefers-reduced-motion: reduce) { dialog.glass[open] { animation: none; } .views a { transition: none; } .pastille::before { animation: none !important; } }
+  @media (max-width: 760px) {
+    .views { position: sticky; top: var(--menu); bottom: auto; width: auto; flex-direction: row; gap: 2px; padding: 6px 8px; border-right: 0;
+      border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+    .views a { flex: none; padding: 6px 12px; border-left: 0; border-bottom: 2px solid transparent; border-radius: 0; }
+    .views a[aria-current] { border-bottom-color: var(--blue); }
+    .views a small { display: none; } .views .waiting { position: static; display: inline-block; margin-left: 6px; }
+    main { margin-left: 0; padding: 18px 16px 48px; } .grid.three { grid-template-columns: 1fr; }
+  }
 
   /* Les réglages restent lisibles sans dépendre d'une couleur ; les jauges
      reprennent uniquement les pourcentages déjà fournis par la banque. */
@@ -178,13 +187,20 @@
 </style>
 <script>document.documentElement.classList.toggle("embed", new URLSearchParams(location.search).has("embed"));</script>
 <script>
-  // The Simulation and Sentinel left the console for their own space: their old anchors, and the pitch page's window,
-  // lead there before the console draws anything
+  // The anchors of the former tabs: the Simulation and Sentinel left the console for their own space, and lead there
+  // before the console draws anything; the others moved into the view that took their content (dashboard.js opens it)
+  const ANCHORS = {
+    away: {simulation: "/simulation", sentinel: "/regulation#marche"},
+    moved: {summary: "alertes", actions: "alertes", agents: "parc", guardrails: "parc", improve: "parc", metrics: "gouvernance", impact: "gouvernance", details: "gouvernance"},
+  };
+  function anchor(name) {
+    if (Object.hasOwn(ANCHORS.away, name)) return {away: ANCHORS.away[name]};
+    if (Object.hasOwn(ANCHORS.moved, name)) return {view: ANCHORS.moved[name], block: name};
+    return {view: name};
+  }
   {
-    const AWAY = {simulation: "/simulation", sentinel: "/regulation#marche"};
     const leave = () => {
-      const tab = location.hash.slice(1);
-      const to = Object.hasOwn(AWAY, tab) ? AWAY[tab] : new URLSearchParams(location.search).get("embed") === "simulation" ? "/simulation?embed=simulation" : null;
+      const to = anchor(location.hash.slice(1)).away ?? (new URLSearchParams(location.search).get("embed") === "simulation" ? "/simulation?embed=simulation" : null);
       if (to) location.replace(to);
     };
     leave();
@@ -193,39 +209,107 @@
 </script>
 </head>
 <body>
-<nav class="menu" aria-label="Onglets de la console">
+<a class="skip" href="#krys-question">Aller à la question</a>
+<header class="top">
   <a class="brand" href="/" aria-label="Argus, page de présentation"><svg viewBox="0 0 11 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="5" y="0" width="1" height="1" fill="#A8C8FF"/><rect x="0" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="4" y="1" width="3" height="1" fill="#6AA6FF"/><rect x="9" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="5" y="2" width="1" height="1" fill="#2B6BFF"/><rect x="4" y="3" width="3" height="1" fill="#1446C8"/><rect x="4" y="4" width="3" height="1" fill="#0B2A6F"/><rect x="3" y="5" width="5" height="2" fill="#0B2A6F"/><rect x="2" y="7" width="7" height="1" fill="#081B45"/></svg><span>Argus</span></a>
-  <div class="tabs">
-    <a href="#summary" data-tab="summary" data-name="À décider" data-help="À décider|Ce qui attend un humain : les problèmes que seul un humain lève, et les bonnes nouvelles que seul un humain applique">À décider</a>
-    <a href="/simulation" data-name="Simulation" data-help="Simulation|La journée rejouée avec les contrôles classiques et avec Krys, en 3D ou en 2D|Ouvre sa propre page">Simulation</a>
-    <a href="#agents" data-tab="agents" data-name="Agents" data-help="Agents|L'état de chaque agent et qui alimente qui">Agents</a>
-    <a href="#guardrails" data-tab="guardrails" data-name="Garde-fous" data-help="Garde-fous|Chaque limite en vigueur, celles des agents et celles de Krys, avec la part utilisée maintenant">Garde-fous</a>
-    <a href="#metrics" data-tab="metrics" data-name="Indicateurs" data-help="Indicateurs|Les indicateurs en direct et les chiffres du banc, sans protection et avec Krys">Indicateurs</a>
-    <a href="#improve" data-tab="improve" data-name="Améliorations" data-help="Améliorations|Les seuils en vigueur et ce que les rejeux proposent de changer">Améliorations</a>
-    <a href="/regulation#marche" data-name="Marché" data-help="Marché|Sentinel, la détection d'abus de marché|Ouvre l'espace Régulation">Marché</a>
-    <a href="#impact" data-tab="impact" data-name="Impact" data-help="Impact|Mesures archivées, dénominateurs et limites">Impact</a>
-    <a href="#details" data-tab="details" data-name="Détails" data-help="Détails|Des décisions aux preuves : provenance, journal, portique et mesures">Détails</a>
-    <span class="line" aria-hidden="true"></span>
-  </div>
-  <div class="bank"><span id="conn"></span>Banque<span class="box lamp calm" id="light">-</span></div>
+  <nav class="spaces" aria-label="Espaces d'Argus"><a href="/simulation">Simulation</a><a href="/console" aria-current="page">Console</a><a href="/regulation">Régulation</a></nav>
+  <div class="bank"><span class="mode" id="mode"></span><span id="conn"></span>Banque<span class="box lamp calm" id="light">-</span></div>
+</header>
+<nav class="views" aria-label="Vues de la console">
+  <a href="#krys" data-tab="krys" data-help="Krys|Une question, une réponse, ses preuves : la tour de contrôle répond">Krys <small>Demandez à Krys</small></a>
+  <a href="#alertes" data-tab="alertes" data-help="Alertes|Ce qui attend une décision humaine, les incidents ouverts et les refus du portique">Alertes <small>Décisions humaines</small><span class="waiting" id="waiting" hidden></span></a>
+  <a href="#synthese" data-tab="synthese" data-help="Synthèse|Ce que les rejeux du banc montrent">Synthèse <small>Rapport et veille</small></a>
+  <a href="#parc" data-tab="parc" data-help="Parc|Les agents et qui alimente qui, leurs garde-fous, les seuils et les propositions">Parc <small>Agents, garde-fous, seuils</small></a>
+  <a href="#gouvernance" data-tab="gouvernance" data-help="Gouvernance|Les indicateurs, l'impact mesuré et les preuves">Gouvernance <small>Indicateurs et preuves</small></a>
 </nav>
 <main>
-  <section id="impact" hidden></section>
-  <section id="details" hidden></section>
-  <!-- Section sans onglet (retiré à la demande d'Édouard) : la bulle « Demandez à Krys » s'y accroche. -->
+  <section id="krys" aria-labelledby="argus-phrase">
+    <header class="krys-intro">
+      <p class="eyebrow">Argus · supervision des agents</p>
+      <h1 id="argus-phrase">Vos agents décident. Krys vérifie.</h1>
+      <p>Une question, une réponse, ses preuves.</p>
+    </header>
+    <!-- Le même chat se pose dans la bulle « Demandez à Krys » des autres vues : il n'existe qu'une fois. -->
+    <div class="krys-chat" id="krys-chat" aria-labelledby="krys-heading">
+      <h2 id="krys-heading">Demandez à Krys</h2>
+      <ol id="krys-log" role="log" aria-live="polite" aria-label="Réponses et preuves de Krys"></ol>
+      <div class="suggestions" aria-label="Suggestions de questions">
+        <button type="button" data-question="Qu'est-ce qui est bloqué en ce moment ?">Qu'est-ce qui est bloqué en ce moment ?</button>
+        <button type="button" data-question="Pourquoi ce virement est-il refusé ?">Pourquoi ce virement est-il refusé ?</button>
+        <button type="button" data-question="Comment Krys décide-t-elle ?">Comment Krys décide-t-elle ?</button>
+      </div>
+      <form id="krys-question-form">
+        <label class="sr-only" for="krys-question">Votre question à Krys</label>
+        <input id="krys-question" maxlength="1000" required autocomplete="off" placeholder="Posez votre question à Krys…" aria-describedby="chat-limit">
+        <button type="submit">Demander <span aria-hidden="true">↑</span></button>
+      </form>
+      <p class="note" id="proof-status" role="status">En attente des premières preuves signées. Aucune situation de la banque n'est encore établie.</p>
+      <p class="note" id="chat-limit">Limite : Krys répond à partir des preuves signées et du texte de référence ; elle ne déduit pas le motif d'un virement sans son message_id.</p>
+      <details class="access" id="krys-access">
+        <summary>Accès local et commandes humaines</summary>
+        <input id="url" type="hidden" value="ws://127.0.0.1:8010">
+        <p>Ouvrez cette page sur l'adresse locale autorisée par le lanceur de la démo. Sans démo active, les autres vues de la console restent accessibles.</p>
+        <details>
+          <summary>Commandes humaines · autorisation distincte</summary>
+          <p>Lecture seule par défaut. Préparer puis confirmer sont deux étapes distinctes ; une réponse dans le chat ne confirme rien.</p>
+          <form id="krys-action-form">
+            <label for="krys-action">Action</label>
+            <select id="krys-action"><option value="unfreeze">Lever un gel</option><option value="resume">Reprendre après un rouge</option></select>
+            <label for="krys-target">Actif gelé ou * pour la reprise</label>
+            <input id="krys-target" maxlength="128" required autocomplete="off">
+            <button type="submit">Préparer le récapitulatif</button>
+          </form>
+          <p id="krys-recap" aria-live="polite"></p>
+          <button id="krys-confirm" type="button" disabled>Confirmer</button>
+        </details>
+      </details>
+      <noscript>Activez JavaScript pour interroger Krys et passer d'une vue à l'autre.</noscript>
+    </div>
+  </section>
+  <section id="alertes" aria-labelledby="alertes-title" hidden>
+    <h1 class="view-title" id="alertes-title">Alertes</h1>
+    <p class="view-lead">Ce qui attend une décision humaine, puis tout ce que Krys a fait : incidents, isolements et refus du portique.</p>
+    <h2 class="part">À décider</h2>
+    <div id="summary"></div>
+    <h2 class="part">Actions de Krys</h2>
+    <div id="actions"></div>
+  </section>
+  <section id="synthese" aria-labelledby="synthese-title" hidden>
+    <h1 class="view-title" id="synthese-title">Synthèse</h1>
+    <p class="view-lead">Ce que les rejeux du banc montrent, scénario par scénario, et ce que chaque règle a donné.</p>
+    <h2 class="part">Analyse de départ</h2>
+    <div id="evaluation"></div>
+  </section>
+  <section id="parc" aria-labelledby="parc-title" hidden>
+    <h1 class="view-title" id="parc-title">Parc</h1>
+    <p class="view-lead">Les agents et ce qui les alimente, les limites de chacun et leur usage, les seuils en vigueur et ce que les rejeux proposent.</p>
+    <h2 class="part">Agents</h2>
+    <div id="agents"></div>
+    <h2 class="part">Garde-fous</h2>
+    <div id="guardrails"></div>
+    <h2 class="part">Seuils et propositions</h2>
+    <div id="improve"></div>
+  </section>
+  <section id="gouvernance" aria-labelledby="gouvernance-title" hidden>
+    <h1 class="view-title" id="gouvernance-title">Gouvernance</h1>
+    <p class="view-lead">Les indicateurs en direct, l'impact mesuré sur les journées archivées et les preuves de chaque décision.</p>
+    <h2 class="part">Indicateurs</h2>
+    <div id="metrics"></div>
+    <h2 class="part">Impact mesuré</h2>
+    <div id="impact"></div>
+    <h2 class="part">Preuves</h2>
+    <div id="details"></div>
+  </section>
+  <!-- Section sans vue (retirée à la demande d'Édouard) : la boîte d'envoi des brouillons d'incident. -->
   <section id="mails-chat" hidden></section>
-  <section id="agents"></section>
-  <section id="summary" hidden></section>
-  <section id="guardrails" hidden></section>
-  <section id="actions" hidden></section>
-  <section id="metrics" hidden></section>
-  <section id="improve" hidden></section>
 </main>
 <dialog class="glass" id="dlg"><button type="button" class="x" aria-label="Fermer" onclick="dlg.close()">×</button><div class="in" id="detail"></div></dialog>
 <div class="toast" id="toast" hidden></div>
 <script src="/dashboard/dashboard.js"></script>
 <script src="/console/static/helper.js"></script>
 <script src="/dashboard/console/impact.js"></script>
+<script src="/demo/krys.js"></script>
+<script src="/console/static/accueil.js"></script>
 <script src="/console/mails-chat/mails-chat.js"></script>
 <script src="/console/details.js"></script>
 </body>

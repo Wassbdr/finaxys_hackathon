@@ -4,7 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SHOWN = ['vigie/landing.html', 'vigie/dashboard.html', 'vigie/dashboard.js', 'vigie/simulation.js', 'vigie/demo_page.html',
-         'vigie/argus.html', 'vigie/regulation.html', 'vigie/krys_chat.js', 'vigie/console/static/simulation.css',
+         'vigie/regulation.html', 'vigie/krys_chat.js', 'vigie/console/static/simulation.css', 'vigie/console/static/header.css',
          *sorted(str(p.relative_to(ROOT)) for p in (ROOT/'vigie/console').glob('*.js'))]
 OLD_NAMES = [r'\bLa Vigie\b', r'\bVigie classi', r'\bKRYS\b(?!_)', r'\bOurs\b', r'\bTheirs\b', r'\bBANQUE [ABC]\b', r'\b[ABC] · ']
 # the titles and tabs of the console and of the 3D before they were French
@@ -35,7 +35,7 @@ def test_titles_and_tabs_are_french():
         text = shown(rel)
         for title in OLD_TITLES:
             assert title not in text, (rel, title)
-    for rel in ['vigie/landing.html', 'vigie/dashboard.html', 'vigie/demo_page.html', 'vigie/regulation.html', 'vigie/argus.html']:
+    for rel in ['vigie/landing.html', 'vigie/dashboard.html', 'vigie/demo_page.html', 'vigie/regulation.html']:
         assert '<html lang="fr">' in (ROOT/rel).read_text(), rel
 
 

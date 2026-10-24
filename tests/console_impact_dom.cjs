@@ -41,7 +41,7 @@ function all(node) { return [node, ...node.children.flatMap(all)]; }
   assert.equal(impact.safeProof('/dashboard/console/impact/../config.yaml'), '/dashboard/console/impact/manifest.json');
   const summary = new Element('aside');
   impact.render(doc, summary, source, true);
-  assert.equal(summary.children[0].href, '/dashboard#impact');
+  assert.equal(summary.children[0].href, '/console#impact');
   assert.match(summary.textContent, /Contrôles classiques|contrôles classiques/);
   assert.match(summary.textContent, /cf4973a/);
   elements.impact = full;
