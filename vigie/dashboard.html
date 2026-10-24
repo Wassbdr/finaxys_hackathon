@@ -203,6 +203,9 @@
   .sim-refused span.chip { --c: var(--red); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
   .sim-refused span span { white-space: nowrap; }
   .sim-refused .chip { border-radius: 999px; }
+  /* each side's scene: a layer over the whole window, clipped to its half (simulation.js) */
+  .sim-view { position: absolute; inset: 0; clip-path: inset(0 0 0 50%); }
+  .sim-view.classic { clip-path: inset(0 50% 0 0); }
   .sim-stage::before { content: ""; position: absolute; left: 50%; top: 10%; height: 60%; border-left: 1px solid var(--line); pointer-events: none; }
   .sim-stage { position: relative; height: calc(100dvh - var(--menu)); overflow: hidden;
     background: radial-gradient(70% 60% at 50% 40%, rgb(31 91 255 / .08), transparent 70%), var(--bg); }
