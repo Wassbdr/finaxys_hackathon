@@ -29,6 +29,7 @@ def load_env() -> None:
     except ImportError:
         return
     load_dotenv(ROOT / ".env", override=False)
+    load_dotenv(ROOT / "secret.env", override=False)
 
 
 def load_config(path: str | Path | None = None, overrides: dict | None = None) -> dict:
