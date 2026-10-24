@@ -179,6 +179,16 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
     def landing():
         return FileResponse(ROOT / "vigie" / "landing.html", headers=FRESH)
 
+    @app.get("/argus")
+    def argus():
+        return FileResponse(ROOT / "vigie" / "argus.html", headers=FRESH)
+
+    @app.get("/argus/{name}")
+    def argus_file(name: str):
+        if name not in ("accueil.js", "accueil.css"):
+            raise HTTPException(404)
+        return FileResponse(ROOT / "vigie" / "console" / name, headers=FRESH)
+
     @app.get("/dashboard")
     def dashboard():
         return FileResponse(ROOT / "vigie" / "dashboard.html", headers=FRESH)
