@@ -26,7 +26,10 @@ const COLUMNS = [["core-ledger", "kyc-docs", "market-feed", "news-wire", "paymen
 const LEAN = THREE.MathUtils.degToRad(10), sin = Math.sin(LEAN), cos = Math.cos(LEAN);
 const tilt = (c, r) => [c * sin + r * cos, r * sin - c * cos], untilt = (x, z) => [x * sin - z * cos, x * cos + z * sin];
 const POS = {};
-COLUMNS.forEach((ids, k) => ids.forEach((id, i) => (POS[id] = tilt((k - 3) * 9, (i - (ids.length - 1) / 2) * 6))));
+// the traders and payment a little wider apart than the other rows (Marius, 24-10)
+COLUMNS.forEach((ids, k) => ids.forEach((id, i) => (POS[id] = tilt((k - 3) * 9, (i - (ids.length - 1) / 2) * (k === 2 ? 7 : 6)))));
+// every thing of the graph, and every effect on it, 1.1 times the size it is modelled at (Marius, 24-10)
+const SIZE = 1.1;
 POS.vigie = tilt(3.5 * 9, 0);  // half a step further, so that the name at the foot of its tall tower clears the executor
 const SKIN = { quant: 0xa78bfa, trader: 0x60a5fa, payment: 0x34d399, compliance: 0xfb923c, risk: 0xf472b6, executor: 0x2dd4bf, vigie: 0x94a3b8 };
 const LIGHT = { VERT: 0x34d399, ORANGE: 0xfbbf24, ROUGE: 0xf87171, QUARANTAINE: 0xf87171 };
@@ -283,7 +286,7 @@ for (const [role, members] of Object.entries(Object.groupBy(first.agents.filter(
   }
   zone.userData.pick = "pad:" + role;
   zone.rotation.y = Math.PI / 2 - LEAN;
-  const p = { id: "pad:" + role, role, r: 2.4, c: "#" + new THREE.Color(c).getHexString(), n: members.length, ids: members.map(a => a.id), zone };
+  const p = { id: "pad:" + role, role, r: 2.4 * SIZE, c: "#" + new THREE.Color(c).getHexString(), n: members.length, ids: members.map(a => a.id), zone };
   fitPad(p);
   pads.push(p);
   world.add(zone);
@@ -301,11 +304,12 @@ tower.add(blob("vigie").g);
 nodes.vigie.g.position.y = 3.38;
 nodes.vigie.g.scale.setScalar(1.25);
 world.add(tower);
-for (const n of Object.values(nodes)) if (n.g.parent === world) n.g.position.set(POS[n.id][0], 0, POS[n.id][1]);
+for (const n of Object.values(nodes)) if (n.g.parent === world) n.g.position.set(POS[n.id][0], 0, POS[n.id][1]), n.g.scale.setScalar(SIZE);
 tower.position.set(POS.vigie[0], 0, POS.vigie[1]);
+tower.scale.setScalar(SIZE);
 
 const FLOOR = 0.05;
-const at = id => v(POS[id][0], id === "vigie" ? 4.4 : nodes[id].leds ? 0.8 : 1, POS[id][1]);
+const at = id => v(POS[id][0], (id === "vigie" ? 4.4 : nodes[id].leds ? 0.8 : 1) * SIZE, POS[id][1]);
 // the agents a link's end stands for: a pad's, or the one node
 const members = id => pads.find(p => p.id === id)?.ids ?? [id];
 // a pad's end of a link is the point of its rim nearest the link's other end
@@ -457,14 +461,14 @@ function send(from, to, kind, bad, delay) {
   if (wait > delay + 1 / TPS && !refused) return;
   const shape = kind === "wire" || kind === "fraud" ? "coin" : kind === "order" || kind === "payment" ? "box" : "dot";
   // in the page's ink, whatever it carries, but the order the gate is about to refuse, in red and slower (Marius, 24-10)
-  const m = mesh(GEO[shape], shine(refused ? DOT.refuse : PLAIN));
+  const m = mesh(GEO[shape], shine(refused ? DOT.refuse : PLAIN), null, SIZE);
   m.visible = false;
   world.add(m);
   flying.push((l.last = { m, l, back, from, to, kind, bad: !!bad, at: -wait, dur: refused ? 0.6 : Math.min(0.3, 0.12 + l.curve.getLength() / 100) }));
 }
 
 function burst(id, color, size = 2) {
-  const m = mesh(ball, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.55, depthWrite: false }), at(id).toArray(), 0.2);
+  const m = mesh(ball, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.55, depthWrite: false }), at(id).toArray(), 0.2 * SIZE);
   m.castShadow = false;
   world.add(m);
   fx.push({ m, t: 0, dur: 0.8, grow: size });
@@ -845,7 +849,7 @@ function animateBlob(b, dt, k) {
   b.halo.scale.setScalar(b.alert === "ORANGE" || b.alert === "ROUGE" ? 1.1 + Math.sin(idle() * 5 + b.phase) * 0.08 : 1);
   b.glass.scale.setScalar(THREE.MathUtils.lerp(b.glass.scale.x, b.level === "QUARANTAINE" ? 1.5 : 0.001, k));
   if (b.sick && !b.asleep && b.g.parent === world && Math.random() < dt * 2.5) {
-    const m = mesh(GEO.dot, shine(DOT.bad), [b.g.position.x + (Math.random() - 0.5) * 1.2, 1.6, b.g.position.z + (Math.random() - 0.5) * 1.2], 0.6);
+    const m = mesh(GEO.dot, shine(DOT.bad), [b.g.position.x + (Math.random() - 0.5) * 1.2 * SIZE, 1.6 * SIZE, b.g.position.z + (Math.random() - 0.5) * 1.2 * SIZE], 0.6 * SIZE);
     world.add(m);
     fx.push({ m, t: 0, dur: 1.2, rise: 1.2 });
   }
@@ -886,7 +890,7 @@ function fit2d(w, h) {
   // a little further out than the agents' own box, and no wider than half the screen, as in 3D (Marius, 24-10)
   s2 = Math.min((WIDE * w) / (MAP.x1 - MAP.x0), (0.85 * h) / (MAP.z1 - MAP.z0));
   // the top agent's ring (MAP keeps 4 of margin, the widest ring is 1.6) at topGap()
-  o2 = [MID * w - ((MAP.x0 + MAP.x1) / 2) * s2, topGap() - (MAP.z0 + 2.4) * s2];
+  o2 = [MID * w - ((MAP.x0 + MAP.x1) / 2) * s2, topGap() - (MAP.z0 + 4 - 1.6 * SIZE) * s2];
 }
 // the graph's top 6% of the window's diagonal under the menu as the page opens (Marius, 24-10), in the scene's pixels;
 // a scene further down the page, under a demo's figures, starts its graph just under its top
@@ -901,7 +905,7 @@ function flatOn(d) {
 flatOn(set.display);
 function pick2d(x, y) {
   const r = flat.getBoundingClientRect(), px = x - r.left, py = y - r.top;
-  let best = null, d = 1.5 * s2;
+  let best = null, d = 1.5 * SIZE * s2;
   for (const n of Object.values(nodes)) {
     if (n.id === "vigie" && worldName === "theirs") continue;
     const [nx, ny] = to2(...POS[n.id]), e = Math.hypot(px - nx, py - ny);
@@ -923,7 +927,7 @@ function text2(t, x, y, size = 12, color = "#0E1726", weight = 500) {
   g2.shadowBlur = 0;
 }
 function draw2d() {
-  const watched = worldName !== "theirs", alpha = (a = 1) => (g2.globalAlpha = a);
+  const watched = worldName !== "theirs", u = SIZE * s2, alpha = (a = 1) => (g2.globalAlpha = a);
   g2.clearRect(0, 0, flat.width, flat.height);
   g2.textAlign = "center";
   for (const p of pads) {
@@ -973,8 +977,8 @@ function draw2d() {
     const [x, y] = to2(p.m.position.x, p.m.position.z), shape = p.m.geometry === GEO.box ? "box" : p.m.geometry === GEO.coin ? "coin" : "dot";
     g2.fillStyle = rgb(p.m.material.color);
     g2.beginPath();
-    if (shape === "box") g2.rect(x - 4, y - 3, 8, 6);
-    else g2.arc(x, y, shape === "coin" ? 5.5 : 3.5, 0, 7);
+    if (shape === "box") g2.rect(x - 4 * SIZE, y - 3 * SIZE, 8 * SIZE, 6 * SIZE);
+    else g2.arc(x, y, (shape === "coin" ? 5.5 : 3.5) * SIZE, 0, 7);
     g2.fill();
   }
   for (const n of Object.values(nodes)) {
@@ -985,10 +989,10 @@ function draw2d() {
     g2.globalAlpha = hovered && n.id !== hovered && !near.has(n.id) ? FADE : 1;
     const [x, y] = to2(...POS[n.id]);
     if (n.leds) {
-      const w = 1.7 * s2, h = 1.3 * s2, led = n.mode === "down" ? "#94a3b8" : hex(LED[n.mode] ?? LED.normal);
+      const w = 1.7 * u, h = 1.3 * u, led = n.mode === "down" ? "#94a3b8" : hex(LED[n.mode] ?? LED.normal);
       if (n.iso) {
         g2.beginPath();
-        g2.arc(x, y, 1.55 * s2, 0, 7);
+        g2.arc(x, y, 1.55 * u, 0, 7);
         g2.fillStyle = "rgb(34 211 238 / .1)";
         g2.fill();
         g2.strokeStyle = "#22d3ee";
@@ -996,7 +1000,7 @@ function draw2d() {
         g2.stroke();
       }
       g2.beginPath();
-      g2.roundRect(x - w / 2, y - h / 2, w, h, 0.18 * s2);
+      g2.roundRect(x - w / 2, y - h / 2, w, h, 0.18 * u);
       g2.fillStyle = "#ffffff";
       g2.shadowColor = "#ef4444";
       g2.shadowBlur = n.mode === "compromised" ? 18 : 0;
@@ -1005,7 +1009,7 @@ function draw2d() {
       g2.strokeStyle = led;
       g2.lineWidth = 2;
       g2.stroke();
-      for (const k of [-0.3, 0, 0.3]) (g2.fillStyle = led), g2.fillRect(x - 0.35 * s2, y + k * s2 - 1.5, 0.7 * s2, 3);
+      for (const k of [-0.3, 0, 0.3]) (g2.fillStyle = led), g2.fillRect(x - 0.35 * u, y + k * u - 1.5, 0.7 * u, 3);
       // the services stand almost side by side, so every other one has its name above it
       const above = COLUMNS[0].indexOf(n.id) % 2, line = k => (above ? y - h / 2 - 6 - 13 * k : y + h / 2 + 14 + 13 * k);
       text2(n.id, x, line(0), 12);
@@ -1014,12 +1018,12 @@ function draw2d() {
     }
     const vigie = n.id === "vigie", ring = vigie ? (n.asleep ? 0x1e293b : LIGHT[light] ?? LIGHT.VERT) : RING[n.alert] ?? RING.VERT;
     g2.beginPath();
-    g2.arc(x, y, 1.3 * s2, 0, 7);
+    g2.arc(x, y, 1.3 * u, 0, 7);
     g2.strokeStyle = hex(ring);
     g2.lineWidth = 3;
     g2.stroke();
     g2.beginPath();
-    g2.arc(x, y, 0.95 * s2, 0, 7);
+    g2.arc(x, y, 0.95 * u, 0, 7);
     g2.fillStyle = rgb(n.skin.color);
     g2.shadowColor = "#ef4444";
     g2.shadowBlur = n.sick && !n.asleep ? 16 : 0;
@@ -1027,7 +1031,7 @@ function draw2d() {
     g2.shadowBlur = 0;
     if (n.level === "QUARANTAINE") {
       g2.beginPath();
-      g2.arc(x, y, 1.6 * s2, 0, 7);
+      g2.arc(x, y, 1.6 * u, 0, 7);
       g2.setLineDash([4, 4]);
       g2.strokeStyle = "#22d3ee";
       g2.lineWidth = 1.5;
@@ -1035,8 +1039,8 @@ function draw2d() {
       g2.setLineDash([]);
     }
     const profile = sc.agents.find(a => a.id === n.id)?.profile;
-    text2(vigie ? VIGIE : n.id, x, y + 1.3 * s2 + 14, 12);
-    if (profile) text2(profile.toUpperCase(), x, y + 1.3 * s2 + 27, 10.5, "#455064", 500);
+    text2(vigie ? VIGIE : n.id, x, y + 1.3 * u + 14, 12);
+    if (profile) text2(profile.toUpperCase(), x, y + 1.3 * u + 27, 10.5, "#455064", 500);
   }
   g2.restore();
   // what each agent says, in its bubble's colours, over it
@@ -1045,7 +1049,7 @@ function draw2d() {
     const t = n.bubble.element.textContent, [bg, ink] = BUBBLE[n.bubble.element.classList[1]] ?? ["#ffffff", "#0E1726"];
     const [x, y] = to2(...POS[n.id]);
     g2.font = '500 12px Geist, "Helvetica Neue", Arial, sans-serif';
-    const w = Math.min(240, g2.measureText(t).width + 18), top = y - 1.3 * s2 - 30;
+    const w = Math.min(240, g2.measureText(t).width + 18), top = y - 1.3 * u - 30;
     g2.beginPath();
     g2.roundRect(x - w / 2, top, w, 22, 10);
     g2.fillStyle = bg;
@@ -1225,8 +1229,8 @@ renderer.setAnimationLoop(now => {
   for (const f of fx) {
     f.t += dt;
     const u = f.t / f.dur;
-    if (f.grow) f.m.scale.setScalar(0.2 + u * f.grow), (f.m.material.opacity = 0.55 * (1 - u));
-    if (f.rise) (f.m.position.y += dt * f.rise), f.m.scale.setScalar(0.6 * Math.max(0, 1 - u));
+    if (f.grow) f.m.scale.setScalar((0.2 + u * f.grow) * SIZE), (f.m.material.opacity = 0.55 * (1 - u));
+    if (f.rise) (f.m.position.y += dt * f.rise), f.m.scale.setScalar(0.6 * SIZE * Math.max(0, 1 - u));
     if (u >= 1) world.remove(f.m), f.grow && f.m.material.dispose(), (f.done = true);
   }
   fx = fx.filter(f => !f.done);
@@ -1239,7 +1243,7 @@ renderer.setAnimationLoop(now => {
     const f = l.redFrom ? Math.min(1, l.fill + dt / 1.2) : 0;
     if (f !== l.fill) (l.fill = f), redden(l);
   }
-  const ts = THREE.MathUtils.lerp(tower.scale.x, worldName !== "theirs" ? 1 : 0.001, k);
+  const ts = THREE.MathUtils.lerp(tower.scale.x, worldName !== "theirs" ? SIZE : 0.001, k);
   tower.scale.setScalar(ts);
   tower.visible = ts > 0.01;
   const beacon = nodes.vigie.asleep ? 0x1e293b : LIGHT[light] ?? LIGHT.VERT;
@@ -1257,7 +1261,7 @@ renderer.setAnimationLoop(now => {
   if (relift && !goal) {
     relift = false;
     camera.updateMatrixWorld();
-    const tops = tower.visible ? [lamp.getWorldPosition(v(0, 0, 0)).setY(6.45)] : Object.values(nodes).filter(n => n.eyes && n.g.parent === world).map(n => n.g.getWorldPosition(v(0, 0, 0)).setY(2.5));
+    const tops = tower.visible ? [lamp.getWorldPosition(v(0, 0, 0)).setY(6.45 * SIZE)] : Object.values(nodes).filter(n => n.eyes && n.g.parent === world).map(n => n.g.getWorldPosition(v(0, 0, 0)).setY(2.5 * SIZE));
     LIFT += ((1 - Math.max(...tops.map(p => p.project(camera).y))) / 2) * stage.clientHeight - topGap();
     place();
   }
