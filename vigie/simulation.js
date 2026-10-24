@@ -516,7 +516,7 @@ function show(t) {
   nodes.vigie.asleep = !st.vigie;
   // what each world refused so far, newest first, on the left of its Vigie's side of the window (Marius, 24-10)
   ["theirs", "ours"].forEach((w, i) => {
-    const html = sc.worlds[w].events.filter(e => e[0] <= t && REFUSED.test(e[2])).reverse().map(e => `<li><b>${e[0]}</b> ${esc(e[2])}</li>`).join("");
+    const html = sc.worlds[w].events.filter(e => e[0] <= t && REFUSED.test(e[2])).reverse().map(e => `<li><b>${e[0]}</b><span class="chip">${esc(e[2])}</span></li>`).join("");
     if (ui.refused[i].html !== html) ui.refused[i].innerHTML = ui.refused[i].html = html;
   });
   light = st.light ?? "VERT";
