@@ -938,7 +938,7 @@ function draw2d() {
 
 // Hovering a blob or a service fades the others and lights its links (Marius, 23-10). The opacities are changed
 // for the frame's drawing only and put back after it, so show() and the animations keep their own.
-const FADE = 0.15;
+const FADE = 0.15, IVORY = new THREE.Color(0xf8f6f0);
 let hovered = null, dim = new Set(), near = new Set(), tint = "";
 stage.addEventListener("pointermove", e => (carry(e), hover(held ?? pick(e.clientX, e.clientY))));
 stage.addEventListener("pointerleave", () => hover(null));
@@ -964,16 +964,21 @@ function hover(id) {
       if (o.isCSS2DObject) o.element.style.opacity = fade ? FADE : "";
       if (!o.material) return;
       if (users.get(o.material).size > 1) o.material = copy.get(o.material) ?? copy.set(o.material, o.material.clone()).get(o.material);
-      const m = o.material, solid = !(m.userData.transparent ??= m.transparent);
-      if (solid && m.transparent !== fade) (m.transparent = fade), (m.needsUpdate = true);
-      if (fade) dim.add(m);
+      if (fade) dim.add(o.material);
     });
   }
 }
 function hoverPaint() {
   if (!hovered) return () => {};
   const was = [];
-  for (const m of dim) was.push([m, m.opacity]), (m.opacity *= FADE);
+  // a faded thing stays opaque, its colours washed towards the page's ivory, so no link shows through it (Marius, 24-10);
+  // only what is see-through already (a ring, the quarantine glass) fades by its opacity
+  for (const m of dim) {
+    was.push([m, m.opacity, m.color?.getHex(), m.emissiveIntensity]);
+    if (m.transparent) m.opacity *= FADE;
+    else m.color?.lerp(IVORY, 1 - FADE);
+    if (m.emissive) m.emissiveIntensity *= FADE;
+  }
   for (const l of links.values()) {
     const m = l.material, on = members(l.a).includes(hovered) || members(l.b).includes(hovered);
     was.push([m, m.opacity, m.color.getHex()], [l.redMat, l.redMat.opacity]);
@@ -981,7 +986,7 @@ function hoverPaint() {
     if (!on) l.redMat.opacity *= FADE;
     if (on && m.color.getHex() === PLAIN) m.color.set(tint);
   }
-  return () => was.forEach(([m, o, c]) => ((m.opacity = o), c !== undefined && m.color.setHex(c)));
+  return () => was.forEach(([m, o, c, e]) => ((m.opacity = o), c !== undefined && m.color.setHex(c), e !== undefined && (m.emissiveIntensity = e)));
 }
 
 // Holding Option over a drop, a service or a role's pad picks it up: it follows the pointer on the floor until Option is let go,
