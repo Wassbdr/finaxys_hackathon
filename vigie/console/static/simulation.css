@@ -44,7 +44,7 @@
   font-size: 12px; line-height: 1.35; pointer-events: none; }
 .sim-refused.ours { left: calc(50% + 24px); }
 .sim-refused:empty { display: none; }
-.sim-refused::before { content: "Refused"; display: block; margin-bottom: 6px; font-weight: 600; }
+.sim-refused::before { content: "Dernier refus"; display: block; margin-bottom: 6px; font-weight: 600; }
 .sim-refused li { grid-area: 2 / 1; margin-bottom: 4px; line-height: 23px; animation: pop .3s .3s ease-out both; }
 .sim-refused li.out, .sim-bubble.out { animation: fade-out .3s ease-in forwards; }
 @keyframes fade-out { to { opacity: 0; } }

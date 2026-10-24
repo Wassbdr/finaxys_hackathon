@@ -12,7 +12,7 @@ const ICON = {
   click: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.1 12 6"/><path d="m5.1 8-2.9-.8"/><path d="m6 12-1.9 2"/><path d="M7.2 2.2 8 5.1"/><path d="M9.037 9.69a.498.498 0 0 1 .653-.653l11 4.5a.5.5 0 0 1-.074.949l-4.349 1.041a1 1 0 0 0-.74.739l-1.04 4.35a.5.5 0 0 1-.95.074z"/></svg>`,
   details: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>`,
 };
-const OPENS = {agent: "Opens its checks and what KRYS did to it", role: "Opens the checks of each of its agents", service: "Opens its evidence and who reads it", metric: "Opens its figures"};
+const OPENS = {agent: "Ouvre ses contrôles et ce que Krys lui a fait", role: "Ouvre les contrôles de chacun de ses agents", service: "Ouvre ses preuves et qui le lit", metric: "Ouvre ses chiffres"};
 function describe(el, x, y) {
   if (!el) return null;
   if (el.closest(".sim-stage")) return window.simHelp?.(x, y) ?? null;
@@ -24,7 +24,7 @@ function describe(el, x, y) {
   const t = el.closest("[title], [data-title]");
   if (t) return {name: t.textContent.trim().slice(0, 60) || t.tagName.toLowerCase(), what: t.title || t.dataset.title};
   const svg = el.closest("path")?.querySelector("title");
-  return svg ? {name: "Link", what: svg.textContent} : null;
+  return svg ? {name: "Lien", what: svg.textContent} : null;
 }
 (() => {
   if (!matchMedia("(hover: hover)").matches) return;
@@ -65,7 +65,7 @@ function describe(el, x, y) {
     if (k === key) return;
     key = k;
     el.classList.toggle("open", !!help);
-    if (help) body.innerHTML = blockOf(ICON.what, help.name, help.what) + (help.click ? blockOf(ICON.click, "Click", help.click) : "") + (details ? blockOf(ICON.details, "Details", details, true) : "");
+    if (help) body.innerHTML = blockOf(ICON.what, help.name, help.what) + (help.click ? blockOf(ICON.click, "Clic", help.click) : "") + (details ? blockOf(ICON.details, "Détails", details, true) : "");
     [bw, bh] = help ? [body.offsetWidth, body.offsetHeight] : [SIZE, SIZE];
     Object.assign(box.style, {width: bw + "px", height: bh + "px"});
     place();

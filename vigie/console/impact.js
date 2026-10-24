@@ -15,9 +15,11 @@
   const signed = n => `${n < 0 ? '−' : '+'}${number(Math.abs(n))}`;
   const range = (values, format = number) => values[0] === values[1] ? format(values[0]) : `${format(values[0])} à ${format(values[1])}`;
 
+  // Les mesures archivées nomment encore « Sans Krys » la banque sans protection : seul le texte affiché change.
+  const shown = text => String(text).replace(/\bSans Krys\b/g, 'Sans protection');
   function node(doc, tag, text, cls) {
     const result = doc.createElement(tag);
-    if (text !== undefined && text !== null) result.textContent = String(text);
+    if (text !== undefined && text !== null) result.textContent = shown(text);
     if (cls) result.className = cls;
     return result;
   }
@@ -56,7 +58,7 @@
       item.append(node(doc, 'span', valueText(row), 'impact-value'));
       const bar = node(doc, 'div', null, 'impact-bar');
       bar.setAttribute('role', 'img');
-      bar.setAttribute('aria-label', `${row.label} : ${valueText(row)}`);
+      bar.setAttribute('aria-label', shown(`${row.label} : ${valueText(row)}`));
       const ink = node(doc, 'i');
       /* Une valeur absente reste absente : aucune barre à zéro inventée pour « non détecté ». */
       if (row.value === null) { bar.classList.add('impact-undefined'); ink.style.width = '0%'; }
@@ -77,7 +79,7 @@
       article.append(glossary(doc, 'Donnée contaminée', terms.contamination));
     }
     if (data.bound) {
-      article.append(node(doc, 'p', `Refus explicites : Sans Krys ${data.refusals.A}, contrôles classiques ${data.refusals.B}, Krys ${data.refusals.C}.`, 'impact-note'));
+      article.append(node(doc, 'p', `Refus explicites : sans protection ${data.refusals.A}, contrôles classiques ${data.refusals.B}, Krys ${data.refusals.C}.`, 'impact-note'));
       const bound = node(doc, 'p', null, 'impact-note');
       bound.append(glossary(doc, 'Borne conditionnelle à 95 %',
         'Règle de trois : après zéro refus sur n opérations indépendantes, borne supérieure approximative 3/n ; elle ne prouve pas l’indépendance des opérations de ces journées.'));

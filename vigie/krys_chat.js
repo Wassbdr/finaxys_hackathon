@@ -46,7 +46,7 @@
       body: JSON.stringify(body)
     });
     if (!response.ok) {
-      let detail = 'Krys indisponible ; la démo continue. Ouvrez /demo/page depuis une origine locale autorisée.';
+      let detail = 'Krys indisponible ; la démo continue. Ouvrez la console (/console) depuis une origine locale autorisée.';
       try {
         const error = await response.json();
         if (typeof error.detail === 'string') detail = error.detail;

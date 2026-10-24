@@ -5,7 +5,7 @@
     if (!section || section.hidden || section.querySelector('iframe')) return;
     const frame = document.createElement('iframe');
     frame.src = section.dataset.src;
-    frame.title = section.id;
+    frame.title = section.getAttribute('aria-label') || section.id;
     frame.loading = 'lazy';
     section.appendChild(frame);
   }

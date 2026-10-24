@@ -13,7 +13,7 @@ const sec = document.getElementById("simulation");
 const SIDE = new URL(import.meta.url).searchParams.get("side"), share = SIDE ? window.simShare : null;
 const F = share ? share.F : await fetch("/dashboard/dashboard-sim.json").then(r => (r.ok ? r.json() : null), () => null);
 if (!F) {
-  sec.innerHTML = `<p class="empty">No replay yet: run <code>make metrics</code>, then reload.</p>`;
+  sec.innerHTML = `<p class="empty">Pas encore de rejeu : lancez <code>make metrics</code>, puis rechargez la page.</p>`;
   throw new Error("no /dashboard/dashboard-sim.json");
 }
 
@@ -34,48 +34,58 @@ const LED = { normal: 0x34d399, compromised: 0xef4444, down: 0x1e293b, stale: 0x
 const DOT = { bad: 0xef4444, approve: 0x16a34a, refuse: 0xef4444, wire: 0xeab308, fraud: 0xef4444 };
 // a clean link is drawn in the page's ink, faint, on the pale floor; a hovered node's links take its colour
 const PLAIN = 0x0e1726, SKY = 0x2b6bff;
-const WHY = { ours: "With our Vigie: one view of every agent and service, and a gate before each execution.", theirs: "Without it: each agent checks only its own rules, nothing watches the whole bank." };
+// what each agent does, and an amount in euros as French writes it: the module's own, the console's are not on this page
+const ROLES = {
+  quant: "Valorise chaque actif et mesure son instabilité. Ne négocie jamais.",
+  trader: "Propose des ordres : achète sous la juste valeur, vend au-dessus, réagit aux nouvelles.",
+  compliance: "Vérifie que chaque ordre et chaque paiement est autorisé (KYC, liste restreinte, ordres fractionnés).",
+  risk: "Mesure ce que la banque peut perdre et freine : valide, réduit ou refuse.",
+  payment: "Paie les factures des fournisseurs par la passerelle de paiement.",
+  executor: "N'exécute que ce que le portique approuve.",
+};
+const eur = v => v == null ? "-" : Math.abs(v) >= 1e6 ? (v / 1e6).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " M€" : Math.round(v).toLocaleString("fr-FR") + " €";
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 // Camera presets, to get back to a simple view after orbiting: where the camera looks from, how far, and what it looks at.
 const VIEWS = { "3/4": { dir: [0.5, 20.5, 24.5], dist: 42 }, Top: { dir: [0, 1, 0.02], dist: 49 }, Front: { dir: [0, 0.25, 1], dist: 45 }, Agents: { dir: [0, 1.3, 1], dist: 31, on: "agents" } };
+// the views keep their keys, which this browser remembers; only their names are said in French
+const VIEW_NAMES = { Top: "Dessus", Front: "Face" };
 
 // What stops the replay when its setting is on: the kinds of event simulation.py writes
 const STOPS = { stopBad: ["bad", "warn"], stopGood: ["good"] };
 // The Settings box's choices, kept by this browser as the recon keeps its own
 const set = share?.set ?? { display: "3D", view: "3/4", speed: 1, world: "ours", stopBad: false, stopGood: false, reads: true, bubbles: true, helper: true, details: true, ...JSON.parse(localStorage.getItem("vigie.sim") || "{}") };
 const keep = () => localStorage.setItem("vigie.sim", JSON.stringify(set));
-const OFF_ON = [[false, "Off"], [true, "On"]];
+const OFF_ON = [[false, "Non"], [true, "Oui"]];
 const choice = (key, options) => `<span class="choice" role="group" data-set="${key}">${options.map(([v, label, title]) =>
   `<button type="button" data-v="${esc(JSON.stringify(v))}"${title ? ` title="${esc(title)}"` : ""}>${esc(label)}</button>`).join("")}</span>`;
 // a row's help is the helper's box (dashboard.js), not the browser's tooltip: name|what it is|what a click does
-const row = (name, html, title) => `<span class="opt"${title ? ` data-help="${esc(name)}|${esc(title)}|Picks one; this browser keeps it"` : ""}><span>${name}</span>${html}</span>`;
+const row = (name, html, title) => `<span class="opt"${title ? ` data-help="${esc(name)}|${esc(title)}|Un choix, que ce navigateur garde"` : ""}><span>${name}</span>${html}</span>`;
 
 // The recon dashboard's Settings box (recon-v3-mr/web, helper.tsx and map.tsx Fold): its gear and its name in the top
 // left corner, over the menu; it opens under the pointer and folds when the pointer leaves, unless pinned.
 if (!SIDE) sec.innerHTML = `<div class="settings"><div class="fold">
-    <span class="fold-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>Settings</span>
-    <button type="button" class="fold-pin" aria-label="Keep Settings open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></button>
+    <span class="fold-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>Réglages</span>
+    <button type="button" class="fold-pin" aria-label="Garder les réglages ouverts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></button>
     <div class="fold-body"><div class="fold-in">
-      <span class="opt" data-help="Play|Plays or pauses the replay; the slider moves it to any tick|P plays or pauses, Space fits everything on screen, 2 or 3 shows 2D or 3D"><span class="choice"><button type="button" id="sim-play"></button></span><input type="range" id="sim-t" min="0" step="1" aria-label="Tick"><span id="sim-tick"></span></span>
-      ${row("Display", choice("display", [["3D", "3D"], ["2D", "2D"]]), "The 3D scene, or the same replay as a flat map seen from above")}
-      ${row("View", choice("view", Object.keys(VIEWS).map(k => [k, k])), "Puts the camera back on a preset view (3D only)")}
-      ${row("Speed", choice("speed", SPEEDS.map(s => [s, s + "×"])), "1× is a tick every 1.3 s")}
-      ${row("Scenario", `<select id="sim-sc" aria-label="Scenario">${Object.keys(F.scenarios).map(n => `<option value="${esc(n)}">${esc(n.replaceAll("_", " "))}</option>`).join("")}</select>`, "The scenario of the bench replayed: its film comes from make metrics")}
-      ${row("Vigie", choice("world", Object.entries(WHY).map(([w, why]) => [w, w === "ours" ? "Ours" : "Theirs", why])), `Ours: ${WHY.ours} Theirs: ${WHY.theirs}`)}
-      ${row("Stop on a problem", choice("stopBad", OFF_ON), "Pauses when a service is compromised, an agent acts on compromised data, money leaves to a rerouted IBAN, the bank light turns orange or red, a CVE is published, a trader stops or the Vigie's heartbeat is lost")}
-      ${row("Stop on an action", choice("stopGood", OFF_ON), "Pauses when the gate or the executor refuses, the Vigie raises a level, isolates a service or turns the bank red, compliance blocks, or a forged signature is rejected")}
-      ${row("Background reads", choice("reads", OFF_ON), "The dots of the agents' routine reads of the services; off, only their messages fly")}
-      ${row("Bubbles", choice("bubbles", OFF_ON), "What each agent says, over its head")}
-      ${row("Helper", choice("helper", OFF_ON), "A box that follows the pointer: what is under it, or what happens at this tick")}
-      ${row("Details", choice("details", OFF_ON), "Whether the helper's box adds what an agent reads, its messages of this tick and its last event")}
-      <span class="opt" data-help="Layout|Hold Option over a drop or a service to carry it: it follows the pointer until Option is let go, a role's pad with its agents|Saves where everything stands and the camera's angle as the defaults, for everyone"><span>Layout</span><span class="choice"><button type="button" id="sim-save">Save as default</button></span></span>
+      <span class="opt" data-help="Lecture|Lance ou met en pause le rejeu ; le curseur le déplace à n'importe quel tick|P lance ou met en pause, Espace cadre tout à l'écran, 2 ou 3 montre la 2D ou la 3D"><span class="choice"><button type="button" id="sim-play"></button></span><input type="range" id="sim-t" min="0" step="1" aria-label="Tick"><span id="sim-tick"></span></span>
+      ${row("Affichage", choice("display", [["3D", "3D"], ["2D", "2D"]]), "La scène en 3D, ou le même rejeu en plan vu de dessus")}
+      ${row("Vue", choice("view", Object.keys(VIEWS).map(k => [k, VIEW_NAMES[k] ?? k])), "Remet la caméra sur une vue prédéfinie (3D seulement)")}
+      ${row("Vitesse", choice("speed", SPEEDS.map(s => [s, String(s).replace(".", ",") + "×"])), "1× : un tick toutes les 1,3 s")}
+      ${row("Scénario", `<select id="sim-sc" aria-label="Scénario">${Object.keys(F.scenarios).map(n => `<option value="${esc(n)}">${esc(n.replaceAll("_", " "))}</option>`).join("")}</select>`, "Le scénario du banc rejoué : son film vient de make metrics")}
+      ${row("Arrêt sur un problème", choice("stopBad", OFF_ON), "Met en pause quand un service est compromis, qu'un agent agit sur des données compromises, que de l'argent part vers un IBAN détourné, que le feu de la banque passe à l'orange ou au rouge, qu'une CVE est publiée, qu'un trader s'arrête ou que le battement de la vigie est perdu")}
+      ${row("Arrêt sur une action", choice("stopGood", OFF_ON), "Met en pause quand le portique ou l'exécuteur refuse, que la vigie de la banque monte un niveau, isole un service ou passe la banque au rouge, que la conformité bloque ou qu'une signature falsifiée est rejetée")}
+      ${row("Lectures de fond", choice("reads", OFF_ON), "Les points des lectures courantes des services par les agents ; sans elles, seuls leurs messages circulent")}
+      ${row("Bulles", choice("bubbles", OFF_ON), "Ce que dit chaque agent, au-dessus de sa tête")}
+      ${row("Aide", choice("helper", OFF_ON), "Une boîte qui suit le pointeur : ce qui est dessous, ou ce qui se passe à ce tick")}
+      ${row("Détails", choice("details", OFF_ON), "Si la boîte d'aide ajoute ce qu'un agent lit, ses messages de ce tick et son dernier événement")}
+      <span class="opt" data-help="Disposition|Maintenez Option sur un agent ou un service pour le déplacer : il suit le pointeur jusqu'au relâchement d'Option, le socle d'un rôle avec ses agents|Enregistre la place de chacun et l'angle de la caméra comme valeurs par défaut, pour tout le monde"><span>Disposition</span><span class="choice"><button type="button" id="sim-save">Par défaut</button></span></span>
     </div></div></div></div>
-  <div class="sim-stage"><h2 class="sim-side">Vigie classic</h2><h2 class="sim-side ours">Our Vigie</h2><ol class="sim-refused"></ol><ol class="sim-refused ours"></ol>
+  <div class="sim-stage"><h2 class="sim-side">Contrôles classiques</h2><h2 class="sim-side ours">Krys</h2><ol class="sim-refused"></ol><ol class="sim-refused ours"></ol>
     <p class="sim-saved"><b></b><span></span></p><p class="sim-saved ours"><b></b><span></span></p></div>`;
 const ui = { sc: sec.querySelector("#sim-sc"), play: sec.querySelector("#sim-play"), t: sec.querySelector("#sim-t"), tick: sec.querySelector("#sim-tick"),
   refused: sec.querySelectorAll(".sim-refused"), saved: sec.querySelectorAll(".sim-saved"), fold: sec.querySelector(".fold"), pin: sec.querySelector(".fold-pin") };
 // each side draws on a layer of its own over the whole window, clipped to its half (dashboard.html), around MID of its width
-const stage = document.createElement("div"), MID = SIDE ? 0.25 : 0.75, VIGIE = SIDE ? "Vigie classic" : "Vigie";
+const stage = document.createElement("div"), MID = SIDE ? 0.25 : 0.75, VIGIE = SIDE ? "Contrôles classiques" : "Krys";
 stage.className = "sim-view " + (SIDE ?? "ours");
 sec.querySelector(".sim-stage").prepend(stage);
 
@@ -320,42 +330,46 @@ function pick(x, y) {
 
 // What the helper's box (dashboard.js) says under the pointer: the agent, the service or the pad there, at the tick on
 // screen; over nothing, the tick itself: what happened at it, the trading result and the money lost to fraud so far
-const WORD = { VERT: "green", ORANGE: "orange", ROUGE: "red", QUARANTAINE: "quarantine" };
+const WORD = { VERT: "vert", ORANGE: "orange", ROUGE: "rouge", QUARANTAINE: "quarantaine" };
+const LEVEL_AT = { ORANGE: "à l'orange", ROUGE: "au rouge", QUARANTAINE: "en quarantaine" };
 const RING_SAYS = {
-  ROUGE: "Red ring: it acts on compromised data, or the Vigie put it on red.",
-  ORANGE: "Orange ring: it reads a compromised service, or got a message built on one.",
-  VERT: "Green ring: no problem has reached it.",
+  ROUGE: "Anneau rouge : il agit sur des données compromises, ou la vigie de la banque l'a mis au rouge.",
+  ORANGE: "Anneau orange : il lit un service compromis, ou a reçu un message construit sur l'un d'eux.",
+  VERT: "Anneau vert : aucun problème ne l'a atteint.",
 };
-const an = word => (/^[aeiou]/.test(word) ? "an " : "a ") + word;
-const MODE_SAYS = { normal: "Works normally.", compromised: "Compromised: what it sends is false.", stale: "Stale: its data comes late.", slow: "Slow: it answers late.", down: "Down: it answers nothing." };
+const KIND = { price: "un prix", decision: "une décision", exec: "une exécution", order: "un ordre", brake: "un freinage", approve: "une approbation",
+  payment: "un paiement", wire: "un virement", refuse: "un refus", fraud: "une fraude" };
+const an = word => KIND[word] ?? word;
+const MODE_SAYS = { normal: "Fonctionne normalement.", compromised: "Compromis : ce qu'il envoie est faux.", stale: "Périmé : ses données arrivent en retard.", slow: "Lent : il répond en retard.", down: "En panne : il ne répond plus." };
+const MODE_WORD = { compromised: "compromis", stale: "périmé", slow: "lent", down: "en panne" };
 export const help = (x, y) => {
   const id = pick(x, y), n = nodes[id], ours = worldName === "ours";
   const lastOf = who => W.events.findLast(([t, , text]) => t <= tick && actor(text) === who);
   const said = (W.msgAt[tick] ?? []).filter(m => m[1] === id || m[2] === id)
-    .map(([, a, b, kind, bad]) => `${a === id ? `Sends ${an(kind)} to ${b}` : `Gets ${an(kind)} from ${a}`}${bad ? ", built on compromised data" : ""}, at this tick.`);
-  const then = e => (e ? [`Last at tick ${e[0]}: ${e[2]}.`] : []);
+    .map(([, a, b, kind, bad]) => `${a === id ? `Envoie ${an(kind)} à ${b}` : `Reçoit ${an(kind)} de ${a}`}${bad ? ", construit sur des données compromises" : ""}, à ce tick.`);
+  const then = e => (e ? [`Dernier événement, au tick ${e[0]} : ${fr(e[2])}.`] : []);
   if (id?.startsWith("pad:")) {
     const p = pads.find(p => "pad:" + p.role === id);
-    return { name: `${p.role} pad`, what: `The ${p.n} ${p.role}s of the bank: one role, one block in the other tabs.` };
+    return { name: `Socle ${p.role}`, what: `Les ${p.n} ${p.role}s de la banque : un rôle, un seul bloc dans les autres vues.` };
   }
   if (id === "vigie")
-    return { name: VIGIE, what: `${SIDE ? "Fixed rules on the signed messages of the bus alone: signatures, caps on each order, payment and day, the daily loss limit, the IBAN paid; it learns nothing." : "Watches every agent and service, and its gate checks each execution."} Bank light: ${WORD[light] ?? light}.${n.asleep ? " Its heartbeat is lost." : ""}`, details: then(lastOf("vigie")) };
+    return { name: VIGIE, what: `${SIDE ? "Des règles fixes sur les seuls messages signés du bus : signatures, plafonds par ordre, par paiement et par jour, limite de perte du jour, IBAN payé ; elles n'apprennent rien." : "Surveille chaque agent et chaque service, et son portique contrôle chaque exécution."} Feu de la banque : ${WORD[light] ?? light}.${n.asleep ? " Son battement est perdu." : ""}`, details: then(lastOf("vigie")) };
   if (n?.leds) {
     const by = sc.reads.filter(r => r[1] === id), seen = by.filter(r => !r[3]).map(r => r[0]), hid = by.filter(r => r[3]).map(r => r[0]);
-    return { name: id, what: `A service of the bank. ${MODE_SAYS[n.mode] ?? n.mode}${n.iso ? " The Vigie isolated it: whatever it fed is refused." : ""}`,
-      details: [...(seen.length ? [`Read by ${seen.join(", ")}.`] : []), ...(hid.length ? [`Called without being declared by ${hid.join(", ")}.`] : []), ...said, ...then(lastOf(id))] };
+    return { name: id, what: `Un service de la banque. ${MODE_SAYS[n.mode] ?? n.mode}${n.iso ? ` ${SUBJECT.Name} l'${SUBJECT.has} isolé : tout ce qu'il a alimenté est refusé.` : ""}`,
+      details: [...(seen.length ? [`Lu par ${seen.join(", ")}.`] : []), ...(hid.length ? [`Appelé sans déclaration par ${hid.join(", ")}.`] : []), ...said, ...then(lastOf(id))] };
   }
   if (n) {
     const a = sc.agents.find(a => a.id === id), reads = sc.reads.filter(r => r[0] === id);
-    return { name: id, what: `${ROLES[a.role] ?? a.role}${a.profile ? ` Trades on ${a.profile}.` : ""} ${RING_SAYS[n.alert] ?? ""}${n.asleep ? " It has stopped." : ""}${ours && n.level && n.level !== "VERT" ? ` The Vigie has it on ${WORD[n.level]}.` : ""}`,
-      details: [...(reads.length ? [`Reads ${reads.map(([, s, , hidden]) => s + (hidden ? " (never declared)" : "")).join(", ")}.`] : []), ...said, ...then(lastOf(id))] };
+    return { name: id, what: `${ROLES[a.role] ?? a.role}${a.profile ? ` Stratégie : ${a.profile}.` : ""} ${RING_SAYS[n.alert] ?? ""}${n.asleep ? " Il s'est arrêté." : ""}${ours && n.level && n.level !== "VERT" ? ` Krys le met ${LEVEL_AT[n.level] ?? n.level}.` : ""}`,
+      details: [...(reads.length ? [`Lit ${reads.map(([, s, , hidden]) => s + (hidden ? " (jamais déclaré)" : "")).join(", ")}.`] : []), ...said, ...then(lastOf(id))] };
   }
-  const now = (W.evAt[tick] ?? []).map(e => e[2] + "."), before = W.events.findLast(e => e[0] < tick);
-  return { name: `Tick ${tick} of ${sc.ticks - 1}`,
-    what: `${ui.sc.value.replaceAll("_", " ")}, ${{ ours: "with our Vigie", classic: "with the classic Vigie", theirs: "without the Vigie" }[worldName]}${playing ? "" : ", paused"}. Bank light: ${WORD[light] ?? light}.`,
-    click: (set.display === "2D" ? "" : "Drag to turn the scene, scroll to zoom. ") + "P plays or pauses, Space fits everything on screen, 2 or 3 shows 2D or 3D.",
-    details: [...(now.length ? now : [`Nothing new at this tick.${before ? ` Last at tick ${before[0]}: ${before[2]}.` : ""}`]),
-      `Trading result so far: ${eur(W.pnl[tick])}.`, ...(W.fraud[tick] ? [`Lost to fraud so far: ${eur(W.fraud[tick])}.`] : [])] };
+  const now = (W.evAt[tick] ?? []).map(e => fr(e[2]) + "."), before = W.events.findLast(e => e[0] < tick);
+  return { name: `Tick ${tick} sur ${sc.ticks - 1}`,
+    what: `${ui.sc.value.replaceAll("_", " ")}, ${{ ours: "avec Krys", classic: "avec les contrôles classiques", theirs: "sans protection" }[worldName]}${playing ? "" : ", en pause"}. Feu de la banque : ${WORD[light] ?? light}.`,
+    click: (set.display === "2D" ? "" : "Faites glisser pour tourner la scène, la molette pour zoomer. ") + "P lance ou met en pause, Espace cadre tout à l'écran, 2 ou 3 montre la 2D ou la 3D.",
+    details: [...(now.length ? now : [`Rien de nouveau à ce tick.${before ? ` Dernier événement, au tick ${before[0]} : ${fr(before[2])}.` : ""}`]),
+      `Résultat de trading jusqu'ici : ${eur(W.pnl[tick])}.`, ...(W.fraud[tick] ? [`Perdu par fraude jusqu'ici : ${eur(W.fraud[tick])}.`] : [])] };
 };
 if (!SIDE) window.simHelp = (x, y) => (peer && x < stage.getBoundingClientRect().left + stage.clientWidth / 2 ? peer.help : help)(x, y);
 const links = new Map();
@@ -418,7 +432,7 @@ const GEO = { dot: new THREE.SphereGeometry(0.11, 14, 10), box: new THREE.BoxGeo
 const glow = {};
 const shine = c => (glow[c] ??= new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.9, roughness: 0.4 }));
 // the replay waits on Play (or P) when the tab opens, and a new scenario keeps the play or pause it had (Marius, 24-10)
-let flying = [], fx = [], sc, W, worldName = SIDE ?? set.world, tick = 0, acc = 0, playing = false, light = "VERT", time = 0;
+let flying = [], fx = [], sc, W, worldName = SIDE ?? "ours", tick = 0, acc = 0, playing = false, light = "VERT", time = 0;
 
 // a message to or from an agent of a pad rides the pad's link when the pad stands for it
 const team = id => pads.find(p => p.ids.includes(id))?.id;
@@ -476,6 +490,34 @@ function actor(text) {
   return Object.keys(nodes).find(id => text.startsWith(id + " "));
 }
 
+// What the film says, in French. simulation.py writes its events in English, and "the Vigie" is the vigie of the side
+// that plays them: Krys on the right, the classic controls on the left. A phrasing the table does not know stays as it is.
+const SUBJECT = SIDE ? { name: "les contrôles classiques", Name: "Les contrôles classiques", isolates: "isolent", puts: "mettent", turns: "passent", has: "ont" }
+  : { name: "Krys", Name: "Krys", isolates: "isole", puts: "met", turns: "passe", has: "a" };
+const AT = { orange: "à l'orange", red: "au rouge", green: "au vert" };
+const WHY_FR = { "orange light, no irreversible action": "feu orange, aucune action irréversible", "agent rate limit": "cadence de l'agent dépassée",
+  "agent slowed": "agent ralenti", "behavior cumulative": "cumul de comportement", stale: "données périmées", "untrusted provenance": "provenance non fiable",
+  "var warning": "alerte VaR", "kyc blocked": "KYC bloqué", "the Vigie did not answer in time": `${SUBJECT.name} n'${SUBJECT.has} pas répondu à temps` };
+const PHRASES = [
+  [/^(\S+) acts on compromised data$/, (_, a) => `${a} agit sur des données compromises`],
+  [/^(\S+) back to normal$/, (_, a) => `${a} revient à la normale`],
+  [/^(\S+) blocks (\S+): KYC refused$/, (_, a, b) => `${a} bloque ${b} : KYC refusé`],
+  [/^(\S+) compromised$/, (_, a) => `${a} compromis`],
+  [/^(\S+) holds the invoice to (\S+)$/, (_, a, b) => `${a} retient la facture de ${b}`],
+  [/^(\S+) stops trading: daily loss over its limit$/, (_, a) => `${a} arrête de négocier : perte du jour au-delà de sa limite`],
+  [/^a message signed as (\S+) is rejected: unknown key$/, (_, a) => `un message signé au nom de ${a} est rejeté : clé inconnue`],
+  [/^bank light (\w+)$/, (_, c) => `le feu de la banque passe ${AT[c] ?? c}`],
+  [/^real market news: (.+)$/, (_, n) => `vraie nouvelle de marché : ${n}`],
+  [/^(.+) CVE published \(CVSS (.+)\)$/, (_, n, c) => `CVE ${n} publiée (CVSS ${c})`],
+  [/^the Vigie isolates (\S+)$/, (_, a) => `${SUBJECT.Name} ${SUBJECT.isolates} ${a}`],
+  [/^the Vigie quarantines (\S+)$/, (_, a) => `${SUBJECT.Name} ${SUBJECT.puts} ${a} en quarantaine`],
+  [/^the Vigie turns the bank red over (\S+)$/, (_, a) => `${SUBJECT.Name} ${SUBJECT.turns} la banque au rouge à cause de ${a}`],
+  [/^the Vigie turns (\S+) (\w+)$/, (_, a, c) => `${SUBJECT.Name} ${SUBJECT.turns} ${a} ${AT[c] ?? c}`],
+  [/^the agents lose the Vigie's heartbeat: each goes orange on its own$/, () => `les agents perdent le battement de ${SIDE ? "leur vigie" : "Krys"} : chacun passe seul à l'orange`],
+  [/^the (gate|executor) refuses (a payment|\S+'s order)(?:: (.+))?$/, (_, who, what, why) => `${who === "gate" ? "le portique" : "l'exécuteur"} refuse ${what === "a payment" ? "un paiement" : "l'ordre de " + what.slice(0, -8)}${why ? " : " + (WHY_FR[why] ?? why) : ""}`],
+  [/^€([\d.,]+)k wired to a rerouted IBAN$/, (_, k) => `${k} k€ virés vers un IBAN détourné`],
+];
+const fr = text => { for (const [re, say] of PHRASES) if (re.test(text)) return text.replace(re, say); return text; };
 // a refusal says nothing over the scene: it is in its side's list (Marius, 24-10)
 const REFUSED = /refuses|rejected|blocks/;
 function say([, kind, text]) {
@@ -485,7 +527,8 @@ function say([, kind, text]) {
   Object.values(nodes).forEach(hush);
   const d = document.createElement("div");
   d.className = "sim-bubble k-" + kind;
-  d.textContent = (text.startsWith(id + " ") ? text.slice(id.length + 1) : text.replace(/^the (Vigie|executor) /, "")).split(":")[0];
+  const said = fr(text);
+  d.textContent = (said.startsWith(id + " ") ? said.slice(id.length + 1) : said.replace(/^(Krys|Les contrôles classiques|l'exécuteur) /, "")).split(" : ")[0];
   n.bubble = new CSS2DObject(d);
   n.bubble.position.set(0, n.top, 0);
   n.g.add(n.bubble);
@@ -522,26 +565,23 @@ function show(t) {
     if (!n) continue;
     n.mode = st["s:" + s] ?? "normal";
     n.iso = iso.includes(s);
-    const html = esc(s) + (n.mode !== "normal" ? `<small class="m-${esc(n.mode)}">${esc(n.mode)}</small>` : "") + (n.iso ? `<small class="m-iso">isolated by the Vigie</small>` : "");
+    const html = esc(s) + (n.mode !== "normal" ? `<small class="m-${esc(n.mode)}">${esc(MODE_WORD[n.mode] ?? n.mode)}</small>` : "") + (n.iso ? `<small class="m-iso">isolé par ${SUBJECT.name}</small>` : "");
     if (n.html !== html) n.div.innerHTML = n.html = html;
   }
   nodes.vigie.asleep = !st.vigie;
   // what this side's Vigie refused last, on the left of its side of the window, the one before fading out as it fades
-  // in (Marius, 24-10), and in its top right
-  // corner what it kept from being lost: its bank's net result (trading less fraud) less the bank's without a Vigie
-  // (Marius, 24-10); below zero, it is what the bank lost more than without one, said so in red (Marius, 24-10)
-  const mine = sc.worlds[SIDE ?? "ours"], none = sc.worlds.theirs, i = SIDE ? 0 : 1;
+  // in (Marius, 24-10), and in its top right corner its bank's net result so far, trading less fraud: the two banks
+  // are compared with each other, never with a bank without protection (24-10)
+  const mine = sc.worlds[SIDE ?? "ours"], i = SIDE ? 0 : 1;
   const e = mine.events.findLast(e => e[0] <= t && REFUSED.test(e[2])), list = ui.refused[i];
-  const html = e ? `<li><b class="chip">${String(e[0]).padStart(3, "\u2007")}</b><span class="chip"><span>${esc(e[2]).replace(": ", ":</span> <span>")}</span></span></li>` : "";
+  const html = e ? `<li><b class="chip">${String(e[0]).padStart(3, "\u2007")}</b><span class="chip"><span>${esc(fr(e[2])).replace(" : ", " :</span> <span>")}</span></span></li>` : "";
   if (list.html !== html) {
     list.html = html;
     for (const li of list.children) (li.className = "out"), (li.onanimationend = li.onanimationcancel = () => li.remove());
     list.insertAdjacentHTML("beforeend", html);
   }
-  const gain = mine.pnl[t] - mine.fraud[t] - none.pnl[t] + none.fraud[t], worse = gain <= -0.5;
-  ui.saved[i].classList.toggle("worse", worse);
-  ui.saved[i].firstChild.textContent = eur(Math.abs(gain));
-  ui.saved[i].lastChild.textContent = worse ? "Extra losses" : "Losses avoided";
+  ui.saved[i].firstChild.textContent = eur(mine.pnl[t] - mine.fraud[t]);
+  ui.saved[i].lastChild.textContent = "Résultat net, fraude déduite";
   light = st.light ?? "VERT";
   // a link turns red from its red end (a compromised service, or the agent whose ring went red first) once the other
   // end is hit too (Marius, 24-10); a pad's end is red or hit once one of its agents is
@@ -585,7 +625,7 @@ function hud() {
   if (SIDE) return;
   ui.tick.textContent = `${tick} / ${sc.ticks - 1}`;
   ui.t.value = tick;
-  ui.play.textContent = playing ? "Pause" : tick >= sc.ticks - 1 ? "Replay" : "Play";
+  ui.play.textContent = playing ? "Pause" : tick >= sc.ticks - 1 ? "Revoir" : "Lecture";
 }
 
 let goal = null, fit = 1, still = 0;
@@ -628,7 +668,7 @@ for (const b of sec.querySelectorAll(".choice [data-v]"))
 const pin = on => {
   ui.fold.classList.toggle("pinned", on);
   ui.pin.setAttribute("aria-pressed", on);
-  ui.pin.title = on ? "Unpin: it closes once the pointer leaves" : "Pin: it stays open";
+  ui.pin.title = on ? "Détacher : les réglages se ferment quand le pointeur s'en va" : "Épingler : les réglages restent ouverts";
   localStorage.setItem("vigie.pin.sim", on ? "1" : "");
 };
 ui.pin.onclick = () => pin(!ui.fold.classList.contains("pinned"));
@@ -938,7 +978,7 @@ function draw2d() {
       // the services stand almost side by side, so every other one has its name above it
       const above = COLUMNS[0].indexOf(n.id) % 2, line = k => (above ? y - h / 2 - 6 - 13 * k : y + h / 2 + 14 + 13 * k);
       text2(n.id, x, line(0), 12);
-      if (n.mode !== "normal" || n.iso) text2((n.iso ? "isolated" : n.mode).toUpperCase(), x, line(1), 10.5, n.iso ? "#22d3ee" : n.mode === "compromised" ? "#f87171" : "#fbbf24", 700);
+      if (n.mode !== "normal" || n.iso) text2((n.iso ? "isolé" : MODE_WORD[n.mode] ?? n.mode).toUpperCase(), x, line(1), 10.5, n.iso ? "#22d3ee" : n.mode === "compromised" ? "#f87171" : "#fbbf24", 700);
       continue;
     }
     const vigie = n.id === "vigie", ring = vigie ? (n.asleep ? 0x1e293b : LIGHT[light] ?? LIGHT.VERT) : RING[n.alert] ?? RING.VERT;
@@ -1106,9 +1146,9 @@ sec.querySelector("#sim-save").onclick = async e => {
   const angle = new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
   layout.camera = [+angle.theta.toFixed(3), +angle.phi.toFixed(3)];
   const r = await fetch("/dashboard/sim-layout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(layout) }).catch(() => null);
-  b.textContent = r?.ok ? "Saved" : "Not saved";
+  b.textContent = r?.ok ? "Enregistré" : "Non enregistré";
   if (r?.ok) moved = false;
-  setTimeout(() => (b.textContent = "Save as default"), 1500);
+  setTimeout(() => (b.textContent = "Par défaut"), 1500);
 };
 
 let last = performance.now();
