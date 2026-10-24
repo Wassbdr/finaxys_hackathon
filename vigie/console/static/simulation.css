@@ -37,12 +37,12 @@
 /* the window's two sides, each under its title, and a soft line between them (Marius, 24-10) */
 .sim-side { position: absolute; z-index: 1; top: 24px; left: 24px; margin: 0; pointer-events: none; white-space: nowrap;
   font-size: 20px; font-weight: 400; letter-spacing: -.02em; color: var(--text); }
-.sim-side.ours { left: calc(50% + 24px); }
+.duo .sim-side.ours { left: calc(50% + 24px); }
 /* what each Vigie refused last, on the left of its side, the one before fading out as it fades in, in the same place
    (Marius, 24-10) */
 .sim-refused { position: absolute; z-index: 1; top: 10%; left: 24px; display: grid; max-width: 360px; margin: 0; padding: 0; list-style: none;
   font-size: 12px; line-height: 1.35; pointer-events: none; }
-.sim-refused.ours { left: calc(50% + 24px); }
+.duo .sim-refused.ours { left: calc(50% + 24px); }
 .sim-refused:empty { display: none; }
 .sim-refused::before { content: "Dernier refus"; display: block; margin-bottom: 6px; font-weight: 600; }
 .sim-refused li { grid-area: 2 / 1; margin-bottom: 4px; line-height: 23px; animation: pop .3s .3s ease-out both; }
@@ -59,9 +59,16 @@
 .sim-saved b { display: block; font-size: 20px; font-weight: 400; letter-spacing: -.02em; color: var(--text); font-variant-numeric: tabular-nums; }
 .sim-saved.worse b { color: var(--red); }
 /* each side's scene: a layer over the whole window, clipped to its half (simulation.js) */
-.sim-view { position: absolute; inset: 0; clip-path: inset(0 0 0 50%); }
-.sim-view.classic { clip-path: inset(0 50% 0 0); }
-.sim-stage::before { content: ""; position: absolute; left: 50%; top: 10%; height: 60%; border-left: 1px solid var(--line); pointer-events: none; }
+.sim-view { position: absolute; inset: 0; }
+.duo .sim-view { clip-path: inset(0 0 0 50%); }
+.duo .sim-view.classic { clip-path: inset(0 50% 0 0); }
+/* Krys alone until the Simulation button, beside the Settings, brings the classic controls in (Marius, 24-10) */
+.sim-stage:not(.duo) :is(.sim-view, .sim-side, .sim-refused, .sim-saved):not(.ours) { visibility: hidden; }
+.sim-duo { position: absolute; top: 4px; left: 112px; z-index: 30; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--line-2);
+  background: var(--surface); color: var(--dim); font: 500 14px/1.25 var(--sans); cursor: pointer; }
+.sim-duo:hover { color: var(--text); }
+.sim-duo[aria-pressed=true] { background: var(--text); color: #fff; }
+.sim-stage.duo::before { content: ""; position: absolute; left: 50%; top: 10%; height: 60%; border-left: 1px solid var(--line); pointer-events: none; }
 .sim-stage { position: relative; height: calc(100dvh - var(--menu) - 44px); overflow: hidden;
   background: radial-gradient(70% 60% at 50% 40%, rgb(31 91 255 / .08), transparent 70%), var(--bg); }
 .embed .sim-stage { height: calc(100dvh - 44px); }

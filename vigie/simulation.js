@@ -84,12 +84,16 @@ if (!SIDE) sec.innerHTML = `<div class="settings"><div class="fold">
       ${row("Détails", choice("details", OFF_ON), "Si la boîte d'aide ajoute ce qu'un agent lit, ses messages de ce tick et son dernier événement")}
       <span class="opt" data-help="Disposition|Maintenez Option sur un agent ou un service pour le déplacer : il suit le pointeur jusqu'au relâchement d'Option, le socle d'un rôle avec ses agents|Enregistre la place de chacun et l'angle de la caméra comme valeurs par défaut, pour tout le monde"><span>Disposition</span><span class="choice"><button type="button" id="sim-save">Par défaut</button></span></span>
     </div></div></div></div>
+  <button type="button" class="sim-duo" aria-pressed="false">Simulation</button>
   <div class="sim-stage"><h2 class="sim-side">Contrôles classiques</h2><h2 class="sim-side ours">Krys</h2><ol class="sim-refused"></ol><ol class="sim-refused ours"></ol>
     <p class="sim-saved"><b></b><span></span></p><p class="sim-saved ours"><b></b><span></span></p></div>`;
 const ui = { sc: sec.querySelector("#sim-sc"), play: sec.querySelector("#sim-play"), t: sec.querySelector("#sim-t"), tick: sec.querySelector("#sim-tick"),
-  refused: sec.querySelectorAll(".sim-refused"), saved: sec.querySelectorAll(".sim-saved"), fold: sec.querySelector(".fold"), pin: sec.querySelector(".fold-pin") };
-// each side draws on a layer of its own over the whole window, clipped to its half (dashboard.html), around MID of its width
-const stage = document.createElement("div"), MID = SIDE ? 0.25 : 0.75, VIGIE = SIDE ? "Contrôles classiques" : "Krys";
+  refused: sec.querySelectorAll(".sim-refused"), saved: sec.querySelectorAll(".sim-saved"), fold: sec.querySelector(".fold"), pin: sec.querySelector(".fold-pin"), duo: sec.querySelector(".sim-duo") };
+// each side draws on a layer of its own over the whole window, clipped to its share (simulation.css), around MID of its
+// width; Krys alone takes the whole window until the Simulation button brings the classic controls in on the left
+// half, Krys moving to the right one (Marius, 24-10)
+const stage = document.createElement("div"), VIGIE = SIDE ? "Contrôles classiques" : "Krys";
+let MID = SIDE ? 0.25 : 0.5, WIDE = SIDE ? 0.5 : 1, duo = false;
 stage.className = "sim-view " + (SIDE ?? "ours");
 sec.querySelector(".sim-stage").prepend(stage);
 
@@ -375,7 +379,7 @@ export const help = (x, y) => {
     details: [...(now.length ? now : [`Rien de nouveau à ce tick.${before ? ` Dernier événement, au tick ${before[0]} : ${fr(before[2])}.` : ""}`]),
       `Résultat de trading jusqu'ici : ${eur(W.pnl[tick])}.`, ...(W.fraud[tick] ? [`Perdu par fraude jusqu'ici : ${eur(W.fraud[tick])}.`] : [])] };
 };
-if (!SIDE) window.simHelp = (x, y) => (peer && x < stage.getBoundingClientRect().left + stage.clientWidth / 2 ? peer.help : help)(x, y);
+if (!SIDE) window.simHelp = (x, y) => (peer && duo && x < stage.getBoundingClientRect().left + stage.clientWidth / 2 ? peer.help : help)(x, y);
 const links = new Map();
 function link(a, b, hidden) {
   const key = [a, b].sort().join("|");
@@ -743,8 +747,8 @@ export function frameAll(start) {
   const c = new THREE.Box3().setFromPoints(pts).getCenter(v(0, 0, 0)), dir = camera.position.clone().sub(controls.target).normalize(), cam = camera.clone();
   const tan = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)), right = v(0, 0, 0), up = v(0, 0, 0);
   let d = 40;
-  // the distance at which the points span 45% of the screen's width, so that with their names everything takes at most
-  // half of it, and 65% of its height, the top and bottom agents getting more room (Marius, 24-10), and the aim that centres them in its half: seen at an angle, the near agents look
+  // the distance at which the points span 45% of the screen's width (90% for Krys alone), so that with their names
+  // everything takes at most its share of it, and 65% of its height, the top and bottom agents getting more room (Marius, 24-10), and the aim that centres them in its half: seen at an angle, the near agents look
   // bigger than the far ones, so the middle of the box is not the middle of the picture; found in a few steps
   for (let i = 0; i < 6; i++) {
     cam.position.copy(dir).multiplyScalar(d).add(c);
@@ -755,7 +759,7 @@ export function frameAll(start) {
     right.setFromMatrixColumn(cam.matrixWorld, 0);
     up.setFromMatrixColumn(cam.matrixWorld, 1);
     c.addScaledVector(right, ((x0 + x1) / 2 - (2 * MID - 1)) * d * tan * cam.aspect).addScaledVector(up, ((y0 + y1) / 2) * d * tan);
-    d *= Math.max((x1 - x0) / 2 / 0.45, (y1 - y0) / 2 / 0.65);
+    d *= Math.max((x1 - x0) / 2 / (0.9 * WIDE), (y1 - y0) / 2 / 0.65);
   }
   goal = { target: c, pos: dir.multiplyScalar(d).add(c) };
   if (start) return camera.position.copy(goal.pos), controls.target.copy(goal.target), (goal = null);
@@ -769,17 +773,29 @@ if (asked && Object.hasOwn(F.scenarios, asked)) ui.sc.value = asked;
 else if (set.sc in F.scenarios) ui.sc.value = set.sc;
 load(ui.sc.value);
 
+// everything stands in its share of the window (Marius, 24-10): the picture is moved aside to the middle of that share,
+// the camera still turning about the middle of the scene, and only that share is drawn
+function place(w = stage.clientWidth, h = stage.clientHeight) {
+  fit2d(w, h);
+  camera.setViewOffset(w, h, w * (0.5 - MID), 0, w, h);
+  renderer.setScissor((MID - WIDE / 2) * w, 0, WIDE * w, h);
+}
+if (!SIDE) ui.duo.onclick = () => {
+  duo = !duo;
+  [MID, WIDE] = duo ? [0.75, 0.5] : [0.5, 1];
+  ui.duo.setAttribute("aria-pressed", duo);
+  sec.querySelector(".sim-stage").classList.toggle("duo", duo);
+  place();
+  frameAll();
+};
+
 let framed = false;
 new ResizeObserver(() => {
   const w = stage.clientWidth, h = stage.clientHeight;
   if (!w || !h) return;
   renderer.setSize(w, h);
   labels.setSize(w, h);
-  fit2d(w, h);
-  // everything stands in its half of the window (Marius, 24-10): the picture is moved a quarter of its width aside, the
-  // camera still turning about the middle of the scene, and only that half is drawn
-  camera.setViewOffset(w, h, w * (0.5 - MID), 0, w, h);
-  renderer.setScissor(SIDE ? 0 : w / 2, 0, w / 2, h);
+  place(w, h);
   renderer.setScissorTest(true);
   const f = Math.max(1, 1.75 / camera.aspect);
   camera.position.sub(controls.target).multiplyScalar(f / fit).add(controls.target);
@@ -867,7 +883,7 @@ function fit2d(w, h) {
   Object.assign(flat, { width: w * dpr, height: h * dpr });
   g2.setTransform(dpr, 0, 0, dpr, 0, 0);
   // a little further out than the agents' own box, and no wider than half the screen, as in 3D (Marius, 24-10)
-  s2 = Math.min((0.5 * w) / (MAP.x1 - MAP.x0), (0.85 * h) / (MAP.z1 - MAP.z0));
+  s2 = Math.min((WIDE * w) / (MAP.x1 - MAP.x0), (0.85 * h) / (MAP.z1 - MAP.z0));
   o2 = [MID * w - ((MAP.x0 + MAP.x1) / 2) * s2, h / 2 - ((MAP.z0 + MAP.z1) / 2) * s2];
 }
 function flatOn(d) {
@@ -1181,7 +1197,7 @@ renderer.setAnimationLoop(now => {
         break;
       }
       // the flow stops on a refusal for 3 s, the dots already on their way going on (Marius, 24-10)
-      if (refusedAt(tick) || peer?.refusedAt(tick)) {
+      if (refusedAt(tick) || (duo && peer?.refusedAt(tick))) {
         still = time + 3;
         acc = 0;
         break;
