@@ -13,7 +13,8 @@
     GET  /vigie/findings latest Findings of every layer
     GET  /improvements dernier rapport de `python -m vigie.improve`
     GET  /guardrails  the limits of each agent and the Vigie's settings, from config.yaml
-    GET  /dashboard   tableau de bord de la Vigie (7 onglets)
+    GET  /            page de présentation de la Vigie (le récit en 9 fiches, les chiffres du banc A/B)
+    GET  /dashboard   tableau de bord de la Vigie (7 onglets) ; ?embed=<onglet> montre l'onglet seul, sans menu
     GET  /dashboard/{dashboard.js,dashboard-demo.json}  its script and the sample data it shows when no run is live
     GET  /dashboard/{simulation.js,dashboard-sim.json}  the Simulation tab's 3D scene and the bench replays it plays
     GET  /dashboard/sim-layout.json  where its nodes stand, once saved; POST /dashboard/sim-layout {"quant": [x, z], …} saves it
@@ -39,6 +40,8 @@ from sim.config import ROOT, load_config
 
 RECORDINGS = ROOT / "recordings"
 SIM_LAYOUT = ROOT / "vigie" / "sim-layout.json"
+# the page's files are checked again on every load: without it a browser may keep an old script beside a new page
+FRESH = {"Cache-Control": "no-cache"}
 
 
 class InjectRequest(BaseModel):
@@ -172,17 +175,21 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
         return {"agents": cfg["agents"], "vigie": cfg["vigie"], "gate": cfg["gate"],
                 "llm": {"enabled": cfg["llm"]["enabled"], "guardrails": cfg["llm"]["guardrails"]}}
 
+    @app.get("/")
+    def landing():
+        return FileResponse(ROOT / "vigie" / "landing.html", headers=FRESH)
+
     @app.get("/dashboard")
     def dashboard():
-        return FileResponse(ROOT / "vigie" / "dashboard.html")
+        return FileResponse(ROOT / "vigie" / "dashboard.html", headers=FRESH)
 
     @app.get("/dashboard/{name}")
     def dashboard_file(name: str):
         if name == "sim-layout.json":
-            return FileResponse(SIM_LAYOUT) if SIM_LAYOUT.exists() else {}
+            return FileResponse(SIM_LAYOUT, headers=FRESH) if SIM_LAYOUT.exists() else {}
         if name not in ("dashboard.js", "dashboard-demo.json", "simulation.js", "dashboard-sim.json"):
             raise HTTPException(404)
-        return FileResponse(ROOT / "vigie" / name)
+        return FileResponse(ROOT / "vigie" / name, headers=FRESH)
 
     @app.post("/dashboard/sim-layout")
     def save_sim_layout(layout: dict[str, list[float]]):

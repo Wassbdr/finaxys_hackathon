@@ -163,7 +163,7 @@ function graph() {
     edges.push(`<path d="${path(at[e.target], at[e.source])}" class="edge hidden-dep"><title>hidden dependency: ${esc(e.source)} calls ${esc(e.target)} (${e.calls} calls), never declared</title></path>`);
   const nodes = g.nodes.map(n => { const p = at[n.id]; return `<g class="node s-${color(n)}" data-open="${n.kind === "service" ? "service" : "agent"}:${esc(n.id)}" tabindex="0" role="button" transform="translate(${p.x.toFixed(1)},${p.y.toFixed(1)})"><rect width="${NW}" height="${NH}" rx="10"/><text x="${NW / 2}" y="${NH / 2 + 4.5}" text-anchor="middle">${esc(n.id)}</text></g>`; });
   return `<div class="frame graph"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Who feeds whom">${edges.join("")}${nodes.join("")}</svg>
-    <div class="legend"><span><i style="border-color:var(--red)"></i>carried data from a suspect service</span><span><i style="border-color:rgb(255 255 255 / .3)"></i>clean</span><span><i style="border-color:var(--orange);border-top-style:dashed"></i>hidden dependency (never declared)${sample("graph")}</span></div></div>`;
+    <div class="legend"><span><i style="border-color:var(--red)"></i>carried data from a suspect service</span><span><i style="border-color:rgb(14 23 38 / .3)"></i>clean</span><span><i style="border-color:var(--orange);border-top-style:dashed"></i>hidden dependency (never declared)${sample("graph")}</span></div></div>`;
 }
 
 function agentDetail(id) {
@@ -364,7 +364,7 @@ function renderImprove() {
     const kind = {threshold: "threshold", gap: "coverage gap", rule: "rule"}[p.kind] || p.kind;
     let evidence = "";
     if (p.evidence?.sweep) evidence += table(`<th class="num">value</th><th>catches</th><th class="num">right alerts</th><th class="num">false alerts</th><th class="num">ticks to detect, summed</th>`,
-      p.evidence.sweep.map(r => `<tr${r.value === p.proposed ? ` style="color:#8ABBFF"` : ""}><td class="num">${r.value}</td><td>${esc(r.caught.join(", ")) || "-"}</td><td class="num">${r.true_alerts}</td><td class="num">${r.false_alerts}</td><td class="num">${r.ticks_to_detect}</td></tr>`));
+      p.evidence.sweep.map(r => `<tr${r.value === p.proposed ? ` style="color:var(--blue)"` : ""}><td class="num">${r.value}</td><td>${esc(r.caught.join(", ")) || "-"}</td><td class="num">${r.true_alerts}</td><td class="num">${r.false_alerts}</td><td class="num">${r.ticks_to_detect}</td></tr>`));
     if (p.replay) evidence += table(`<th>replayed scenario</th><th class="num">net result saved</th><th class="num">clean money frozen</th>`,
       Object.entries(p.replay.by_scenario).map(([n, v]) => `<tr><td>${esc(n)}</td><td class="num">${eur(v.avoided_loss_eur)}</td><td class="num">${eur(v.frozen_eur)}</td></tr>`));
     for (const m of p.evidence?.missed || []) evidence += `<div style="margin:8px 0"><b>t${m.tick} ${esc(m.kind)} ${eur(m.amount_eur)} → ${esc(m.target)}</b>, fed by ${esc((m.compromised_sources || []).join(", "))}<br>` +
@@ -482,19 +482,7 @@ async function human(command) {
   toast(r?.ok ? `Sent, signed by human: ${command}` : `Refused: ${body?.detail || r?.status || "API unreachable"}`);
 }
 
-// --- the page: its sky, its menu, its polling ---------------------------------------------------------------------
-
-(() => {  // the recon map's dust, from its seed and with its draws in their order (map.tsx)
-  let seed = 7;
-  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647, sky = $("sky");
-  for (let n = 0; n < 70; n++) {
-    const d = 28 + Math.round(rnd() * 17), k = () => ((rnd() - 0.5) * 2 * (260 + rnd() * 200)).toFixed(0), t = 1 + Math.round(rnd());
-    const left = (rnd() * 100).toFixed(2), top = (rnd() * 100).toFixed(2), e = (0.25 + rnd() * 0.45).toFixed(2), x = k(), y = k();
-    const i = document.createElement("i");
-    i.style.cssText = `left:${left}%;top:${top}%;width:${t}px;height:${t}px;--e:${e};--x:${x}px;--y:${y}px;animation-duration:${d}s`;
-    sky.append(i);
-  }
-})();
+// --- the page: its menu, its polling ---------------------------------------------------------------------------
 
 const tabs = [...document.querySelectorAll(".tabs a")], line = document.querySelector(".tabs .line");
 function placeLine() {
@@ -507,7 +495,11 @@ function go(id) {
   placeLine();
 }
 for (const t of tabs) t.onclick = e => { e.preventDefault(); go(t.dataset.tab); history.replaceState(null, "", "#" + t.dataset.tab); };
-const fromHash = () => go(tabs.some(t => t.dataset.tab === location.hash.slice(1)) ? location.hash.slice(1) : "agents");
+// ?embed=simulation names the tab without an anchor: an anchor in a frame scrolls the page around it to the frame
+const fromHash = () => {
+  const want = location.hash.slice(1) || new URLSearchParams(location.search).get("embed");
+  go(tabs.some(t => t.dataset.tab === want) ? want : "agents");
+};
 fromHash();
 addEventListener("hashchange", fromHash);
 line.style.transition = "none"; placeLine(); line.getBoundingClientRect(); line.style.transition = "";

@@ -69,7 +69,9 @@ def test_api_tick_contract_and_existing_world_routes(tmp_path,cfg):
             with client.websocket_connect('/demo/stream?since_tick=-1') as ws:
                 packet=ws.receive_json()
                 assert packet==frame
-            assert client.get('/').status_code==404
+            landing = client.get('/')
+            assert landing.status_code == 200
+            assert landing.text == Path('vigie/landing.html').read_text()
     finally:runner.close()
 
 
