@@ -1,0 +1,9 @@
+{
+  "model": "mistral-small-2603",
+  "model_name": "Mistral Small 4",
+  "model_version": "26.03",
+  "deadline_s": 6,
+  "max_tokens": 768,
+  "max_source_chars": 12000,
+  "max_output_chars": 6000
+}

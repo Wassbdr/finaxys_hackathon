@@ -1,0 +1,19 @@
+name: php2shell_day
+description: >
+  Journée PHP2Shell. Calme, puis la CVE tombe ; market-feed et payment-gateway (PHP 7.4, non
+  patchables) sont compromis, puis news-wire. Les agents propagent les données piégées.
+duration: 180s
+params:
+  herding: 0.3
+  guardrails: "off"
+steps:
+  - at: 0s
+    note: "T0 : journée calme sur les marchés"
+  - at: 30s
+    do: publish-cve
+  - at: 40s
+    do: compromise market-feed
+  - at: 40s
+    do: compromise payment-gateway
+  - at: 90s
+    do: compromise news-wire

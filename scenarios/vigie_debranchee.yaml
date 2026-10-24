@@ -1,0 +1,12 @@
+name: vigie_debranchee
+description: >
+  La Vigie tombe. Faute de heartbeat pendant N ticks, chaque agent passe seul en ORANGE : rien
+  d'irréversible ne s'exécute, même quand market-feed est compromis ensuite.
+duration: 120s
+steps:
+  - at: 20s
+    do: kill-vigie
+  - at: 40s
+    do: compromise market-feed
+  - at: 40s
+    do: compromise payment-gateway

@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KRYS · ARGUS</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 8' shape-rendering='crispEdges'%3E%3Crect x='5' y='0' width='1' height='1' fill='%23A8C8FF'/%3E%3Crect x='0' y='1' width='2' height='1' fill='%236AA6FF'/%3E%3Crect x='4' y='1' width='3' height='1' fill='%236AA6FF'/%3E%3Crect x='9' y='1' width='2' height='1' fill='%236AA6FF'/%3E%3Crect x='5' y='2' width='1' height='1' fill='%232B6BFF'/%3E%3Crect x='4' y='3' width='3' height='1' fill='%231446C8'/%3E%3Crect x='4' y='4' width='3' height='1' fill='%230B2A6F'/%3E%3Crect x='3' y='5' width='5' height='2' fill='%230B2A6F'/%3E%3Crect x='2' y='7' width='7' height='1' fill='%23081B45'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+  /* The Vigie's console, on the pitch page's paper (landing.html): ivory, a deep-sea ink, one grotesque at 400 and 500,
+     sharp corners, and the ramp of blues for the brand. Colour otherwise only says a state: green, orange, red, and
+     cyan for what the Vigie isolated. */
+  :root {
+    --menu: 56px; --bg: #F8F6F0; --surface: #FFFFFF; --wash: #EEF3FB; --wash-2: #E2EBFA;
+    --text: #0E1726; --dim: #455064; --faint: #7D8696; --line: rgb(14 23 38 / .1); --line-2: rgb(14 23 38 / .18);
+    --green: #16A34A; --orange: #D97706; --red: #E0412F; --grey: #7D8696; --blue: #1F5BFF; --cyan: #0891B2;
+    --b1: #DDEBFF; --b2: #A8C8FF; --b3: #6AA6FF; --b5: #1446C8; --navy: #081B45;
+    --sans: "Geist", "Helvetica Neue", Arial, system-ui, sans-serif; --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --lift: 0 1px 0 rgb(14 23 38 / .04), -8px 18px 44px rgb(20 60 140 / .1);
+  }
+  * { box-sizing: border-box; }
+  html { color-scheme: light; }
+  body { margin: 0; min-height: 100vh; font: 14px/1.5 var(--sans); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
+  ::selection { background: var(--b2); }
+
+  /* the menu: the mark and its name, home to the pitch page; the tabs and the bank's light */
+  .menu { position: sticky; top: 0; z-index: 20; height: var(--menu); display: flex; justify-content: center; padding: 0 200px;
+    border-bottom: 1px solid var(--line); background: rgb(248 246 240 / .94); }
+  .brand { position: absolute; left: 20px; top: 0; height: 100%; display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font: 500 17px var(--sans); letter-spacing: -.03em; }
+  .brand svg { width: 26px; height: 19px; }
+  .tabs { position: relative; display: flex; gap: 2px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
+  .tabs a { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 13px; font-size: 14.5px; white-space: nowrap; color: var(--dim);
+    text-decoration: none; outline: none; transition: color .2s; }
+  /* a tab is as wide as its name in bold, chosen or not: the menu does not move when the choice does */
+  .tabs a::after { content: attr(data-name); height: 0; overflow: hidden; visibility: hidden; font-weight: 500; }
+  .tabs a:hover, .tabs a[aria-current] { color: var(--text); }
+  .tabs a[aria-current] { font-weight: 500; }
+  .tabs a:focus-visible { text-decoration: underline; }
+  .tabs .line { position: absolute; bottom: 0; left: 0; width: 1px; height: 2px; background: var(--blue); transform-origin: left; transition: transform .3s ease-out; pointer-events: none; }
+
+  /* only the bank's light stays of the old Bank / Tick / P&L row: tick, P&L and prices are the market's, not KRYS's (Marius, 23-10) */
+  .bank { position: absolute; right: 16px; top: 0; height: 100%; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); }
+  .bank .box { display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px; border: 1px solid var(--line-2); border-radius: 2px; background: var(--surface); font-weight: 500; }
+  .bank .warn { color: var(--orange); font-weight: 500; }
+  .lamp { color: var(--c); }
+  .lamp::before { content: ""; width: .5em; height: .5em; background: var(--c); }
+  .lamp.calm { color: var(--text); } .lamp.calm::before { display: none; }
+  .s-red.lamp::before, .s-red .pastille::before { animation: beat 1.6s ease-out infinite; }
+  @keyframes beat { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 55%, transparent); } 100% { box-shadow: 0 0 0 7px transparent; } }
+  /* the simulation stopped: what stays on screen is its last state, greyed */
+  /* the simulation stopped: no greying any more (Edouard, 24-10): the menu's orange notice says it */
+
+  main { max-width: calc(100vw * 2 / 3); margin: 0 auto; padding: 22px 24px 64px; }
+  /* a tab's address opens the tab, it does not scroll its first title under the menu */
+  main > section { scroll-margin-top: 100vh; }
+  h2 { font-size: 20px; font-weight: 400; letter-spacing: -.02em; color: var(--text); margin: 34px 0 12px; }
+  h2:first-child { margin-top: 4px; }
+  .lead { margin: 0 0 16px; color: var(--dim); font-size: 15px; } .lead b { color: var(--text); font-weight: 500; }
+  .hint { color: var(--faint); font-size: 12.5px; font-weight: 400; letter-spacing: 0; margin-left: 8px; }
+  .empty { color: var(--faint); margin: 0; }
+  .sample { margin-left: 8px; padding: 1px 6px; border: 1px dashed var(--b3); border-radius: 2px; color: var(--blue); font: 500 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; vertical-align: 3px; }
+  .s-green { --c: var(--green); } .s-orange { --c: var(--orange); } .s-red { --c: var(--red); } .s-grey { --c: var(--grey); }
+
+  /* A block: its name, what it does and its state, as a pastille and as the bar on its left; a click opens the rest */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; }
+  .grid.three { grid-template-columns: repeat(3, 1fr); }
+  /* flex, not block: a button centres its content vertically, so a shorter text sat lower than its row */
+  .block { position: relative; display: flex; flex-direction: column; justify-content: flex-start; width: 100%; padding: 18px 20px 20px 24px; text-align: left; cursor: pointer; border-radius: 4px;
+    border: 1px solid var(--line); background: var(--surface); transition: box-shadow .2s, border-color .2s; overflow: hidden; }
+  .block::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--c); }
+  .block.s-red { background: linear-gradient(90deg, color-mix(in srgb, var(--red) 6%, white), white 60%); }
+  .block:hover { box-shadow: var(--lift); border-color: var(--line-2); }
+  .block:focus-visible { outline: 3px solid rgb(31 91 255 / .35); outline-offset: 2px; }
+  .block h3 { margin: 0 116px 8px 0; font-size: 22px; font-weight: 400; letter-spacing: -.03em; }
+  .block p { margin: 0; color: var(--dim); }
+  .pastille { position: absolute; top: 18px; right: 16px; display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 2px;
+    font: 500 10.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--c); background: color-mix(in srgb, var(--c) 10%, white); }
+  .pastille::before { content: ""; width: 7px; height: 7px; background: var(--c); }
+  .dlg-head .pastille { position: static; }
+
+  .graph { padding: 12px; background: var(--surface); }
+  .graph svg { display: block; width: 100%; height: auto; }
+  .edge { fill: none; stroke: var(--line-2); stroke-width: 1.2; }
+  .edge.bad { stroke: color-mix(in srgb, var(--red) 80%, transparent); stroke-width: 1.6; }
+  .edge.hidden-dep { stroke: var(--orange); stroke-width: 1.6; stroke-dasharray: 5 4; }
+  .node { cursor: pointer; outline: none; }
+  .node rect { rx: 2px; fill: var(--surface); stroke: var(--c); stroke-width: 1.5; }
+  .node.s-red rect { fill: #FDECEA; }
+  .node:hover rect, .node:focus-visible rect { stroke-width: 2.5; }
+  .node text { fill: var(--text); font: 500 12.5px var(--mono); pointer-events: none; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 10px; color: var(--dim); font-size: 12.5px; }
+  .legend i { display: inline-block; width: 22px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 6px; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 4px; font-size: 16px; font-weight: 500; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .row { display: grid; grid-template-columns: 1fr 90px 104px; gap: 10px; align-items: center; font-size: 13px; margin: 5px 0; }
+  .row .name { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-in { height: 8px; background: rgb(14 23 38 / .07); overflow: hidden; }
+  .bar-in i { display: block; height: 100%; background: var(--c); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* The cards of a bar, as the recon Summary's: a number and its name on its colour, in a pale block; grey when zero */
+  .counts { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; border-radius: 4px; background: var(--wash); }
+  .count { display: flex; align-items: baseline; gap: 8px; padding: 12px 16px; border-radius: 2px; color: var(--text); font-size: 16px; font-weight: 400; }
+  .count b { font-weight: 500; font-variant-numeric: tabular-nums; }
+  .count small { display: block; font-size: 12px; font-weight: 400; opacity: .75; letter-spacing: 0; }
+  .count .hint { color: inherit; opacity: .6; }
+  .count.big { flex-direction: column; gap: 2px; min-width: 180px; flex: 1; } .count.big b { font-size: 32px; font-weight: 400; letter-spacing: -.04em; }
+  .f-green { background: #DCF5E3; } .f-orange { background: #FDEBD3; } .f-red { background: #FBE0DC; } .f-grey { background: var(--surface); color: var(--faint); } .f-blue { background: var(--b1); }
+  .note { color: var(--dim); margin: 10px 2px 0; }
+
+  .frame { overflow: auto; border-radius: 4px; border: 1px solid var(--line); background: var(--surface); }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; line-height: 19px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 7px 12px; text-align: left; vertical-align: middle; }
+  th { background: #F3F6FB; color: var(--dim); font: 500 10.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; border-bottom: 1px solid var(--line); }
+  tbody th { font: 500 12px var(--sans); text-transform: none; letter-spacing: 0; color: var(--text); }
+  td.num { white-space: nowrap; }
+  tbody td { border-top: 1px solid var(--line); }
+  tbody tr:first-child > td { border-top: 0; }
+  tbody tr:hover > td { background: var(--wash); }
+  tfoot th { background: #F3F6FB; color: var(--text); border-top: 1px solid var(--line-2); border-bottom: 0; }
+  th.num, td.num { text-align: right; }
+  .a-green { color: var(--green); } .a-block, .a-quarantine, .a-red { color: var(--red); } .a-slow, .a-flag, .a-advise { color: var(--orange); } .a-tune { color: var(--blue); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 2px; color: var(--c, var(--dim)); background: color-mix(in srgb, var(--c, #7D8696) 10%, white); }
+  .act { background: var(--text); color: #fff; border: 0; border-radius: 2px; padding: 6px 12px; font: 500 11px var(--mono); letter-spacing: .07em; text-transform: uppercase; cursor: pointer; white-space: nowrap; transition: background-color .15s; }
+  .act:hover { background: var(--b5); }
+  .act.ghost { background: var(--wash-2); color: var(--text); } .act.ghost:hover { background: var(--b1); }
+  input[type=number] { width: 88px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 2px; padding: 4px 6px; font-family: var(--mono); }
+  input[type=checkbox], input[type=range] { accent-color: var(--blue); }
+  details summary { cursor: pointer; color: var(--dim); font-size: 12.5px; margin-top: 8px; }
+  .proposal { margin-bottom: 12px; } .proposal .why { margin: 8px 0 0; color: var(--dim); }
+  .badge { font: 500 10.5px var(--mono); letter-spacing: .07em; text-transform: uppercase; padding: 2px 8px; border-radius: 2px; background: var(--wash-2); margin-right: 8px; }
+
+  /* The details of a block: a white sheet over the page, its ink the page's (on the old frosted glass, coloured or grey
+     words did not read: Marius, 23-10; on white they do) */
+  dialog.glass { width: min(820px, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; overflow: auto; scrollbar-width: none; border-radius: 4px;
+    border: 1px solid var(--line); color: var(--text); background: var(--surface); box-shadow: -16px 40px 90px rgb(20 60 140 / .22); }
+  dialog.glass[open] { animation: pop .14s ease-out; }
+  @keyframes pop { from { opacity: 0; scale: .97; } }
+  dialog.glass::backdrop { background: rgb(14 23 38 / .28); }
+  .in { padding: 22px 24px; display: grid; gap: 12px; }
+  .in > p { margin: 0; color: var(--dim); }
+  .in h4 { margin: 8px 0 0; font: 500 10.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+  .dlg-head { display: flex; align-items: center; gap: 12px; padding-right: 32px; }
+  .dlg-head h3 { margin: 0; font-size: 26px; font-weight: 400; letter-spacing: -.03em; }
+  .x { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border: 0; border-radius: 2px; background: transparent; font-size: 20px; line-height: 1; cursor: pointer; color: var(--text); }
+  .x:hover { background: var(--wash); }
+
+  .toast { position: fixed; bottom: 20px; right: 20px; z-index: 30; padding: 10px 14px; border-radius: 2px; color: #fff; background: var(--text); box-shadow: var(--lift); }
+  /* The Simulation tab: a replay of the bench as a 3D scene (simulation.js) filling the tab, its settings top left;
+     the bank's light is the live bank's, not the replay's, so it goes (Marius, 23-10) */
+  main:has(> #simulation:not([hidden])) { max-width: none; padding: 0; }
+  body:has(#simulation:not([hidden])) .bank { display: none; }
+  /* there the Settings box takes the menu's left corner, where the mark stands on the other tabs */
+  body:has(#simulation:not([hidden])) .brand { visibility: hidden; }
+
+  /* The recon dashboard's Settings box (recon-v3-mr/web: helper.tsx Settings and Choice, map.tsx Fold, globals.css
+     .fold): over the menu and under the popups; 100 px folded, 236 px under the pointer, with the keyboard in it or
+     pinned, its body unrolling in .3 s; the body keeps the open width so that its lines do not wrap while it opens */
+  .settings { position: fixed; top: 9px; left: 10px; z-index: 40; border-radius: 4px; background: var(--surface); box-shadow: var(--lift); }
+  .fold { position: relative; display: flex; flex-direction: column; width: 100px; overflow: hidden; border-radius: 4px; border: 1px solid var(--line-2);
+    background: var(--surface); color: var(--dim); transition: width .3s ease-out; }
+  .fold-head { display: flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 14px; line-height: 1.25; font-weight: 500; white-space: nowrap; }
+  .fold-head svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .fold-pin { position: absolute; top: 6px; right: 6px; display: flex; padding: 2px; border: 0; border-radius: 2px; background: none; color: var(--faint); cursor: pointer; opacity: 0; transition: opacity .3s ease-out; }
+  .fold-pin svg { width: 14px; height: 14px; }
+  .fold-pin:hover, .fold-pin[aria-pressed=true] { color: var(--blue); }
+  .fold-pin[aria-pressed=true] svg { fill: currentColor; }
+  .fold-body { display: grid; grid-template-rows: minmax(0, 0fr); opacity: 0; transition: grid-template-rows .3s ease-out, opacity .3s ease-out; }
+  .fold-in { display: flex; flex-direction: column; gap: 6px; width: 234px; min-height: 0; overflow: hidden; padding: 0 10px 8px; }
+  .fold:is(:hover, :has(:focus-visible, select:focus), .pinned) { width: 236px; }
+  .fold:is(:hover, :has(:focus-visible, select:focus), .pinned) .fold-body { grid-template-rows: minmax(0, 1fr); opacity: 1; }
+  .fold:is(:hover, :has(:focus-visible, select:focus), .pinned) .fold-pin { opacity: 1; }
+  .fold :focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+  .fold .opt { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 12px; font-weight: 500; white-space: nowrap; color: var(--text); }
+  .choice { display: flex; padding: 2px; border-radius: 2px; border: 1px solid var(--line-2); }
+  .choice button { padding: 2px 6px; border: 0; border-radius: 1px; background: none; color: var(--faint); cursor: pointer; transition: color .15s; }
+  .choice button:hover { color: var(--text); }
+  .choice button[aria-pressed=true], #sim-play { background: var(--text); color: #fff; }
+  .fold select { min-width: 0; max-width: 140px; padding: 2px 4px; border-radius: 2px; border: 1px solid var(--line-2); background: var(--surface); color: var(--text); font: inherit; }
+  .fold input[type=range] { flex: 1; min-width: 0; }
+  #sim-tick { font-variant-numeric: tabular-nums; }
+  @media (max-width: 639px) { .settings { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .fold, .fold-body, .fold-pin { transition: none; } }
+  /* what stopped the replay, while it is stopped */
+  .sim-stop { position: absolute; z-index: 1; bottom: 18px; left: 50%; translate: -50%; margin: 0; padding: 7px 14px; border-radius: 2px; font-size: 13px; white-space: nowrap;
+    color: #fff; background: var(--text); box-shadow: var(--lift); }
+  .sim-stage { position: relative; height: calc(100dvh - var(--menu)); overflow: hidden;
+    background: radial-gradient(70% 60% at 50% 40%, rgb(31 91 255 / .08), transparent 70%), var(--bg); }
+  .embed .sim-stage { height: 100dvh; }
+  .sim-stage canvas { display: block; }
+  .sim-stage .sim-2d { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .sim-labels { position: absolute; inset: 0; pointer-events: none; }
+  .sim-label { font-size: 12px; font-weight: 500; text-align: center; white-space: nowrap; color: var(--text); text-shadow: 0 0 2px #fff, 0 0 6px #fff, 0 1px 0 #fff; }
+  .sim-label small { display: block; font: 500 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+  .sim-label .m-stale, .sim-label .m-slow, .sim-label .m-down { color: var(--orange); } .sim-label .m-compromised { color: var(--red); } .sim-label .m-iso { color: var(--cyan); }
+  .sim-bubble { max-width: 220px; padding: 5px 10px; border-radius: 2px; font-size: 12px; line-height: 1.3; color: var(--text); background: var(--surface); box-shadow: var(--lift); animation: pop .15s ease-out; }
+  .sim-bubble.k-bad { background: #FBE0DC; color: #7f1d1d; } .sim-bubble.k-good { background: #DCF5E3; color: #14532d; } .sim-bubble.k-warn { background: #FDEBD3; color: #7c2d12; }
+  /* The recon dashboard's helper (recon-v3-mr/web components/helper.tsx): a mark that follows the pointer and opens, from
+     its corner, into a white sheet, in blocks with a pill: what is under the pointer, what a click does and its details */
+  .helper { position: fixed; top: 0; left: 0; z-index: 100; pointer-events: none; opacity: 0; transition: opacity .2s; }
+  .hp-corner { position: absolute; top: 0; left: 0; }
+  .hp-box { position: absolute; top: 0; left: 0; box-sizing: content-box; width: 22px; height: 22px; overflow: hidden; border-radius: 4px; border: 1px solid var(--line-2);
+    color: var(--text); background: var(--surface); box-shadow: -8px 18px 40px rgb(20 60 140 / .18); transition: width .2s ease-out, height .2s ease-out; }
+  .hp-mark { position: absolute; top: 0; left: 0; display: grid; place-items: center; width: 22px; height: 22px; color: var(--blue); transition: opacity .15s; }
+  .hp-body { position: absolute; top: 0; left: 0; display: flex; flex-direction: column; gap: 6px; width: max-content; max-width: 24rem; padding: 6px; font-size: 14px; line-height: 20px; opacity: 0; transition: opacity .15s; }
+  .helper.open .hp-mark { opacity: 0; } .helper.open .hp-body { opacity: 1; transition-delay: 75ms; }
+  .hp-block { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 8px; border-radius: 2px; background: var(--wash); }
+  .hp-block p, .hp-block ul { margin: 0; } .hp-block ul { display: grid; gap: 4px; padding-left: 16px; } .hp-block li::marker { color: var(--b3); }
+  .hp-pill { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 2px 10px; border-radius: 2px; font-weight: 500; background: var(--wash-2); }
+  .helper svg { width: 14px; height: 14px; flex-shrink: 0; }
+  @media (hover: none) { .helper { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .hp-box, .hp-mark, .hp-body { transition: none; } }
+  /* inside the pitch page's window (/dashboard?embed=simulation): the tab alone, without the menu */
+  .embed .menu { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { .tabs .line, dialog.glass[open] { transition: none; animation: none; } .lamp::before, .pastille::before { animation: none !important; } }
+  @media (max-width: 1100px) { .menu { padding: 0 150px 0 64px; } .brand span { display: none; } }
+  @media (max-width: 760px) { main { max-width: none; } .menu { padding: 0; justify-content: flex-start; } .brand, .bank { display: none; } .grid.three { grid-template-columns: 1fr; } }
+
+  /* Les réglages restent lisibles sans dépendre d'une couleur ; les jauges
+     reprennent uniquement les pourcentages déjà fournis par la banque. */
+  #guardrails h1 { font-size:28px; font-weight:500; margin:0 0 18px; }
+  #guardrails h2 { font-size:22px; font-weight:500; margin:0 0 12px; }
+  #guardrails h3 { font-size:17px; font-weight:500; margin:0 0 6px; }
+  .gr-attention,.gr-actor { border:1px solid var(--line-2); border-left:4px solid var(--line-2); border-radius:0; background:var(--surface); padding:20px; }
+  .gr-attention { margin-bottom:20px; }
+  .gr-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; margin-top:20px; }
+  .gr-settings { margin:0; }
+  .gr-settings dt { border-top:1px solid var(--line); padding-top:16px; font-size:17px; font-weight:500; }
+  .gr-settings dt:first-child { border:0; padding-top:0; }
+  .gr-settings dd { margin:0 0 18px; }
+  .gr-setting { font:500 22px var(--mono); color:var(--text); margin:6px 0 10px; overflow-wrap:anywhere; }
+  .gr-note,.gr-why,.gr-intro { font-size:15px; line-height:1.5; color:var(--dim); margin:8px 0; overflow-wrap:anywhere; }
+  .gr-source,.gr-clear { color:var(--text); font-size:17px; font-weight:500; }
+  .gr-usage-text { font-size:16px; color:var(--text); margin:8px 0 5px; overflow-wrap:anywhere; }
+  .gr-meter { height:12px; background:var(--wash-2); overflow:hidden; }
+  .gr-fill { display:block; height:100%; background:var(--text); }
+  .gr-meter.gr-orange .gr-fill { background:var(--orange); }
+  .gr-meter.gr-red .gr-fill { background:var(--red); }
+  .gr-state { display:inline-block; padding:2px 6px; border:1px solid var(--line-2); margin:6px 0 4px; color:var(--text); font-size:13px; }
+  .gr-state.gr-orange { border-left:4px solid var(--orange); }
+  .gr-state.gr-red { border-left:4px solid var(--red); }
+  .gr-near-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); list-style:none; padding:0; margin:0; gap:18px 24px; }
+  @media(max-width:750px) { .gr-grid,.gr-near-list { grid-template-columns:1fr; } .gr-actor,.gr-attention { padding:16px; } }
+</style>
+<script>document.documentElement.classList.toggle("embed", new URLSearchParams(location.search).has("embed"));</script>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.min.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/" } }</script>
+</head>
+<body>
+<nav class="menu" aria-label="Tabs">
+  <a class="brand" href="/" aria-label="La Vigie, the pitch page"><svg viewBox="0 0 11 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="5" y="0" width="1" height="1" fill="#A8C8FF"/><rect x="0" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="4" y="1" width="3" height="1" fill="#6AA6FF"/><rect x="9" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="5" y="2" width="1" height="1" fill="#2B6BFF"/><rect x="4" y="3" width="3" height="1" fill="#1446C8"/><rect x="4" y="4" width="3" height="1" fill="#0B2A6F"/><rect x="3" y="5" width="5" height="2" fill="#0B2A6F"/><rect x="2" y="7" width="7" height="1" fill="#081B45"/></svg><span>La Vigie</span></a>
+  <div class="tabs">
+    <a href="#summary" data-tab="summary" data-name="Summary" data-help="Summary|What waits for a human now: the problems only a human clears, and the good news only a human applies">Summary</a>
+    <a href="#simulation" data-tab="simulation" data-name="Simulation" data-help="Simulation|A replay of the bench without and with KRYS, in 3D or 2D">Simulation</a>
+    <a href="#agents" data-tab="agents" data-name="Agents" data-help="Agents|Each agent's state and who feeds whom">Agents</a>
+    <a href="#guardrails" data-tab="guardrails" data-name="Guardrails" data-help="Guardrails|Every limit in force, each agent's and KRYS's, with how much of it is used now">Guardrails</a>
+    <a href="#metrics" data-tab="metrics" data-name="Metrics" data-help="Metrics|The live indicators and the bench's figures without and with KRYS">Metrics</a>
+    <a href="#improve" data-tab="improve" data-name="Improvements" data-help="Improvements|The thresholds in force and what the replays propose to change">Improvements</a>
+    <a href="#impact" data-tab="impact" data-name="Impact" data-help="Impact|Mesures archivées des trois banques, dénominateurs et limites">Impact</a>
+    <a href="#details" data-tab="details" data-name="Détails">Détails</a>
+    <span class="line" aria-hidden="true"></span>
+  </div>
+  <div class="bank"><span id="conn"></span>Bank<span class="box lamp calm" id="light">-</span></div>
+</nav>
+<main>
+  <section id="impact" hidden></section>
+  <section id="details" hidden></section>
+  <!-- Section sans onglet (retiré à la demande d'Édouard) : la bulle « Demandez à Krys » s'y accroche. -->
+  <section id="mails-chat" hidden></section>
+  <section id="agents"></section>
+  <section id="summary" hidden></section>
+  <section id="guardrails" hidden></section>
+  <section id="actions" hidden></section>
+  <section id="metrics" hidden></section>
+  <section id="improve" hidden></section>
+  <section id="simulation" hidden><p class="empty">Loading the 3D scene (three.js, from cdn.jsdelivr.net)…</p></section>
+</main>
+<dialog class="glass" id="dlg"><button type="button" class="x" aria-label="Close" onclick="dlg.close()">×</button><div class="in" id="detail"></div></dialog>
+<div class="toast" id="toast" hidden></div>
+<script src="/dashboard/dashboard.js"></script>
+<script src="/dashboard/console/impact.js"></script>
+<script src="/console/mails-chat/mails-chat.js"></script>
+<script type="module" src="/dashboard/simulation.js"></script>
+<script src="/console/details.js"></script>
+</body>
+</html>

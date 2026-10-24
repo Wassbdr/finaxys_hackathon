@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Argus — trois banques, une journée</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 8' shape-rendering='crispEdges'%3E%3Crect x='5' y='0' width='1' height='1' fill='%23A8C8FF'/%3E%3Crect x='0' y='1' width='2' height='1' fill='%236AA6FF'/%3E%3Crect x='4' y='1' width='3' height='1' fill='%236AA6FF'/%3E%3Crect x='9' y='1' width='2' height='1' fill='%236AA6FF'/%3E%3Crect x='5' y='2' width='1' height='1' fill='%232B6BFF'/%3E%3Crect x='4' y='3' width='3' height='1' fill='%231446C8'/%3E%3Crect x='4' y='4' width='3' height='1' fill='%230B2A6F'/%3E%3Crect x='3' y='5' width='5' height='2' fill='%230B2A6F'/%3E%3Crect x='2' y='7' width='7' height='1' fill='%23081B45'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* La charte de la console garde une identité neutre entre banques : les
+   couleurs des blocs ne décrivent que le feu reçu, jamais un classement. */
+:root {
+  --menu: 56px; --bg: #F8F6F0; --surface: #FFFFFF; --wash: #EEF3FB; --wash-2: #E2EBFA;
+  --text: #0E1726; --dim: #455064; --faint: #7D8696; --line: rgb(14 23 38 / .1); --line-2: rgb(14 23 38 / .18);
+  --green: #16A34A; --orange: #D97706; --red: #E0412F; --grey: #7D8696; --blue: #1F5BFF; --cyan: #0891B2;
+  --b1: #DDEBFF; --b2: #A8C8FF; --b3: #6AA6FF; --b4: #2B6BFF; --b5: #1446C8; --b6: #0B2A6F; --navy: #081B45;
+  --sans: "Geist", "Helvetica Neue", Arial, system-ui, sans-serif; --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --lift: 0 1px 0 rgb(14 23 38 / .04), -8px 18px 44px rgb(20 60 140 / .1);
+}
+* { box-sizing: border-box; }
+html { color-scheme: light; scroll-padding-top: calc(var(--menu) + 20px); }
+body { margin: 0; background: var(--bg); color: var(--text); font: 400 16px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+[hidden] { display: none !important; }
+::selection { background: var(--b2); }
+a { color: inherit; }
+button, input, select { font: inherit; color: inherit; }
+button, input, select, summary, a { touch-action: manipulation; }
+:focus-visible { outline: 3px solid rgb(31 91 255 / .35); outline-offset: 3px; }
+.menu { position: sticky; top: 0; z-index: 20; height: var(--menu); display: flex; justify-content: center; padding: 0 200px;
+  border-bottom: 1px solid var(--line); background: rgb(248 246 240 / .94); }
+.brand { position: absolute; left: 20px; top: 0; height: 100%; display: flex; align-items: center; gap: 10px;
+  color: var(--text); text-decoration: none; font: 500 17px var(--sans); letter-spacing: -.03em; }
+.brand svg { width: 26px; height: 19px; }
+.tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.tabs a { display: flex; align-items: center; padding: 0 18px; font-size: 15px; white-space: nowrap; color: var(--dim); text-decoration: none; border-bottom: 2px solid transparent; }
+.tabs a:hover, .tabs a[aria-current] { color: var(--text); border-bottom-color: var(--text); }
+.tabs a[aria-current] { font-weight: 500; }
+.menu-note { position: absolute; right: 20px; top: 0; height: 100%; display: flex; align-items: center; color: var(--dim); font: 12px var(--mono); }
+main { max-width: 1500px; margin: 0 auto; padding: 28px 24px 48px; display: grid; gap: 20px; }
+header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 16px 24px; }
+.eyebrow { margin: 0 0 6px; color: var(--dim); font: 500 11px var(--mono); letter-spacing: .09em; text-transform: uppercase; }
+h1 { margin: 0; font: 400 clamp(26px, 2.6vw, 38px)/1.15 var(--sans); letter-spacing: -.035em; }
+h2, h3 { font-weight: 400; letter-spacing: -.025em; }
+.meta { display: block; margin-top: 8px; color: var(--dim); font: 13px var(--mono); }
+.conn { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.conn input { width: 24ch; }
+.conn .status:last-child { flex-basis: 100%; }
+input, select { min-height: 40px; min-width: 0; max-width: 100%; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 2px; background: var(--surface); }
+input { font-family: var(--mono); font-size: 14px; }
+button { min-height: 40px; padding: 8px 14px; border-radius: 2px; border: 1px solid var(--line-2); background: var(--surface); font: 500 14px var(--sans); cursor: pointer; }
+button:hover:not(:disabled) { background: var(--wash); border-color: var(--dim); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+.primary { background: var(--text); color: var(--surface); }
+.primary:hover:not(:disabled) { background: var(--navy); }
+.status { font: 12px var(--mono); color: var(--dim); }
+.block { --c: var(--faint); position: relative; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); overflow: hidden; }
+.block::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--c); }
+.bank.VERT { --c: var(--green); } .bank.ORANGE { --c: var(--orange); } .bank.ROUGE { --c: var(--red); }
+.banner { padding: 16px 22px; display: flex; gap: 12px 24px; align-items: center; flex-wrap: wrap; }
+.tick { font: 500 24px var(--mono); font-variant-numeric: tabular-nums; min-width: 9ch; }
+.progress { flex: 1 1 240px; height: 6px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.progress > div { height: 100%; width: 0; background: var(--dim); transition: width .3s; }
+.event { flex: 1 1 100%; min-height: 1.5em; font-size: 17px; overflow-wrap: anywhere; }
+.event b { font-weight: 500; }
+.banks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.bank { padding: 20px 20px 20px 24px; display: grid; gap: 14px; align-content: start; min-width: 0; transition: box-shadow .2s; }
+.bank:hover { box-shadow: var(--lift); }
+.bank-code { color: var(--dim); font: 500 11px var(--mono); letter-spacing: .1em; }
+.bank h2 { margin: 0 94px 0 0; min-height: 52px; font-size: 23px; line-height: 1.15; }
+.pastille { position: absolute; top: 20px; right: 16px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 2px;
+  font: 500 11px var(--mono); letter-spacing: .04em; color: var(--c); background: color-mix(in srgb, var(--c) 10%, white); }
+.pastille::before { content: ""; width: 7px; height: 7px; flex: none; background: var(--c); }
+.big { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.num b { display: block; font: 400 clamp(24px, 2.5vw, 38px)/1.2 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+.num span { color: var(--dim); font-size: 14px; }
+.num.stolen b { color: var(--red); } .num.stolen.zero b { color: var(--green); }
+.small { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 10px; border-top: 1px solid var(--line); padding-top: 14px; }
+.small div { font-size: 13px; line-height: 1.4; color: var(--dim); }
+.small b { display: block; margin-bottom: 3px; font: 500 21px var(--mono); color: var(--text); font-variant-numeric: tabular-nums; }
+.bank h3 { margin: 4px 0 0; font: 500 12px var(--mono); color: var(--dim); letter-spacing: .05em; text-transform: uppercase; }
+.feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; max-height: 12em; overflow-y: auto; }
+.feed li { font-size: 14px; border-left: 2px solid var(--c); padding: 0 0 0 10px; overflow-wrap: anywhere; }
+.feed li small { color: var(--dim); font: 12px/1.5 var(--mono); }
+.feed li small:last-child { display: block; }
+.feed .none { color: var(--dim); border-left-color: var(--line); }
+.chart { padding: 20px 24px; }
+.chart h2, .chart h3 { margin: 0 0 12px; font-size: 23px; }
+.legend { display: flex; gap: 24px; flex-wrap: wrap; font-size: 14px; color: var(--dim); }
+.legend i { display: inline-block; width: 24px; height: 0; border-top: 3px solid var(--text); vertical-align: middle; margin-right: 8px; }
+.legend .dashed { border-top-style: dashed; } .legend .dotted { border-top-style: dotted; }
+canvas { width: 100%; height: 260px; display: block; margin-top: 12px; }
+.note { margin: 0; max-width: 110ch; color: var(--dim); font-size: 13px; }
+.final { padding: 20px 24px; font-size: 17px; }
+.krys-intro { max-width: 92ch; color: var(--dim); margin: 0 0 20px; }
+.krys-access { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 12px 16px; background: var(--wash); border-radius: 2px; font-size: 13px; color: var(--dim); }
+.krys-access input { flex: 1 1 240px; }
+#krys-question-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; margin-top: 20px; }
+#krys-question-form label { grid-column: 1 / -1; }
+#krys-log { margin: 18px 0; padding-left: 24px; max-height: 24rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+#krys-log li { padding: 0 0 12px 8px; }
+#krys-log p { margin: 0 0 6px; }
+#krys-log code { font: 12px var(--mono); color: var(--dim); }
+details { padding: 16px; border: 1px solid var(--line); border-radius: 2px; }
+summary { font-weight: 500; cursor: pointer; }
+details p { color: var(--dim); }
+#krys-action-form { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: end; }
+.field { display: grid; gap: 6px; flex: 1 1 200px; }
+#krys-recap { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 1100px) { .menu { padding: 0 120px; } .menu-note { display: none; } .banks { grid-template-columns: 1fr; } .bank h2 { min-height: 0; } .big { max-width: 620px; } .small { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .menu { padding: 0 0 0 62px; justify-content: flex-start; } .brand span { display: none; } .tabs a { padding: 0 12px; font-size: 14px; } main { padding: 20px 14px 32px; } .small { grid-template-columns: repeat(3, minmax(0, 1fr)); } #krys-question-form { grid-template-columns: 1fr; } .chart { padding: 20px; } .conn { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .progress > div, .bank { transition: none; } }
+</style>
+</head>
+<body>
+<nav class="menu" aria-label="Navigation de la démonstration">
+  <a class="brand" href="/" aria-label="Argus, page de présentation"><svg viewBox="0 0 11 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="5" y="0" width="1" height="1" fill="#A8C8FF"/><rect x="0" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="4" y="1" width="3" height="1" fill="#6AA6FF"/><rect x="9" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="5" y="2" width="1" height="1" fill="#2B6BFF"/><rect x="4" y="3" width="3" height="1" fill="#1446C8"/><rect x="4" y="4" width="3" height="1" fill="#0B2A6F"/><rect x="3" y="5" width="5" height="2" fill="#0B2A6F"/><rect x="2" y="7" width="7" height="1" fill="#081B45"/></svg><span>Argus</span></a>
+  <div class="tabs"><a href="#banks" aria-current="page">Journée</a><a href="#results">Résultats</a><a href="#krys-panel">Demandez à Krys</a><a href="/argus">Accueil Argus</a></div>
+  <span class="menu-note">Banque simulée</span>
+</nav>
+<main>
+  <header>
+    <div class="page-heading"><p class="eyebrow">Démonstration · même scénario, trois banques</p>
+      <h1>Argus — trois banques, une journée</h1>
+      <span class="meta" id="meta">graine — · direct</span></div>
+    <div class="conn">
+      <label for="url" class="status">Serveur</label>
+      <input id="url" value="ws://127.0.0.1:8010" spellcheck="false">
+      <button id="connect" type="button">Se connecter</button>
+      <button id="replay" type="button" title="Rejoue l'animation depuis le début, à partir des ticks déjà reçus">Rejouer</button>
+      <span class="status" id="status">déconnecté</span>
+    </div>
+  </header>
+  <aside id="impact-summary" aria-label="Impact mesuré sur les journées archivées"></aside>
+
+  <section class="banner block" aria-live="polite">
+    <div class="tick" id="tick">tick —</div>
+    <div class="progress" aria-hidden="true"><div id="bar"></div></div>
+    <div class="event" id="event">En attente du premier tick…</div>
+  </section>
+
+  <section class="banks" id="banks"></section>
+
+  <section class="chart block" id="results">
+    <h3>Résultat réel de chaque banque (P&amp;L net de fraude, en M€)</h3>
+    <div class="legend"><span><i></i>A · Sans Krys</span><span><i class="dashed"></i>B · Contrôles classiques</span><span><i class="dotted"></i>C · Krys</span></div>
+    <canvas id="chart" aria-label="Courbes du résultat des trois banques"></canvas>
+  </section>
+
+  <section class="final block" id="final" hidden></section>
+
+  <section class="chart block" id="krys-panel" aria-labelledby="krys-heading">
+    <h2 id="krys-heading">Demandez à Krys</h2>
+    <p><a href="/dashboard">Chat « Demandez à Krys » disponible dans tous les onglets de la console</a></p>
+    <p class="krys-intro">Réponses sourcées sur la couche 3 et le texte de référence. Reformulation Mistral facultative, désactivée par défaut.
+      Les chiffres du simulateur affichés au-dessus ne sont pas des sources du chat.</p>
+
+    <form id="krys-question-form">
+      <label for="krys-question">Question : alertes, R0, gels, propositions, pourquoi message_id…</label>
+      <input id="krys-question" maxlength="1000" required autocomplete="off">
+      <button class="primary" type="submit">Demander à Krys</button>
+    </form>
+    <ol id="krys-log" role="log" aria-live="polite" aria-label="Réponses et preuves de Krys"></ol>
+    <details>
+      <summary>Commandes humaines — autorisation distincte, confirmation en deux temps</summary>
+      <p>Lecture seule par défaut. Un message dans le chat ne confirme rien.
+        La sortie de quarantaine d’agent n’est pas implémentée.</p>
+      <form id="krys-action-form">
+        <div class="field"><label for="krys-action">Action</label>
+        <select id="krys-action"><option value="unfreeze">Lever un gel</option><option value="resume">Reprendre après un rouge</option></select></div>
+        <div class="field"><label for="krys-target">Actif gelé ou * pour la reprise</label>
+        <input id="krys-target" maxlength="128" required autocomplete="off"></div>
+        <button type="submit">Préparer le récapitulatif</button>
+      </form>
+      <p id="krys-recap" aria-live="polite"></p>
+      <button id="krys-confirm" type="button" disabled>Confirmer</button>
+    </details>
+  </section>
+
+  <p class="note">Même journée, même graine, mêmes attaques pour les trois banques. Les pertes réelles ne servent qu'à afficher et noter :
+  aucune KRYS ne les lit. « Bloquées » compte les refus explicites du portique ; une banque en rouge ne propose plus d'opérations,
+  ce n'est donc pas « aucune protection ». Un feu VERT ne veut pas dire qu'aucune opération n'est bloquée.</p>
+  <aside aria-label="Détails techniques"><h2>Preuves et limites</h2><p>Provenance depuis un message_id, journal chaîné, décisions du portique et mesures sur 10 journées simulées avec comparaison aux contrôles classiques. Limite : données simulées ; relais évalué au banc d’essai.</p><a href="/dashboard#details">Ouvrir les Détails dans la console</a></aside>
+</main>
+
+<script>
+"use strict";
+// Les traits distinguent les banques sans attribuer à leur identité une couleur d’état.
+const BANKS = [["A", []], ["B", [10, 6]], ["C", [2, 4]]];
+const TOTAL_TICKS = 180;
+const LIGHTS = new Set(["VERT", "ORANGE", "ROUGE"]);
+const packets = new Map();   // tick -> paquet complet ; sert au replay local sans reconnecter
+let ws = null, animTimer = null, lastShown = -1, seed = null, isReplay = false;
+
+const $ = (id) => document.getElementById(id);
+const euro = (v) => v == null ? "—" : (Math.abs(v) >= 1e6 ? (v / 1e6).toLocaleString("fr-FR", {maximumFractionDigits: 2}) + " M€"
+  : Math.round(v).toLocaleString("fr-FR") + " €");
+const n = (v) => v == null ? "—" : String(v);
+
+function buildBanks() {
+  $("banks").innerHTML = BANKS.map(([k]) => `
+    <article class="bank block" id="bank-${k}">
+      <span class="bank-code">BANQUE ${k}</span>
+      <h2><span id="label-${k}">${({A: "Sans Krys", B: "Contrôles classiques", C: "Krys"})[k]}</span></h2><span class="light pastille" id="light-${k}">—</span>
+      <div class="big">
+        <div class="num"><b id="loss-${k}">—</b><span>pertes</span></div>
+        <div class="num stolen" id="stolenbox-${k}"><b id="fraud-${k}">—</b><span>euros volés</span></div>
+      </div>
+      <div class="small">
+        <div><b id="exec-${k}">—</b>exécutées</div>
+        <div><b id="gate-${k}">—</b>bloquées au portique</div>
+        <div><b id="paused-${k}">—</b>agents en pause</div>
+        <div><b id="det-${k}">—</b>premier constat (tick)</div>
+        <div><b id="contam-${k}">—</b>exécutions contaminées</div>
+        <div><b id="after-${k}">—</b>exécutées après constat</div>
+      </div>
+      <h3>Constats et preuves</h3>
+      <ul class="feed" id="feed-${k}"><li class="none">Aucun constat pour l'instant.</li></ul>
+    </article>`).join("");
+}
+
+function eventText(events) {
+  if (!events || !events.length) return null;
+  return events.map((e) => typeof e === "string" ? e : (e.note || e.text || e.do || e.command || JSON.stringify(e))).join(" · ");
+}
+
+function render(p) {
+  $("tick").textContent = `tick ${p.tick}`;
+  $("bar").style.width = `${Math.max(0, Math.min(100, (p.tick + 1) / TOTAL_TICKS * 100))}%`;
+  const ev = eventText(p.events);
+  if (ev) $("event").innerHTML = `<b>t${p.tick}</b> — ${escapeHtml(ev)}`;
+  if (p.seed != null) seed = p.seed;
+  $("meta").textContent = `graine ${seed ?? "—"} · ${p.replay || isReplay ? "replay" : "direct"}`;
+  for (const [k] of BANKS) {
+    const b = (p.banks || {})[k]; if (!b) continue;
+    $(`label-${k}`).textContent = ({A: "Sans Krys", B: "Contrôles classiques", C: "Krys"})[k];
+    // Le feu vient du réseau : seules les trois valeurs connues deviennent une classe CSS.
+    const light = $(`light-${k}`); light.textContent = b.light || "—";
+    light.className = `light pastille ${LIGHTS.has(b.light) ? b.light : ""}`;
+    $(`bank-${k}`).className = `bank block ${LIGHTS.has(b.light) ? b.light : ""}`;
+    $(`loss-${k}`).textContent = euro(b.loss_eur);
+    $(`fraud-${k}`).textContent = euro(b.fraud_eur);
+    $(`stolenbox-${k}`).classList.toggle("zero", !b.fraud_eur);
+    $(`exec-${k}`).textContent = n(b.executed);
+    $(`gate-${k}`).textContent = n(b.gate_blocked);
+    $(`paused-${k}`).textContent = n(Array.isArray(b.paused_agents) ? b.paused_agents.length : b.paused_agents);
+    $(`det-${k}`).textContent = n(b.detection_tick);
+    $(`contam-${k}`).textContent = n(b.contaminated_executions);
+    $(`after-${k}`).textContent = n(b.executed_after_detection);
+    const f = b.findings || [];
+    $(`feed-${k}`).innerHTML = f.length ? f.slice().reverse().map((x) =>
+      `<li><small>t${escapeHtml(x.tick)}</small> ${escapeHtml(x.text || "")}${Array.isArray(x.proof) && x.proof.length ? ` <small>preuve ${escapeHtml(x.proof.slice(0, 2).join(", "))}</small>` : ""}</li>`).join("")
+      : `<li class="none">${k === "A" ? "Pas de KRYS : rien n'est surveillé." : "Aucun constat pour l'instant."}</li>`;
+  }
+  drawChart(p.tick);
+  if (p.complete) showFinal(p);
+}
+
+function showFinal(p) {
+  const b = p.banks || {};
+  // Tout ce qui vient du flux est échappé avant d'entrer dans le HTML de la synthèse.
+  const s = (k) => b[k] ? escapeHtml(`${euro(b[k].fraud_eur)} volés, ${euro(b[k].loss_eur)} de pertes, feu ${b[k].light}`) : "—";
+  const el = $("final");
+  el.innerHTML = `<b>Fin de journée.</b> Sans Krys : ${s("A")}. Contrôles classiques : ${s("B")}. Krys : ${s("C")}.`;
+  el.hidden = false;
+}
+
+function drawChart(uptoTick) {
+  const cv = $("chart"), dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth, h = cv.clientHeight;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const ctx = cv.getContext("2d"); ctx.scale(dpr, dpr);
+  const css = getComputedStyle(document.documentElement);
+  const ticks = [...packets.keys()].filter((t) => t <= uptoTick).sort((x, y) => x - y);
+  ctx.clearRect(0, 0, w, h); ctx.setLineDash([]);
+  if (!ticks.length) return;
+  let lo = 0, hi = 0;
+  for (const t of ticks) for (const [k] of BANKS) { const v = packets.get(t).banks?.[k]?.pnl_eur; if (v != null) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }
+  const pad = {l: 64, r: 12, t: 10, b: 24};
+  const span = (hi - lo) || 1, x = (t) => pad.l + (w - pad.l - pad.r) * t / (TOTAL_TICKS - 1);
+  const y = (v) => pad.t + (h - pad.t - pad.b) * (hi - v) / span;
+  ctx.strokeStyle = css.getPropertyValue("--line"); ctx.fillStyle = css.getPropertyValue("--dim");
+  ctx.font = "12px " + css.getPropertyValue("--mono"); ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const v = lo + span * i / 4, yy = y(v);
+    ctx.beginPath(); ctx.moveTo(pad.l, yy); ctx.lineTo(w - pad.r, yy); ctx.stroke();
+    ctx.fillText((v / 1e6).toFixed(1) + " M€", 4, yy + 4);
+  }
+  ctx.fillText("tick 0", pad.l, h - 6); ctx.fillText(`tick ${TOTAL_TICKS - 1}`, w - pad.r - 60, h - 6);
+  for (const [k, dash] of BANKS) {
+    ctx.strokeStyle = css.getPropertyValue("--text"); ctx.setLineDash(dash); ctx.lineWidth = 3; ctx.beginPath();
+    let started = false;
+    for (const t of ticks) { const v = packets.get(t).banks?.[k]?.pnl_eur; if (v == null) continue;
+      if (!started) { ctx.moveTo(x(t), y(v)); started = true; } else ctx.lineTo(x(t), y(v)); }
+    ctx.stroke();
+  }
+}
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c])); }
+
+function connect() {
+  stopAnimation(); if (ws) { try { ws.close(); } catch (e) {} }
+  const base = $("url").value.trim().replace(/\/$/, "");
+  const since = packets.size ? Math.max(...packets.keys()) : -1;
+  $("status").textContent = "connexion…";
+  try { ws = new WebSocket(`${base}/demo/stream?since_tick=${since}`); }
+  catch (e) { $("status").textContent = "adresse invalide"; return; }
+  ws.onopen = () => { $("status").textContent = "connecté"; };
+  ws.onmessage = (m) => {
+    let p; try { p = JSON.parse(m.data); } catch (e) { return; }
+    if (p.error) { $("status").textContent = `erreur serveur : ${p.error}`; return; }
+    if (typeof p.tick !== "number" || p.tick < 0) return;
+    // Un nouveau run repart du tick 0 : on vide l'historique pour ne pas mélanger deux journées.
+    if (p.tick === 0 && lastShown > 0) { packets.clear(); lastShown = -1; $("final").hidden = true; }
+    packets.set(p.tick, p); isReplay = !!p.replay;
+    if (p.tick >= lastShown) { lastShown = p.tick; render(p); }
+  };
+  ws.onclose = () => { $("status").textContent = "déconnecté — vérifier le tunnel, puis Se connecter"; };
+  ws.onerror = () => { $("status").textContent = "connexion impossible (tunnel ouvert ? démo lancée ?)"; };
+}
+
+function stopAnimation() { if (animTimer) { clearInterval(animTimer); animTimer = null; } }
+
+function replayLocal() {
+  // Rejoue ce qui a déjà été reçu, à la cadence du direct (1,2 tick/s), sans relancer la simulation.
+  const ticks = [...packets.keys()].sort((a, b) => a - b);
+  if (!ticks.length) { $("status").textContent = "rien à rejouer : se connecter d'abord"; return; }
+  stopAnimation(); $("final").hidden = true; let i = 0; lastShown = -1;
+  animTimer = setInterval(() => {
+    if (i >= ticks.length) { stopAnimation(); return; }
+    const p = packets.get(ticks[i++]); lastShown = p.tick; render(p);
+  }, 1000 / 1.2);
+}
+
+buildBanks();
+$("connect").addEventListener("click", connect);
+$("replay").addEventListener("click", replayLocal);
+window.addEventListener("resize", () => drawChart(lastShown));
+connect();
+</script>
+<script src="/demo/krys.js"></script>
+<script src="/dashboard/console/impact.js"></script>
+</body>
+</html>

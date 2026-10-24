@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "base": "d179dd0",
+  "seeds": [
+    42,
+    43
+  ],
+  "ticks": 300,
+  "cut_tick": 60,
+  "durations": [
+    10,
+    30,
+    60
+  ],
+  "human_delay_after_restart_ticks": 10,
+  "human_actions": [
+    {
+      "action": "resume"
+    },
+    {
+      "action": "unfreeze",
+      "target": "*"
+    }
+  ],
+  "tick_seconds": 1,
+  "mitigation": "hot_standby_attested_private_pipes_single_publisher",
+  "transport": "BusGate réel ; client local sur pipes privés, sans socket ni réseau",
+  "preregistered_at_utc": "2026-10-23T22:08:27.524915+00:00"
+}

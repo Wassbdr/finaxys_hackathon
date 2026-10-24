@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "tick": 0,
+  "seed": 42,
+  "banks": {
+    "A": {
+      "label": "Sans Krys",
+      "pnl_eur": -8076.76,
+      "loss_eur": 8076.76,
+      "fraud_eur": 0,
+      "light": "VERT",
+      "executed": 0,
+      "blocked": 0,
+      "gate_blocked": 0,
+      "executed_after_detection": null,
+      "last_execution_tick": null,
+      "contaminated_executions": 0,
+      "detection_tick": null,
+      "first_block_tick": null,
+      "working_agents": 7,
+      "paused_agents": 0,
+      "findings": [],
+      "decisions": [],
+      "last_decisions": []
+    },
+    "B": {
+      "label": "Contrôles classiques",
+      "pnl_eur": -8076.76,
+      "loss_eur": 8076.76,
+      "fraud_eur": 0,
+      "light": "VERT",
+      "executed": 0,
+      "blocked": 0,
+      "gate_blocked": 0,
+      "executed_after_detection": null,
+      "last_execution_tick": null,
+      "contaminated_executions": 0,
+      "detection_tick": null,
+      "first_block_tick": null,
+      "working_agents": 7,
+      "paused_agents": 0,
+      "findings": [],
+      "decisions": [],
+      "last_decisions": []
+    },
+    "C": {
+      "label": "Krys",
+      "pnl_eur": -8076.76,
+      "loss_eur": 8076.76,
+      "fraud_eur": 0,
+      "light": "VERT",
+      "executed": 0,
+      "blocked": 0,
+      "gate_blocked": 0,
+      "executed_after_detection": null,
+      "last_execution_tick": null,
+      "contaminated_executions": 0,
+      "detection_tick": null,
+      "first_block_tick": null,
+      "working_agents": 7,
+      "paused_agents": 0,
+      "findings": [],
+      "decisions": [],
+      "last_decisions": []
+    }
+  },
+  "events": [
+    "note Ouverture : les trois banques vivent la même journée."
+  ],
+  "complete": false,
+  "replay": false
+}
