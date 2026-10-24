@@ -52,7 +52,7 @@ sec.innerHTML = `<div class="settings"><div class="fold">
     <span class="fold-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>Settings</span>
     <button type="button" class="fold-pin" aria-label="Keep Settings open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></button>
     <div class="fold-body"><div class="fold-in">
-      <span class="opt" data-help="Play|Plays or pauses the replay; the slider moves it to any tick|P plays or pauses, Space fits everything on screen"><span class="choice"><button type="button" id="sim-play"></button></span><input type="range" id="sim-t" min="0" step="1" aria-label="Tick"><span id="sim-tick"></span></span>
+      <span class="opt" data-help="Play|Plays or pauses the replay; the slider moves it to any tick|P plays or pauses, Space fits everything on screen, 2 or 3 shows 2D or 3D"><span class="choice"><button type="button" id="sim-play"></button></span><input type="range" id="sim-t" min="0" step="1" aria-label="Tick"><span id="sim-tick"></span></span>
       ${row("Display", choice("display", [["3D", "3D"], ["2D", "2D"]]), "The 3D scene, or the same replay as a flat map seen from above")}
       ${row("View", choice("view", Object.keys(VIEWS).map(k => [k, k])), "Puts the camera back on a preset view (3D only)")}
       ${row("Speed", choice("speed", SPEEDS.map(s => [s, s + "×"])), "1× is a tick every 1.3 s")}
@@ -347,7 +347,7 @@ window.simHelp = (x, y) => {
   const now = (W.evAt[tick] ?? []).map(e => e[2] + "."), before = W.events.findLast(e => e[0] < tick);
   return { name: `Tick ${tick} of ${sc.ticks - 1}`,
     what: `${ui.sc.value.replaceAll("_", " ")}, ${ours ? "with our Vigie" : "without the Vigie"}${playing ? "" : ", paused"}. Bank light: ${WORD[light] ?? light}.`,
-    click: set.display === "2D" ? "P plays or pauses, Space fits everything on screen." : "Drag to turn the scene, scroll to zoom. P plays or pauses, Space fits everything on screen.",
+    click: (set.display === "2D" ? "" : "Drag to turn the scene, scroll to zoom. ") + "P plays or pauses, Space fits everything on screen, 2 or 3 shows 2D or 3D.",
     details: [...(now.length ? now : [`Nothing new at this tick.${before ? ` Last at tick ${before[0]}: ${before[2]}.` : ""}`]),
       `Trading result so far: ${eur(W.pnl[tick])}.`, ...(W.fraud[tick] ? [`Lost to fraud so far: ${eur(W.fraud[tick])}.`] : [])] };
 };
@@ -617,11 +617,13 @@ ui.play.onclick = () => {
   hud();
 };
 ui.t.oninput = () => seek(+ui.t.value);
+// 2 or 3 shows the 2D map or the 3D scene, by the key's place so an AZERTY keyboard needs no Shift (Marius, 24-10)
 addEventListener("keydown", e => {
-  if (sec.hidden || !["KeyP", "Space"].includes(e.code) || e.target.closest("input, select, button, textarea")) return;
+  if (sec.hidden || !/^(KeyP|Space|Digit[23]|Numpad[23])$/.test(e.code) || e.target.closest("input, select, button, textarea")) return;
   e.preventDefault();
   if (e.code === "KeyP") ui.play.click();
-  else frameAll();
+  else if (e.code === "Space") frameAll();
+  else sec.querySelector(`.choice[data-set=display] [data-v='"${e.code.at(-1)}D"']`).click();
 });
 // Space fits every agent and service on the screen, the camera keeping its angle, the 2D map refitted to them; the tab
 // opens fitted the same way, both views at once, straight away (Marius, 24-10)
