@@ -15,15 +15,13 @@ if (!F) {
 
 // The film is timed at 3 ticks/s; 1× plays it 4 times slower, flights included (Marius found 3 ticks/s far too fast).
 const TPS = 3, SPEEDS = [0.25, 0.5, 1, 2, 4], SLOW = 0.25;
-// Things of one kind stand together first (the five services in one column, the traders on their pad), and only then
-// are the links placed to cross as few others as they can: 15 crossings as drawn, against 43 at first, most of them the
-// traders' fans to their six shared neighbours. Searched offline, with no node hidden behind the tower in the 3/4 view
-// (Marius, 23-10)
-const POS = {
-  "market-feed": [-1.3, -8], "news-wire": [-1.3, -4.5], "payment-gateway": [-1.3, -1], "kyc-docs": [-1.3, 2.5], "core-ledger": [-1.3, 6],
-  quant: [6, -7.92], "trader-1": [2.08, -7.96], "trader-2": [2.08, -3.46], "trader-3": [2.08, 1.04], payment: [-4.23, 2.38],
-  compliance: [5.08, 5], risk: [8.69, 7.23], executor: [-10.15, 2.15], vigie: [-7, 5.69],
-};
+// Where everything stands: the Agents tab's "Who feeds whom" graph turned 45°, so that its columns (the services, the
+// quant, the traders and payment, compliance, risk, the executor) run from bottom left to top right on the 2D map and
+// in the 3/4 view, each column's rows in the graph's order, and the Vigie behind the graph (Marius, 24-10)
+const COLUMNS = [["core-ledger", "kyc-docs", "market-feed", "news-wire", "payment-gateway"], ["quant"], ["trader-1", "trader-2", "trader-3", "payment"], ["compliance"], ["risk"], ["executor"]];
+const tilt = (c, r) => [(c + r) / Math.SQRT2, (r - c) / Math.SQRT2], untilt = (x, z) => [(x - z) / Math.SQRT2, (x + z) / Math.SQRT2];
+const POS = { vigie: tilt(0, -15) };
+COLUMNS.forEach((ids, k) => ids.forEach((id, i) => (POS[id] = tilt((k - 2.5) * 7, (i - (ids.length - 1) / 2) * 5))));
 const SKIN = { quant: 0xa78bfa, trader: 0x60a5fa, payment: 0x34d399, compliance: 0xfb923c, risk: 0xf472b6, executor: 0x2dd4bf, vigie: 0x94a3b8 };
 const LIGHT = { VERT: 0x34d399, ORANGE: 0xfbbf24, ROUGE: 0xf87171, QUARANTAINE: 0xf87171 };
 const LED = { normal: 0x34d399, compromised: 0xef4444, down: 0x1e293b, stale: 0xfbbf24, slow: 0xfbbf24 };
@@ -223,29 +221,22 @@ function server(id) {
 }
 
 const first = Object.values(F.scenarios)[0];
-// more room between things: each role moves away from the centre as one block, so a role's column keeps its own
-// spacing, and each service on its own, so their column stretches with the rest (Marius, 23-10, 24-10)
-const SPREAD = 1.5;
-for (const ids of [...Object.values(Object.groupBy(first.agents.filter(a => POS[a.id]), a => a.role)).map(g => g.map(a => a.id)), ["vigie"], ...first.services.filter(s => POS[s]).map(s => [s])]) {
-  const [cx, cz] = ids.reduce(([x, z], id) => [x + POS[id][0] / ids.length, z + POS[id][1] / ids.length], [0, 0]);
-  for (const id of ids) POS[id] = [POS[id][0] + cx * (SPREAD - 1), POS[id][1] + cz * (SPREAD - 1)];
-}
 // the layout saved from the Settings box (Layout › Save as default) wins over the one above
 const SAVED = await fetch("/dashboard/sim-layout.json").then(r => (r.ok ? r.json() : {}), () => ({}));
 for (const id in SAVED) if (POS[id]) POS[id] = SAVED[id];
 for (const s of first.services) if (POS[s]) world.add(server(s).g);
 for (const a of first.agents) if (POS[a.id]) world.add(blob(a.id, a.profile, a.role).g);
 // agents of one role stand on one pad, as the other tabs make them one block (Marius, 23-10), with no name of its own
-// (Marius, 24-10); the pad is a rounded box around its agents, fitted again whenever one of them moves (Marius, 24-10)
+// (Marius, 24-10); the pad is a rounded box around its agents, turned with the graph, fitted again whenever one of them
+// moves (Marius, 24-10)
 const pads = [];
 const pill = (hx, hz, r) => new THREE.Shape().absarc(hx, -hz, r, -Math.PI / 2, 0).absarc(hx, hz, r, 0, Math.PI / 2)
   .absarc(-hx, hz, r, Math.PI / 2, Math.PI).absarc(-hx, -hz, r, Math.PI, Math.PI * 1.5);
 function fitPad(p) {
-  const xs = p.ids.map(id => POS[id][0]), zs = p.ids.map(id => POS[id][1]);
+  const cs = p.ids.map(id => untilt(...POS[id])), xs = cs.map(c => c[0]), zs = cs.map(c => c[1]);
   p.hx = (Math.max(...xs) - Math.min(...xs)) / 2;
   p.hz = (Math.max(...zs) - Math.min(...zs)) / 2;
-  p.x = Math.min(...xs) + p.hx;
-  p.z = Math.min(...zs) + p.hz;
+  [p.x, p.z] = tilt(Math.min(...xs) + p.hx, Math.min(...zs) + p.hz);
   const rim = pill(p.hx, p.hz, p.r);
   rim.holes.push(pill(p.hx, p.hz, p.r - 0.14));
   p.zone.children.forEach((m, i) => (m.geometry.dispose(), (m.geometry = new THREE.ShapeGeometry(i ? rim : pill(p.hx, p.hz, p.r), 24))));
@@ -261,6 +252,7 @@ for (const [role, members] of Object.entries(Object.groupBy(first.agents.filter(
     zone.add(m);
   }
   zone.userData.pick = "pad:" + role;
+  zone.rotation.y = Math.PI / 4;
   const p = { id: "pad:" + role, role, r: 2.4, c: "#" + new THREE.Color(c).getHexString(), n: members.length, ids: members.map(a => a.id), zone };
   fitPad(p);
   pads.push(p);
@@ -291,8 +283,9 @@ function end(id, other) {
   const p = pads.find(q => q.id === id);
   // a link runs on the floor from under the centre of a thing's feet, the Vigie's from the foot of its tower (Marius, 24-10)
   if (!p) return at(id).setY(FLOOR);
-  const o = at(other), x = THREE.MathUtils.clamp(o.x, p.x - p.hx, p.x + p.hx), z = THREE.MathUtils.clamp(o.z, p.z - p.hz, p.z + p.hz), d = Math.hypot(o.x - x, o.z - z) || 1;
-  return v(x + ((o.x - x) / d) * p.r, FLOOR, z + ((o.z - z) / d) * p.r);
+  const o = at(other), [ox, oz] = untilt(o.x - p.x, o.z - p.z), x = THREE.MathUtils.clamp(ox, -p.hx, p.hx), z = THREE.MathUtils.clamp(oz, -p.hz, p.hz), d = Math.hypot(ox - x, oz - z) || 1;
+  const [dx, dz] = tilt(x + ((ox - x) / d) * p.r, z + ((oz - z) / d) * p.r);
+  return v(p.x + dx, FLOOR, p.z + dz);
 }
 
 // What stands under a point of the window (clientX, clientY): the id of an agent, a service or "vigie", "pad:<role>"
@@ -795,7 +788,7 @@ function pick2d(x, y) {
     const [nx, ny] = to2(...POS[n.id]), e = Math.hypot(px - nx, py - ny);
     if (e < d) (best = n.id), (d = e);
   }
-  const pad = pads.find(p => Math.abs(px - to2(p.x, 0)[0]) < (p.hx + p.r) * s2 && Math.abs(py - to2(0, p.z)[1]) < (p.hz + p.r) * s2);
+  const pad = pads.find(p => (([x, z]) => Math.abs(x) < p.hx + p.r && Math.abs(z) < p.hz + p.r)(untilt((px - to2(p.x, p.z)[0]) / s2, (py - to2(p.x, p.z)[1]) / s2)));
   return best ?? (pad ? "pad:" + pad.role : null);
 }
 // a material's colour as the screen shows it (getHexString turns three.js's linear colour back to sRGB), and its opacity
@@ -815,14 +808,17 @@ function draw2d() {
   g2.clearRect(0, 0, flat.width, flat.height);
   g2.textAlign = "center";
   for (const p of pads) {
-    const [x, y] = to2(p.x - p.hx - p.r, p.z - p.hz - p.r);
+    g2.save();
+    g2.translate(...to2(p.x, p.z));
+    g2.rotate(-Math.PI / 4);
     g2.beginPath();
-    g2.roundRect(x, y, 2 * (p.hx + p.r) * s2, 2 * (p.hz + p.r) * s2, p.r * s2);
+    g2.roundRect(-(p.hx + p.r) * s2, -(p.hz + p.r) * s2, 2 * (p.hx + p.r) * s2, 2 * (p.hz + p.r) * s2, p.r * s2);
     g2.fillStyle = p.c;
     alpha(0.16), g2.fill(), alpha(0.9);
     g2.strokeStyle = p.c;
     g2.lineWidth = 2;
     g2.stroke(), alpha();
+    g2.restore();
   }
   for (const l of links.values()) {
     if (!l.g.visible) continue;
