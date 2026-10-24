@@ -31,6 +31,8 @@ class Confirmation(BaseModel):
 
 def attach_krys(app, knowledge, actions=None, *, rephraser=None):
     app.state.details_knowledge = knowledge
+    from vigie.console.mails import attach_mailbox
+    attach_mailbox(app, knowledge)
     audit = deque(maxlen=128)
     lock = threading.Lock()
     renderer = rephraser if rephraser is not None else Rephraser.from_env()

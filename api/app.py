@@ -266,14 +266,20 @@ def live_app(cfg: dict | None = None) -> FastAPI:
         targets[name] = QueueTarget(wcfg, client) if cfg.get("compare") else ProcessTarget(wcfg, client)
     if cfg.get("compare"):
         targets = {"all": targets["A"]}   # une seule mise en file : sim.compare l'applique à A et B
-    return create_app(sources, targets, default_world=next(iter(worlds)))
+    app = create_app(sources, targets, default_world=next(iter(worlds)))
+    from vigie.console.chat import attach_standalone
+    attach_standalone(app, cfg)
+    return app
 
 
 def main() -> None:
     import uvicorn
 
     cfg = load_config()
-    uvicorn.run(live_app(cfg), host="127.0.0.1", port=cfg["api"]["port"], log_level="warning")
+    app = live_app(cfg)
+    from vigie.demo_security import announce_access
+    announce_access(app)
+    uvicorn.run(app, host="127.0.0.1", port=cfg["api"]["port"], log_level="warning")
 
 
 if __name__ == "__main__":

@@ -18,6 +18,7 @@ if __name__ == "__main__":
     os.environ["HORIZON_NO_LLM"] = "1"
     os.environ.pop('KRYS_LLM', None)
     os.environ.pop('MISTRAL_API_KEY', None)
+    os.environ.pop('KRYS_MAIL', None)
     sys.addaudithook(deny_network)
     import pytest
 
