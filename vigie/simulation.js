@@ -578,8 +578,8 @@ function show(t) {
   }
   nodes.vigie.asleep = !st.vigie;
   // what this side's Vigie refused last, on the left of its side of the window, the one before fading out as it fades
-  // in (Marius, 24-10), and in its top right corner its bank's net result so far, trading less fraud: the two banks
-  // are compared with each other, never with a bank without protection (24-10)
+  // in (Marius, 24-10), and in its top right corner the fraud it kept from leaving so far: what the same day wired to
+  // rerouted IBANs without any control, less what left this bank (Marius, 24-10: the net result was not clear)
   const mine = sc.worlds[SIDE ?? "ours"], i = SIDE ? 0 : 1;
   const e = mine.events.findLast(e => e[0] <= t && REFUSED.test(e[2])), list = ui.refused[i];
   const html = e ? `<li><b class="chip">${String(e[0]).padStart(3, "\u2007")}</b><span class="chip"><span>${esc(fr(e[2])).replace(" : ", " :</span> <span>")}</span></span></li>` : "";
@@ -588,8 +588,8 @@ function show(t) {
     for (const li of list.children) (li.className = "out"), (li.onanimationend = li.onanimationcancel = () => li.remove());
     list.insertAdjacentHTML("beforeend", html);
   }
-  ui.saved[i].firstChild.textContent = eur(mine.pnl[t] - mine.fraud[t]);
-  ui.saved[i].lastChild.textContent = "Résultat net, fraude déduite";
+  ui.saved[i].firstChild.textContent = eur(sc.worlds.theirs.fraud[t] - mine.fraud[t]);
+  ui.saved[i].lastChild.textContent = "Fraude évitée";
   light = st.light ?? "VERT";
   // a link turns red from its red end (a compromised service, or the agent whose ring went red first) once the other
   // end is hit too (Marius, 24-10); a pad's end is red or hit once one of its agents is
