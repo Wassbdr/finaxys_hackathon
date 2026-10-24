@@ -67,9 +67,9 @@ sec.innerHTML = `<div class="settings"><div class="fold">
       ${row("Details", choice("details", OFF_ON), "Whether the helper's box adds what an agent reads, its messages of this tick and its last event")}
       <span class="opt" data-help="Layout|Hold Option over a drop or a service to carry it: it follows the pointer until Option is let go, a role's pad with its agents|Saves where everything stands and the camera's angle as the defaults, for everyone"><span>Layout</span><span class="choice"><button type="button" id="sim-save">Save as default</button></span></span>
     </div></div></div></div>
-  <div class="sim-stage"><h2 class="sim-side">A Vigie</h2><h2 class="sim-side ours">Our Vigie</h2><p class="sim-stop" hidden></p></div>`;
+  <div class="sim-stage"><h2 class="sim-side">A Vigie</h2><h2 class="sim-side ours">Our Vigie</h2><ol class="sim-refused"></ol><ol class="sim-refused ours"></ol><p class="sim-stop" hidden></p></div>`;
 const ui = { sc: sec.querySelector("#sim-sc"), play: sec.querySelector("#sim-play"), t: sec.querySelector("#sim-t"), tick: sec.querySelector("#sim-tick"),
-  stop: sec.querySelector(".sim-stop"), fold: sec.querySelector(".fold"), pin: sec.querySelector(".fold-pin") };
+  stop: sec.querySelector(".sim-stop"), refused: sec.querySelectorAll(".sim-refused"), fold: sec.querySelector(".fold"), pin: sec.querySelector(".fold-pin") };
 const stage = sec.querySelector(".sim-stage");
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -512,6 +512,11 @@ function show(t) {
     if (n.html !== html) n.div.innerHTML = n.html = html;
   }
   nodes.vigie.asleep = !st.vigie;
+  // what each world refused so far, newest first, on the left of its Vigie's side of the window (Marius, 24-10)
+  ["theirs", "ours"].forEach((w, i) => {
+    const html = sc.worlds[w].events.filter(e => e[0] <= t && /refuses|rejected|blocks/.test(e[2])).reverse().map(e => `<li><b>${e[0]}</b> ${esc(e[2])}</li>`).join("");
+    if (ui.refused[i].html !== html) ui.refused[i].innerHTML = ui.refused[i].html = html;
+  });
   light = st.light ?? "VERT";
   // a link turns red from its red end (a compromised service, or the agent whose ring went red first) once the other
   // end is hit too (Marius, 24-10); a pad's end is red or hit once one of its agents is
