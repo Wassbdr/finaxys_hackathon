@@ -98,13 +98,11 @@ sun.shadow.camera.updateProjectionMatrix();
 scene.add(sun);
 const world = new THREE.Group();
 scene.add(world);
-// the ground under everything, in the page's pale blues, in 3D only (Marius, 24-10); sized to the layout once it is read
-const floor = new THREE.Mesh(new THREE.CircleGeometry(1, 96), new THREE.MeshStandardMaterial({ color: 0xe2ebfa, roughness: 0.9 }));
+// no floor to see (Marius, 24-10), only the shadows the blobs cast on it
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), new THREE.ShadowMaterial({ opacity: 0.3 }));
 floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
-const grid = new THREE.PolarGridHelper(1, 12, 8, 96, 0xa8c8ff, 0xddebff);
-Object.assign(grid.material, { transparent: true, opacity: 0.6 });
-world.add(floor, grid);
+world.add(floor);
 
 const ball = new THREE.SphereGeometry(1, 40, 28);
 const mat = (color, o) => new THREE.MeshPhysicalMaterial({ color, roughness: 0.35, clearcoat: 0.7, clearcoatRoughness: 0.2, ...o });
@@ -232,15 +230,6 @@ for (const ids of [...Object.values(Object.groupBy(first.agents.filter(a => POS[
 // the layout saved from the Settings box (Layout › Save as default) wins over the one above
 const SAVED = await fetch("/dashboard/sim-layout.json").then(r => (r.ok ? r.json() : {}), () => ({}));
 for (const id in SAVED) if (POS[id]) POS[id] = SAVED[id];
-{
-  const ps = Object.values(POS), xs = ps.map(p => p[0]), zs = ps.map(p => p[1]);
-  const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cz = (Math.min(...zs) + Math.max(...zs)) / 2;
-  const r = Math.max(...ps.map(([x, z]) => Math.hypot(x - cx, z - cz))) + 4;
-  floor.position.set(cx, 0, cz);
-  grid.position.set(cx, 0.01, cz);
-  floor.scale.setScalar(r);
-  grid.scale.setScalar(r);
-}
 for (const s of first.services) if (POS[s]) world.add(server(s).g);
 for (const a of first.agents) if (POS[a.id]) world.add(blob(a.id, a.profile, a.role).g);
 // agents of one role stand on one pad named after the role, as the other tabs make them one block; its name stands on
