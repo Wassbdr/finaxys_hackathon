@@ -203,6 +203,10 @@
   .sim-refused span.chip { --c: var(--red); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
   .sim-refused span span { white-space: nowrap; }
   .sim-refused .chip { border-radius: 999px; }
+  /* what each side's Vigie kept from being lost so far, in its top right corner (Marius, 24-10) */
+  .sim-saved { position: absolute; z-index: 1; top: 24px; right: calc(50% + 24px); margin: 0; text-align: right; font-size: 12px; color: var(--dim); pointer-events: none; }
+  .sim-saved.ours { right: 24px; }
+  .sim-saved b { display: block; font-size: 20px; font-weight: 400; letter-spacing: -.02em; color: var(--text); font-variant-numeric: tabular-nums; }
   /* each side's scene: a layer over the whole window, clipped to its half (simulation.js) */
   .sim-view { position: absolute; inset: 0; clip-path: inset(0 0 0 50%); }
   .sim-view.classic { clip-path: inset(0 50% 0 0); }
