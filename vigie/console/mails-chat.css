@@ -1,0 +1,37 @@
+/* Les jetons de Marius sont hérités : aucune couleur d’identité supplémentaire. */
+.console-mails-chat { font: 17px/1.5 var(--sans); color: var(--text); }
+.console-mails-chat h1 { font-size: 28px; }
+.console-mails-chat h2 { font-size: 21px; margin: 8px 0; }
+.console-mails-chat p { margin: 10px 0; }
+.console-mails-chat button, .console-mails-chat input, .console-mails-chat select, #mc-open {
+  font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line-2);
+  border-radius: 3px; padding: 9px 12px; min-height: 44px;
+}
+.console-mails-chat button, #mc-open { cursor: pointer; }
+.console-mails-chat button:disabled { cursor: default; color: var(--faint); }
+.console-mails-chat :focus-visible, #mc-open:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+.console-mails-chat label { display: block; font-size: 15px; color: var(--dim); margin: 10px 0 5px; }
+.console-mails-chat input, .console-mails-chat select { width: 100%; box-sizing: border-box; }
+.console-mails-chat form button { margin-top: 8px; }
+.console-mails-chat code { display: block; font: 14px/1.6 var(--mono); overflow-wrap: anywhere; }
+.console-mails-chat summary { cursor: pointer; padding: 10px 0; }
+.console-mails-chat a { color: var(--text); text-underline-offset: 4px; }
+.mc-drafts { display: grid; gap: 18px; margin-top: 18px; }
+.mc-card { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--orange); border-radius: 3px; padding: 20px; }
+.mc-card button { margin: 12px 12px 0 0; }
+.mc-card a { display: block; }
+.mc-state { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--dim); }
+.mc-state::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--orange); }
+#mc-open { position: fixed; z-index: 110; right: 20px; bottom: 20px; box-shadow: var(--lift); font-family: var(--sans); }
+#mc-chat { position: fixed; z-index: 111; right: 20px; bottom: 76px; width: min(480px, calc(100vw - 40px));
+  max-height: calc(100dvh - 100px); overflow-y: auto; box-sizing: border-box; padding: 18px;
+  background: var(--surface); border: 1px solid var(--line-2); border-radius: 4px; box-shadow: var(--lift); }
+#mc-chat[hidden] { display: none; }
+.mc-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+#krys-log { max-height: 32vh; overflow-y: auto; padding-left: 22px; overflow-wrap: anywhere; }
+#krys-log li { border-left: 3px solid var(--line-2); padding-left: 12px; margin: 12px 0; }
+@media (max-width: 600px) {
+  #mc-chat { right: 8px; bottom: 66px; width: calc(100vw - 16px); max-height: calc(100dvh - 82px); padding: 12px; }
+  #mc-open { right: 8px; bottom: 10px; }
+  .mc-card { padding: 14px; }
+}
