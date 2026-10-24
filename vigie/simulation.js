@@ -27,7 +27,7 @@ POS.vigie = tilt(3.5 * 9, 0);  // half a step further, so that the name at the f
 const SKIN = { quant: 0xa78bfa, trader: 0x60a5fa, payment: 0x34d399, compliance: 0xfb923c, risk: 0xf472b6, executor: 0x2dd4bf, vigie: 0x94a3b8 };
 const LIGHT = { VERT: 0x34d399, ORANGE: 0xfbbf24, ROUGE: 0xf87171, QUARANTAINE: 0xf87171 };
 const LED = { normal: 0x34d399, compromised: 0xef4444, down: 0x1e293b, stale: 0xfbbf24, slow: 0xfbbf24 };
-const DOT = { read: 0x6aa6ff, hidden: 0xf59e0b, bad: 0xef4444, price: 0x2b6bff, order: 0x1446c8, payment: 0x16a34a, decision: 0x8b5cf6, brake: 0xf97316, exec: 0x22c55e, approve: 0x16a34a, refuse: 0xef4444, wire: 0xeab308, fraud: 0xef4444 };
+const DOT = { bad: 0xef4444, approve: 0x16a34a, refuse: 0xef4444, wire: 0xeab308, fraud: 0xef4444 };
 // a clean link is drawn in the page's ink, faint, on the pale floor; a hovered node's links take its colour
 const PLAIN = 0x0e1726, SKY = 0x2b6bff;
 const WHY = { ours: "With our Vigie: one view of every agent and service, and a gate before each execution.", theirs: "Without it: each agent checks only its own rules, nothing watches the whole bank." };
@@ -423,7 +423,7 @@ function send(from, to, kind, bad, delay) {
   const wait = Math.max(delay, q ? q.dur - q.at : 0);
   if (wait > delay + 1 / TPS) return;
   const shape = kind === "wire" || kind === "fraud" ? "coin" : kind === "order" || kind === "payment" ? "box" : "dot";
-  const m = mesh(GEO[shape], shine(bad && shape !== "coin" ? DOT.bad : DOT[kind]));
+  const m = mesh(GEO[shape], shine(PLAIN));  // in the page's ink, whatever it carries (Marius, 24-10)
   m.visible = false;
   world.add(m);
   flying.push((l.last = { m, l, back, from, to, kind, bad: !!bad, at: -wait, dur: Math.min(0.3, 0.12 + l.curve.getLength() / 100) }));
