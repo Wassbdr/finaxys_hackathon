@@ -223,10 +223,12 @@ def test_argus_krys_display_names_preserve_bus_contract(tmp_path, cfg):
         example = json.loads(Path('vigie/demo_api_example.json').read_text())
         assert {name: bank['label'] for name, bank in example['banks'].items()} == expected
         page = Path('vigie/demo_page.html').read_text()
-        assert '<title>Argus — trois banques, une journée</title>' in page
-        assert '<h1>Argus — trois banques, une journée</h1>' in page
-        assert all(label in page for label in expected.values())
-        assert '<title>KRYS · ARGUS</title>' in Path('vigie/dashboard.html').read_text()
+        assert '<title>Simulation · Argus</title>' in page
+        assert '<h1>Deux banques, la même journée</h1>' in page
+        # L'écran compare deux banques ; la banque sans protection reste dans le contrat de l'API, jamais dans la page.
+        assert 'NAMES = {B: "Contrôles classiques", C: "Krys"}' in page
+        assert expected['A'] not in page
+        assert '<title>Console · Argus</title>' in Path('vigie/dashboard.html').read_text()
         assert 'Krys, couche 3' in Path('vigie/DEMO_API.md').read_text()
         assert 'Krys, couche 3' in Path('vigie/ANNEXE_INVARIANT.md').read_text()
         # Le nom commercial ne change ni l'identité authentifiée ni les preuves.

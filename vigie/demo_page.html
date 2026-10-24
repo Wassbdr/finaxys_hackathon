@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Argus — trois banques, une journée</title>
+<title>Simulation · Argus</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 8' shape-rendering='crispEdges'%3E%3Crect x='5' y='0' width='1' height='1' fill='%23A8C8FF'/%3E%3Crect x='0' y='1' width='2' height='1' fill='%236AA6FF'/%3E%3Crect x='4' y='1' width='3' height='1' fill='%236AA6FF'/%3E%3Crect x='9' y='1' width='2' height='1' fill='%236AA6FF'/%3E%3Crect x='5' y='2' width='1' height='1' fill='%232B6BFF'/%3E%3Crect x='4' y='3' width='3' height='1' fill='%231446C8'/%3E%3Crect x='4' y='4' width='3' height='1' fill='%230B2A6F'/%3E%3Crect x='3' y='5' width='5' height='2' fill='%230B2A6F'/%3E%3Crect x='2' y='7' width='7' height='1' fill='%23081B45'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/console/static/tokens.css">
 <style>
@@ -56,10 +56,9 @@ h2, h3 { font-weight: 400; letter-spacing: -.025em; }
 .progress > div { height: 100%; width: 0; background: var(--dim); transition: width .3s; }
 .event { flex: 1 1 100%; min-height: 1.5em; font-size: 17px; overflow-wrap: anywhere; }
 .event b { font-weight: 500; }
-.banks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.banks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .bank { padding: 20px 20px 20px 24px; display: grid; gap: 14px; align-content: start; min-width: 0; transition: box-shadow .2s; }
 .bank:hover { box-shadow: var(--lift); }
-.bank-code { color: var(--dim); font: 500 11px var(--mono); letter-spacing: .1em; }
 .bank h2 { margin: 0 94px 0 0; min-height: 52px; font-size: 23px; line-height: 1.15; }
 .pastille { position: absolute; top: 20px; right: 16px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 2px;
   font: 500 11px var(--mono); letter-spacing: .04em; color: var(--c); background: color-mix(in srgb, var(--c) 10%, white); }
@@ -115,13 +114,13 @@ details p { color: var(--dim); }
 <body>
 <nav class="menu" aria-label="Navigation de la démonstration">
   <a class="brand" href="/" aria-label="Argus, page de présentation"><svg viewBox="0 0 11 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="5" y="0" width="1" height="1" fill="#A8C8FF"/><rect x="0" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="4" y="1" width="3" height="1" fill="#6AA6FF"/><rect x="9" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="5" y="2" width="1" height="1" fill="#2B6BFF"/><rect x="4" y="3" width="3" height="1" fill="#1446C8"/><rect x="4" y="4" width="3" height="1" fill="#0B2A6F"/><rect x="3" y="5" width="5" height="2" fill="#0B2A6F"/><rect x="2" y="7" width="7" height="1" fill="#081B45"/></svg><span>Argus</span></a>
-  <div class="tabs"><a href="#banks" aria-current="page">Journée</a><a href="#results">Résultats</a><a href="#simulation">Jumeau 3D</a><a href="#krys-panel">Demandez à Krys</a><a href="/argus">Accueil Argus</a></div>
+  <div class="tabs"><a href="#banks" aria-current="page">Journée</a><a href="#results">Résultats</a><a href="#simulation">Jumeau 3D</a><a href="#krys-panel">Demandez à Krys</a><a href="/console">Console</a></div>
   <span class="menu-note">Banque simulée</span>
 </nav>
 <main>
   <header>
-    <div class="page-heading"><p class="eyebrow">Démonstration · même scénario, trois banques</p>
-      <h1>Argus — trois banques, une journée</h1>
+    <div class="page-heading"><p class="eyebrow">Simulation · même scénario, deux banques</p>
+      <h1>Deux banques, la même journée</h1>
       <span class="meta" id="meta">graine — · direct</span></div>
     <div class="conn">
       <label for="url" class="status">Serveur</label>
@@ -143,8 +142,8 @@ details p { color: var(--dim); }
 
   <section class="chart block" id="results">
     <h3>Résultat réel de chaque banque (P&amp;L net de fraude, en M€)</h3>
-    <div class="legend"><span><i></i>A · Sans Krys</span><span><i class="dashed"></i>B · Contrôles classiques</span><span><i class="dotted"></i>C · Krys</span></div>
-    <canvas id="chart" aria-label="Courbes du résultat des trois banques"></canvas>
+    <div class="legend"><span><i class="dashed"></i>Contrôles classiques</span><span><i></i>Krys</span></div>
+    <canvas id="chart" aria-label="Courbes du résultat des deux banques"></canvas>
   </section>
 
   <section class="final block" id="final" hidden></section>
@@ -153,7 +152,7 @@ details p { color: var(--dim); }
 
   <section class="chart block" id="krys-panel" aria-labelledby="krys-heading">
     <h2 id="krys-heading">Demandez à Krys</h2>
-    <p><a href="/dashboard">Chat « Demandez à Krys » disponible dans tous les onglets de la console</a></p>
+    <p><a href="/console">Chat « Demandez à Krys » disponible dans tous les onglets de la console</a></p>
     <p class="krys-intro">Réponses sourcées sur la couche 3 et le texte de référence. Reformulation Mistral facultative, désactivée par défaut.
       Les chiffres du simulateur affichés au-dessus ne sont pas des sources du chat.</p>
 
@@ -179,16 +178,19 @@ details p { color: var(--dim); }
     </details>
   </section>
 
-  <p class="note">Même journée, même graine, mêmes attaques pour les trois banques. Les pertes réelles ne servent qu'à afficher et noter :
-  aucune KRYS ne les lit. « Bloquées » compte les refus explicites du portique ; une banque en rouge ne propose plus d'opérations,
+  <p class="note">Même journée, même graine, mêmes attaques pour les deux banques. Les pertes réelles ne servent qu'à afficher et à noter :
+  Krys ne les lit pas. « Bloquées » compte les refus explicites du portique ; une banque en rouge ne propose plus d'opérations,
   ce n'est donc pas « aucune protection ». Un feu VERT ne veut pas dire qu'aucune opération n'est bloquée.</p>
-  <aside aria-label="Détails techniques"><h2>Preuves et limites</h2><p>Provenance depuis un message_id, journal chaîné, décisions du portique et mesures sur 10 journées simulées avec comparaison aux contrôles classiques. Limite : données simulées ; relais évalué au banc d’essai.</p><a href="/dashboard#details">Ouvrir les Détails dans la console</a></aside>
+  <aside aria-label="Détails techniques"><h2>Preuves et limites</h2><p>Provenance depuis un message_id, journal chaîné, décisions du portique et mesures sur 10 journées simulées avec comparaison aux contrôles classiques. Limite : données simulées ; relais évalué au banc d’essai.</p><a href="/console#details">Ouvrir les Détails dans la console</a></aside>
 </main>
 
 <script>
 "use strict";
-// Les traits distinguent les banques sans attribuer à leur identité une couleur d’état.
-const BANKS = [["A", []], ["B", [10, 6]], ["C", [2, 4]]];
+// Les traits distinguent les banques sans attribuer à leur identité une couleur d’état. Deux banques seulement à l’écran :
+// la banque sans protection reste dans le flux du serveur, jamais dans la page.
+const BANKS = [["B", [10, 6]], ["C", []]];
+const NAMES = {B: "Contrôles classiques", C: "Krys"};
+const LIGHT_WORDS = {VERT: "vert", ORANGE: "orange", ROUGE: "rouge"};
 const TOTAL_TICKS = 180;
 const LIGHTS = new Set(["VERT", "ORANGE", "ROUGE"]);
 const packets = new Map();   // tick -> paquet complet ; sert au replay local sans reconnecter
@@ -202,8 +204,7 @@ const n = (v) => v == null ? "—" : String(v);
 function buildBanks() {
   $("banks").innerHTML = BANKS.map(([k]) => `
     <article class="bank block" id="bank-${k}">
-      <span class="bank-code">BANQUE ${k}</span>
-      <h2><span id="label-${k}">${({A: "Sans Krys", B: "Contrôles classiques", C: "Krys"})[k]}</span></h2><span class="light pastille" id="light-${k}">—</span>
+      <h2><span id="label-${k}">${NAMES[k]}</span></h2><span class="light pastille" id="light-${k}">—</span>
       <div class="big">
         <div class="num"><b id="loss-${k}">—</b><span>pertes</span></div>
         <div class="num stolen" id="stolenbox-${k}"><b id="fraud-${k}">—</b><span>euros volés</span></div>
@@ -232,12 +233,12 @@ function render(p) {
   const ev = eventText(p.events);
   if (ev) $("event").innerHTML = `<b>t${p.tick}</b> — ${escapeHtml(ev)}`;
   if (p.seed != null) seed = p.seed;
-  $("meta").textContent = `graine ${seed ?? "—"} · ${p.replay || isReplay ? "replay" : "direct"}`;
+  $("meta").textContent = `graine ${seed ?? "—"} · ${p.replay || isReplay ? "rejeu" : "direct"}`;
   for (const [k] of BANKS) {
     const b = (p.banks || {})[k]; if (!b) continue;
-    $(`label-${k}`).textContent = ({A: "Sans Krys", B: "Contrôles classiques", C: "Krys"})[k];
+    $(`label-${k}`).textContent = NAMES[k];
     // Le feu vient du réseau : seules les trois valeurs connues deviennent une classe CSS.
-    const light = $(`light-${k}`); light.textContent = b.light || "—";
+    const light = $(`light-${k}`); light.textContent = LIGHTS.has(b.light) ? LIGHT_WORDS[b.light] : b.light || "—";
     light.className = `light pastille ${LIGHTS.has(b.light) ? b.light : ""}`;
     $(`bank-${k}`).className = `bank block ${LIGHTS.has(b.light) ? b.light : ""}`;
     $(`loss-${k}`).textContent = euro(b.loss_eur);
@@ -252,7 +253,7 @@ function render(p) {
     const f = b.findings || [];
     $(`feed-${k}`).innerHTML = f.length ? f.slice().reverse().map((x) =>
       `<li><small>t${escapeHtml(x.tick)}</small> ${escapeHtml(x.text || "")}${Array.isArray(x.proof) && x.proof.length ? ` <small>preuve ${escapeHtml(x.proof.slice(0, 2).join(", "))}</small>` : ""}</li>`).join("")
-      : `<li class="none">${k === "A" ? "Pas de KRYS : rien n'est surveillé." : "Aucun constat pour l'instant."}</li>`;
+      : `<li class="none">Aucun constat pour l'instant.</li>`;
   }
   drawChart(p.tick);
   if (p.complete) showFinal(p);
@@ -261,9 +262,9 @@ function render(p) {
 function showFinal(p) {
   const b = p.banks || {};
   // Tout ce qui vient du flux est échappé avant d'entrer dans le HTML de la synthèse.
-  const s = (k) => b[k] ? escapeHtml(`${euro(b[k].fraud_eur)} volés, ${euro(b[k].loss_eur)} de pertes, feu ${b[k].light}`) : "—";
+  const s = (k) => b[k] ? escapeHtml(`${euro(b[k].fraud_eur)} volés, ${euro(b[k].loss_eur)} de pertes, feu ${LIGHTS.has(b[k].light) ? LIGHT_WORDS[b[k].light] : b[k].light}`) : "—";
   const el = $("final");
-  el.innerHTML = `<b>Fin de journée.</b> Sans Krys : ${s("A")}. Contrôles classiques : ${s("B")}. Krys : ${s("C")}.`;
+  el.innerHTML = `<b>Fin de journée.</b> ${BANKS.map(([k]) => `${NAMES[k]} : ${s(k)}`).join(". ")}.`;
   el.hidden = false;
 }
 
@@ -335,6 +336,8 @@ function replayLocal() {
 }
 
 buildBanks();
+// le flux vient du serveur qui sert la page, quel que soit son port ; le champ reste modifiable
+if (/^https?:$/.test(location.protocol)) $("url").value = location.protocol.replace("http", "ws") + "//" + location.host;
 $("connect").addEventListener("click", connect);
 $("replay").addEventListener("click", replayLocal);
 window.addEventListener("resize", () => drawChart(lastShown));

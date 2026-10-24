@@ -43,7 +43,7 @@ def test_accueil_route_local_resources_and_console_anchors():
     assert client.get('/argus/../api/app.py').status_code == 404
     assert client.get('/argus/secret.js').status_code == 404
     demo = client.get('/demo/page').text
-    assert 'href="/argus"' in demo
+    assert 'href="/console"' in demo
 
 
 def test_accueil_chat_empty_proofs_and_csrf():

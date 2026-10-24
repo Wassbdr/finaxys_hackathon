@@ -93,7 +93,7 @@
       const citations = Array.isArray(answer.citations) ? answer.citations.map(c => c.message_id || c.section_id).filter(Boolean) : [];
       output.textContent = 'BROUILLON À VALIDER PAR UN HUMAIN\n' + String(answer.text || 'Aucune source disponible.')
         + (citations.length ? '\nPreuves : ' + citations.join(', ') : '\nAucune preuve opérationnelle disponible ; ne pas déclarer cet élément.');
-    } catch (_) { output.textContent = 'Brouillon indisponible. Ouvrez /demo/page, vérifiez l’origine autorisée et les sources signées. Aucun envoi effectué.'; }
+    } catch (_) { output.textContent = 'Brouillon indisponible. Ouvrez la console (/console), vérifiez l’origine autorisée et les sources signées. Aucun envoi effectué.'; }
   }
   function decorate(root, badges) {
     for (const row of root.querySelectorAll('tbody tr')) {

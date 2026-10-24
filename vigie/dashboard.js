@@ -3,30 +3,36 @@
 // simulation runs, is drawn from dashboard-demo.json beside this file, tagged "sample" (or "demo data" in the header).
 
 const ROLES = {
-  quant: "Prices each asset and measures how unstable it is. Never trades.",
-  trader: "Proposes orders: buys under fair value, sells above, reacts to news.",
-  compliance: "Checks every order and payment is allowed (KYC, restricted list, split orders).",
-  risk: "Measures what the bank can lose and brakes: validates, cuts or refuses.",
-  payment: "Pays supplier invoices through the payment gateway.",
-  executor: "Executes only what KRYS's gate approves.",
+  quant: "Valorise chaque actif et mesure son instabilité. Ne négocie jamais.",
+  trader: "Propose des ordres : achète sous la juste valeur, vend au-dessus, réagit aux nouvelles.",
+  compliance: "Vérifie que chaque ordre et chaque paiement est autorisé (KYC, liste restreinte, ordres fractionnés).",
+  risk: "Mesure ce que la banque peut perdre et freine : valide, réduit ou refuse.",
+  payment: "Paie les factures des fournisseurs par la passerelle de paiement.",
+  executor: "N'exécute que ce que le portique de Krys approuve.",
 };
-const LAYERS = {1: "identity", 2: "rules", 3: "behavior", 4: "coherence"};
+const LAYERS = {1: "identité", 2: "règles", 3: "comportement", 4: "cohérence"};
 const LIMIT_NAMES = {
-  max_position_pct: "largest position", daily_loss_pct: "loss today", exposure_pct: "exposure",
-  var_pct: "value at risk", daily_loss_incl_fraud_pct: "loss incl. fraud", liquidity_floor_pct: "cash floor", daily_pct: "paid today",
+  max_position_pct: "plus grosse position", daily_loss_pct: "perte du jour", exposure_pct: "exposition",
+  var_pct: "valeur en risque", daily_loss_incl_fraud_pct: "perte fraude comprise", liquidity_floor_pct: "plancher de trésorerie", daily_pct: "payé aujourd'hui",
 };
 // a light or a level of KRYS: the colour of its block and the word of its pastille
-const STATE = {VERT: ["green", "green"], ORANGE: ["orange", "orange"], ROUGE: ["red", "red"], QUARANTAINE: ["red", "quarantined"]};
+const STATE = {VERT: ["green", "vert"], ORANGE: ["orange", "orange"], ROUGE: ["red", "rouge"], QUARANTAINE: ["red", "en quarantaine"]};
+// what Krys did to an agent, as its action code says it; the code stays the class of its colour
+const ACTION = {green: "approuvé", block: "bloqué", slow: "ralenti", flag: "signalé", quarantine: "quarantaine", advise: "avis", tune: "réglage", red: "rouge"};
+const actionName = a => Object.hasOwn(ACTION, a) ? ACTION[a] : a;
+const SEVERITY = {critical: "critique", warning: "alerte", info: "info"};
 const PITCH = "php2shell_day";  // the scenario of the pitch's three figures
 const ORDER = ["quant", "trader", "compliance", "risk", "payment", "executor"];
 const COLUMN = {quant: 1, trader: 2, payment: 2, compliance: 3, risk: 4, executor: 5};  // the graph's columns, services at 0
 
 const $ = id => document.getElementById(id);
-const eur = v => v == null ? "-" : (Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(2) + " M€" : (Math.round(v) || 0).toLocaleString("en") + " €");
+// a number as French writes it: a decimal comma and a thin space between the thousands
+const num = (x, digits = 0) => x == null || Number.isNaN(+x) ? "-" : (+x).toLocaleString("fr-FR", {minimumFractionDigits: digits, maximumFractionDigits: digits});
+const eur = v => v == null ? "-" : (Math.abs(v) >= 1e6 ? num(v / 1e6, 2) + " M€" : num(Math.round(v) || 0) + " €");
 // Les archives gardent leurs identifiants et preuves ; seul le texte rendu adopte le nom public.
-const displayName = s => String(s ?? "").replace(/\b(?:the |The |la |La )?Vigie\b/g, "KRYS").replace(/Banque Horizon/g, "ARGUS");
+const displayName = s => String(s ?? "").replace(/\b(?:the |The |la |La )?Vigie\b/g, "Krys").replace(/Banque Horizon/g, "Argus");
 const esc = s => displayName(s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
-const pct = (x, digits = 0) => x == null ? "-" : (x * 100).toFixed(digits) + "%";
+const pct = (x, digits = 0) => x == null ? "-" : num(x * 100, digits) + "%";
 const tone = p => p >= 100 ? "red" : p >= 80 ? "orange" : "green";
 const bar = (value, limit = 100) => { const p = limit ? value / limit * 100 : 0; return `<div class="bar-in s-${tone(p)}"><i style="width:${Math.min(100, Math.max(2, p))}%"></i></div>`; };
 const row = (name, value, limit, text) => `<div class="row"><span class="name" title="${esc(name)}">${esc(name)}</span>${bar(value, limit)}<span class="num">${text}</span></div>`;
@@ -35,7 +41,7 @@ const chip = (c, text) => `<span class="chip s-${c}">${esc(text)}</span>`;
 const count = (n, name, fill) => `<div class="count ${n ? "f-" + fill : "f-grey"}"><b>${n}</b><span>${esc(name)}</span></div>`;
 const big = (value, name, fill, under = "") => `<div class="count big f-${fill}"><b>${value}</b><span>${esc(name)}</span>${under ? `<small>${under}</small>` : ""}</div>`;
 // no pastille that only says a colour: the border already does (Marius, 23-10)
-const pastille = word => ["green", "orange", "red"].includes(word) ? "" : `<span class="pastille">${esc(word)}</span>`;
+const pastille = word => ["vert", "orange", "rouge"].includes(word) ? "" : `<span class="pastille">${esc(word)}</span>`;
 const block = (kind, id, [c, word], text, title = id) => `<button type="button" class="block s-${c}" data-open="${kind}:${esc(id)}">${pastille(word)}<h3>${esc(title)}</h3><p>${text}</p></button>`;
 const head = (title, [c, word]) => `<div class="dlg-head s-${c}"><h3>${esc(title)}</h3>${pastille(word)}</div>`;
 const order = id => ORDER.indexOf(id.split("-")[0]) * 10 + (+id.split("-")[1] || 0);
@@ -59,7 +65,7 @@ function compose() {
   else if (!imp.metrics) { imp = {...imp, metrics: DEMO.improvements.metrics}; fake.add("eval"); }
   D = {S: base.state, st, decisions: base.vigie.decisions || [], G: base.graph?.nodes?.length ? base.graph : DEMO.graph, I: imp, fake};
 }
-const sample = (...keys) => keys.some(k => D.fake.has(k)) ? `<span class="sample" title="the back does not publish this yet: sample data from dashboard-demo.json">sample</span>` : "";
+const sample = (...keys) => keys.some(k => D.fake.has(k)) ? `<span class="sample" title="le serveur ne publie pas encore cette donnée : exemple tiré de dashboard-demo.json">exemple</span>` : "";
 
 async function poll() {
   const [s, v] = await Promise.all([getJson("/state"), getJson("/vigie")]);
@@ -75,7 +81,7 @@ async function pollGuardrails() { GR = await getJson("/guardrails"); }
 
 function suspects() {
   const out = {...D.st.metrics?.suspect_services};
-  for (const sid of D.st.isolated_services || []) out[sid] ??= {since_tick: "?", text: "isolated by KRYS"};
+  for (const sid of D.st.isolated_services || []) out[sid] ??= {since_tick: "?", text: "isolé par Krys"};
   return out;
 }
 // an agent's state is the worst of its sanction level and its four layer lights: an orange layer does not show green
@@ -83,10 +89,10 @@ const RANK = ["VERT", "ORANGE", "ROUGE", "QUARANTAINE"];
 function agentState(id) {
   const a = D.S.agents?.[id] || {}, va = D.st.agents?.[id] || {};
   const level = [va.level || a.light || "VERT", ...Object.values(va.lights || {})].reduce((x, y) => RANK.indexOf(y) > RANK.indexOf(x) ? y : x);
-  return a.alive === false && level === "VERT" ? ["grey", "silent"] : STATE[level] || ["grey", level];
+  return a.alive === false && level === "VERT" ? ["grey", "silencieux"] : STATE[level] || ["grey", level];
 }
 // red: KRYS distrusts it; orange: layer 1 reports it exposed (a CVE, a large impact radius) but it is still trusted
-const serviceState = id => suspects()[id] ? ["red", "suspect"] : (D.st.graph?.suspects || []).some(s => s.service === id) ? ["orange", "exposed"] : ["green", "trusted"];
+const serviceState = id => suspects()[id] ? ["red", "suspect"] : (D.st.graph?.suspects || []).some(s => s.service === id) ? ["orange", "exposé"] : ["green", "de confiance"];
 const agentIds = () => Object.keys(D.S.agents || {}).sort((x, y) => order(x) - order(y));
 const roleOf = id => D.S.agents?.[id]?.role || id.split("-")[0];
 const bankLight = () => D.S.light?.light || D.st.light || "VERT";
@@ -95,14 +101,14 @@ function ledgerGroups(filter = () => true) {
   const groups = new Map();
   for (const e of (D.st.ledger_evidence || []).filter(filter).slice().reverse()) {
     const text = Object.entries(e).filter(([k]) => !["service", "reason", "proof"].includes(k))
-      .map(([k, v]) => `${k}: ${typeof v === "number" ? (Math.abs(v) < 1000 ? +v.toFixed(2) : Math.round(v).toLocaleString("en")) : JSON.stringify(v)}`).join(" · ");
+      .map(([k, v]) => `${k}: ${typeof v === "number" ? (Math.abs(v) < 1000 ? v.toLocaleString("fr-FR", {maximumFractionDigits: 2}) : num(Math.round(v))) : JSON.stringify(v)}`).join(" · ");
     const k = e.service + e.reason + (e.asset ?? text);  // the newest evidence of each service, reason and asset
     if (groups.has(k)) groups.get(k).count++; else groups.set(k, {...e, text, count: 1});
   }
   return [...groups.values()];
 }
-const ledgerTable = groups => groups.length ? table(`<th>service</th><th>reason</th><th>evidence</th><th class="num">times</th>`,
-  groups.slice(0, 8).map(e => `<tr><td>${esc(e.service)}</td><td class="a-block">${esc(e.reason)}</td><td>${esc(e.text)}</td><td class="num">${e.count}</td></tr>`)) : `<p class="empty">none</p>`;
+const ledgerTable = groups => groups.length ? table(`<th>service</th><th>raison</th><th>preuve</th><th class="num">fois</th>`,
+  groups.slice(0, 8).map(e => `<tr><td>${esc(e.service)}</td><td class="a-block">${esc(e.reason)}</td><td>${esc(e.text)}</td><td class="num">${e.count}</td></tr>`)) : `<p class="empty">aucune</p>`;
 // R0 of the contagion: agents that reacted to each poisoned message, on average (the propagation records of layer 3)
 function r0() {
   const recs = Object.values(D.st.propagation || {});
@@ -127,7 +133,7 @@ function renderBar() {
   lamp.className = c === "green" ? "box lamp calm" : `box lamp s-${c}`; lamp.textContent = c === "green" ? "normal" : word;
   const conn = $("conn");
   // a finished day is not a breakdown (Edouard, 24-10): say which one it is
-  conn.textContent = !live ? "demo data, no simulation running" : stale ? (S.tick >= 179 ? "day over" : `paused · tick ${S.tick}`) : "";
+  conn.textContent = !live ? "données d'exemple, aucune simulation en cours" : stale ? (S.tick >= 179 ? "journée terminée" : `en pause · tick ${S.tick}`) : "";
   conn.className = !live || stale ? "warn" : "";
   document.body.classList.toggle("stale", stale);
 }
@@ -135,20 +141,20 @@ function renderBar() {
 function renderAgents() {
   const ids = agentIds(), sus = suspects();
   const red = ids.filter(id => agentState(id)[0] === "red").length, nSus = Object.keys(sus).length;
-  let html = `<p class="lead"><b>${red} agent${red === 1 ? "" : "s"} of ${ids.length}</b> red · <b>${nSus}</b> suspect service${nSus === 1 ? "" : "s"} · click a block for its checks</p>`;
+  let html = `<p class="lead"><b>${red} agent${red === 1 ? "" : "s"} sur ${ids.length}</b> en rouge · <b>${nSus}</b> service${nSus === 1 ? "" : "s"} suspect${nSus === 1 ? "" : "s"} · cliquez un bloc pour ses contrôles</p>`;
   // agents of one role are one block, their count in its pastille and the worst of their colours on its border (Marius, 23-10)
   const roles = Map.groupBy(ids, roleOf), worst = ["green", "grey", "orange", "red"];
   html += `<div class="grid three">${[...roles].map(([role, members]) => members.length === 1
     ? block("agent", members[0], agentState(members[0]), esc(ROLES[role] || ""))
     : block("role", role, [members.map(id => agentState(id)[0]).reduce((x, y) => worst.indexOf(y) > worst.indexOf(x) ? y : x), String(members.length)], esc(ROLES[role] || ""))).join("")}</div>`;
-  html += `<h2>Who feeds whom<span class="hint">a node turns red once data from a suspect service reached it</span>${sample("contamination_graph")}</h2>${graph()}`;
+  html += `<h2>Qui alimente qui<span class="hint">un nœud passe au rouge dès qu'une donnée d'un service suspect l'atteint</span>${sample("contamination_graph")}</h2>${graph()}`;
   put("agents", html);
 }
 
 /** The graph screen: KRYS's contamination graph (layer 3), with the hidden dependencies layer 1 found. */
 function graph() {
   const g = D.st.contamination_graph || {nodes: [], edges: []};
-  if (!g.nodes?.length) return `<p class="empty">no message yet</p>`;
+  if (!g.nodes?.length) return `<p class="empty">aucun message pour l'instant</p>`;
   const W = 1000, NW = 136, NH = 34, GAP = 54, cols = {}, at = {};
   for (const n of g.nodes) (cols[n.kind === "service" ? 0 : COLUMN[n.role] ?? 2] ??= []).push(n);
   const H = Math.max(...Object.values(cols).map(c => c.length)) * GAP + 16;
@@ -159,85 +165,85 @@ function graph() {
   const color = n => n.contaminated ? "red" : n.kind === "service" ? serviceState(n.id)[0] : agentState(n.id)[0];
   const path = (a, b) => { const x1 = a.x + NW, y1 = a.y + NH / 2, x2 = b.x, y2 = b.y + NH / 2, dx = Math.max(40, Math.abs(x2 - x1) / 2); return `M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}`; };
   const edges = g.edges.filter(e => at[e.source] && at[e.target]).sort((a, b) => a.contaminated - b.contaminated).map(e =>
-    `<path d="${path(at[e.source], at[e.target])}" class="edge${e.contaminated ? " bad" : ""}"><title>${esc(e.source)} → ${esc(e.target)}: ${e.count} ${e.kind === "message" ? "messages" : "reads"}${e.contaminated ? ", contaminated" : ""}</title></path>`);
+    `<path d="${path(at[e.source], at[e.target])}" class="edge${e.contaminated ? " bad" : ""}"><title>${esc(e.source)} → ${esc(e.target)} : ${e.count} ${e.kind === "message" ? "messages" : "lectures"}${e.contaminated ? ", contaminé" : ""}</title></path>`);
   for (const e of (D.st.graph?.edges || []).filter(e => e.hidden && at[e.source] && at[e.target]))
-    edges.push(`<path d="${path(at[e.target], at[e.source])}" class="edge hidden-dep"><title>hidden dependency: ${esc(e.source)} calls ${esc(e.target)} (${e.calls} calls), never declared</title></path>`);
+    edges.push(`<path d="${path(at[e.target], at[e.source])}" class="edge hidden-dep"><title>dépendance cachée : ${esc(e.source)} appelle ${esc(e.target)} (${e.calls} appels), jamais déclarée</title></path>`);
   const nodes = g.nodes.map(n => { const p = at[n.id]; return `<g class="node s-${color(n)}" data-open="${n.kind === "service" ? "service" : "agent"}:${esc(n.id)}" tabindex="0" role="button" transform="translate(${p.x.toFixed(1)},${p.y.toFixed(1)})"><rect width="${NW}" height="${NH}" rx="10"/><text x="${NW / 2}" y="${NH / 2 + 4.5}" text-anchor="middle">${esc(n.id)}</text></g>`; });
-  return `<div class="frame graph"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Who feeds whom">${edges.join("")}${nodes.join("")}</svg>
-    <div class="legend"><span><i style="border-color:var(--red)"></i>carried data from a suspect service</span><span><i style="border-color:rgb(14 23 38 / .3)"></i>clean</span><span><i style="border-color:var(--orange);border-top-style:dashed"></i>hidden dependency (never declared)${sample("graph")}</span></div></div>`;
+  return `<div class="frame graph"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Qui alimente qui">${edges.join("")}${nodes.join("")}</svg>
+    <div class="legend"><span><i style="border-color:var(--red)"></i>a porté une donnée d'un service suspect</span><span><i style="border-color:rgb(14 23 38 / .3)"></i>saine</span><span><i style="border-color:var(--orange);border-top-style:dashed"></i>dépendance cachée (jamais déclarée)${sample("graph")}</span></div></div>`;
 }
 
 function agentDetail(id) {
   const st = D.st, ind = st.metrics || {}, a = D.S.agents?.[id] || {}, va = st.agents?.[id] || {}, role = a.role || id.split("-")[0];
   const susp = va.suspicion || 0, sus = suspects(), deps = D.G.nodes.find(n => n.id === id)?.depends_on || [];
   let html = head(id, agentState(id)) + `<p>${esc(ROLES[role] || role)}</p>`;
-  html += `<h4>KRYS's four layers on it</h4><div class="chips">${[1, 2, 3, 4].map(n => { const l = va.lights?.[n] || "VERT", [c, w] = STATE[l] || ["grey", l]; return chip(c, `${n} ${LAYERS[n]}: ${w}`); }).join("")}</div>`;
-  html += `<div class="chips">${chip(a.alive === false ? "red" : "green", a.alive === false ? "silent" : "alive")}${a.paused ? chip("orange", "paused") : ""}${va.quarantined ? chip("red", "quarantined: key revoked, tools cut") : ""}${a.vigie_lost ? chip("orange", "lost KRYS") : ""}`
-    + deps.map(d => chip(sus[d] ? "red" : "grey", `reads ${d}${sus[d] ? " (suspect)" : ""}`)).join("") + chip(susp >= 50 ? "red" : susp > 0 ? "orange" : "green", `suspicion ${susp.toFixed(0)}/100`) + `</div>`;
+  html += `<h4>Les quatre couches de <span class="name">Krys</span> sur lui</h4><div class="chips">${[1, 2, 3, 4].map(n => { const l = va.lights?.[n] || "VERT", [c, w] = STATE[l] || ["grey", l]; return chip(c, `${n} ${LAYERS[n]}: ${w}`); }).join("")}</div>`;
+  html += `<div class="chips">${chip(a.alive === false ? "red" : "green", a.alive === false ? "silencieux" : "en vie")}${a.paused ? chip("orange", "en pause") : ""}${va.quarantined ? chip("red", "en quarantaine : clé révoquée, outils coupés") : ""}${a.vigie_lost ? chip("orange", "a perdu Krys") : ""}`
+    + deps.map(d => chip(sus[d] ? "red" : "grey", `lit ${d}${sus[d] ? " (suspect)" : ""}`)).join("") + chip(susp >= 50 ? "red" : susp > 0 ? "orange" : "green", `soupçon ${num(susp)}/100`) + `</div>`;
   let rows = "";
   for (const [name, v] of Object.entries(ind.limits?.[id] || {}))
-    rows += row(LIMIT_NAMES[name] || name, v.pct, 100, `${v.pct.toFixed(0)}%${v.ticks_to_breach != null ? ` · ${Math.round(v.ticks_to_breach)} ticks` : ""}`);
-  if (id === "quant") for (const [asset, z] of Object.entries(ind.price_drift_z || {})) rows += row(`${asset} jump`, z, ind.thresholds?.price_drift_z || 4, `${z.toFixed(1)}σ`);
-  if (id === "risk" && ind.reconciliation?.gap_pct != null) rows += row("cash vs book", ind.reconciliation.gap_pct, ind.thresholds?.reconciliation_gap_pct || 1, `${ind.reconciliation.gap_pct.toFixed(1)}%`);
+    rows += row(LIMIT_NAMES[name] || name, v.pct, 100, `${num(v.pct)}%${v.ticks_to_breach != null ? ` · ${Math.round(v.ticks_to_breach)} ticks` : ""}`);
+  if (id === "quant") for (const [asset, z] of Object.entries(ind.price_drift_z || {})) rows += row(`saut de ${asset}`, z, ind.thresholds?.price_drift_z || 4, `${num(z, 1)}σ`);
+  if (id === "risk" && ind.reconciliation?.gap_pct != null) rows += row("trésorerie / registre", ind.reconciliation.gap_pct, ind.thresholds?.reconciliation_gap_pct || 1, `${num(ind.reconciliation.gap_pct, 1)}%`);
   const b = st.behavior?.[id];
-  if (b) rows += row("orders, last 20", b.cumulative_eur, 2 * b.limit_eur, eur(b.cumulative_eur)) + row("near-limit orders", b.near_count, b.near_threshold, `${b.near_count}/${b.near_threshold}`);
-  for (const [k, c] of Object.entries(st.cusum?.[id] || {})) rows += row(`CUSUM of order ${k}`, c.cusum, c.threshold, `${c.cusum.toFixed(1)} / ${c.threshold.toFixed(1)}`);
-  html += `<h4>Checks: share of the limit as the agent sees it · ticks before breach</h4>${rows ? `<div>${rows}</div>` : `<p class="empty">no limit of its own</p>`}`;
+  if (b) rows += row("ordres, 20 derniers", b.cumulative_eur, 2 * b.limit_eur, eur(b.cumulative_eur)) + row("ordres près de la limite", b.near_count, b.near_threshold, `${b.near_count}/${b.near_threshold}`);
+  for (const [k, c] of Object.entries(st.cusum?.[id] || {})) rows += row(`CUSUM des ordres (${k})`, c.cusum, c.threshold, `${num(c.cusum, 1)} / ${num(c.threshold, 1)}`);
+  html += `<h4>Contrôles : part de la limite vue par l'agent · ticks avant dépassement</h4>${rows ? `<div>${rows}</div>` : `<p class="empty">aucune limite propre</p>`}`;
   const m = st.layer1?.agents?.[id];
-  if (m) html += `<h4>Its history (layer 1)${sample("layer1")}</h4><div class="chips">${chip("grey", `${m.decisions} decisions, ${pct(m.decision_rate, 1)} of ticks`)}${m.refusal_rate != null ? chip(m.refusal_rate > 0.2 ? "orange" : "grey", `${pct(m.refusal_rate)} refused`) : ""}`
-    + `${m.data_age_ticks ? chip(m.data_age_ticks.max > 20 ? "orange" : "grey", `data up to ${m.data_age_ticks.max} ticks old`) : ""}${m.heartbeat ? chip(m.heartbeat.silent_ticks ? "orange" : "grey", `heartbeat regularity ${pct(m.heartbeat.regularity)}`) : ""}`
-    + `${m.repetitions?.max > 3 ? chip("orange", `repeated ${m.repetitions.max}×: ${m.repetitions.action}`) : ""}${m.llm ? chip("grey", `LLM confidence ${m.llm.confidence}, diversity ${m.llm.justification_diversity}`) : ""}</div>`;
+  if (m) html += `<h4>Son historique (couche 1)${sample("layer1")}</h4><div class="chips">${chip("grey", `${m.decisions} décisions, ${pct(m.decision_rate, 1)} des ticks`)}${m.refusal_rate != null ? chip(m.refusal_rate > 0.2 ? "orange" : "grey", `${pct(m.refusal_rate)} refusées`) : ""}`
+    + `${m.data_age_ticks ? chip(m.data_age_ticks.max > 20 ? "orange" : "grey", `données jusqu'à ${m.data_age_ticks.max} ticks d'âge`) : ""}${m.heartbeat ? chip(m.heartbeat.silent_ticks ? "orange" : "grey", `régularité du battement ${pct(m.heartbeat.regularity)}`) : ""}`
+    + `${m.repetitions?.max > 3 ? chip("orange", `répété ${m.repetitions.max}× : ${m.repetitions.action}`) : ""}${m.llm ? chip("grey", `confiance LLM ${m.llm.confidence}, diversité ${m.llm.justification_diversity}`) : ""}</div>`;
   const p = st.profiles?.[id];
-  if (p) html += `<p class="hint" style="margin:0">Clean reference: ${p.frequency?.toFixed(2)} orders a tick, at most ${eur(p.max_cumulative_20)} over 20 orders, ${p.max_near_20} near the limit; trades ${esc((p.assets || []).join(", "))}.</p>`;
+  if (p) html += `<p class="hint" style="margin:0">Référence saine : ${num(p.frequency, 2)} ordres par tick, au plus ${eur(p.max_cumulative_20)} sur 20 ordres, ${p.max_near_20} près de la limite ; négocie ${esc((p.assets || []).join(", "))}.</p>`;
   const orders = (st.orders?.[id] || []).slice(-6).reverse();
-  if (orders.length) html += `<h4>Its last orders</h4>` + table(`<th>tick</th><th>asset</th><th class="num">amount</th>`, orders.map(o => `<tr><td>${o.tick}</td><td>${esc(o.asset)}</td><td class="num">${eur(o.notional_eur)}</td></tr>`));
+  if (orders.length) html += `<h4>Ses derniers ordres</h4>` + table(`<th>tick</th><th>actif</th><th class="num">montant</th>`, orders.map(o => `<tr><td>${o.tick}</td><td>${esc(o.asset)}</td><td class="num">${eur(o.notional_eur)}</td></tr>`));
   const acts = actionsOf(id).slice(-6).reverse();
-  html += `<h4>What KRYS did to it</h4>` + (acts.length ? table(`<th>tick</th><th>action</th><th>why</th><th>layer</th>`,
-    acts.map(x => `<tr><td>${x.tick}</td><td class="a-${esc(x.action)}"><b>${esc(x.action)}</b></td><td>${esc(x.text || x.reason)}</td><td>${esc(x.layer)}</td></tr>`)) : `<p class="empty">nothing: every action approved</p>`);
-  if (va.quarantined) html += `<div><button class="act" onclick="human('human unblock ${esc(id)}')">Lift quarantine</button></div>`;
+  html += `<h4>Ce que <span class="name">Krys</span> lui a fait</h4>` + (acts.length ? table(`<th>tick</th><th>action</th><th>pourquoi</th><th>couche</th>`,
+    acts.map(x => `<tr><td>${x.tick}</td><td class="a-${esc(x.action)}"><b>${esc(actionName(x.action))}</b></td><td>${esc(x.text || x.reason)}</td><td>${esc(x.layer)}</td></tr>`)) : `<p class="empty">rien : toutes ses actions ont été approuvées</p>`);
+  if (va.quarantined) html += `<div><button class="act" onclick="human('human unblock ${esc(id)}')">Lever la quarantaine</button></div>`;
   return html;
 }
 
 function serviceDetail(id) {
   const s = D.G.nodes.find(n => n.id === id) || {}, f = suspects()[id];
   const users = D.G.nodes.filter(n => n.kind === "agent" && (n.depends_on || []).includes(id)).map(n => n.id);
-  let html = head(id, serviceState(id)) + `<p>PHP ${esc(s.php_version)} · ${s.patchable ? "can be patched" : "cannot be patched"}${s.owner_team ? ` · run by ${esc(s.owner_team)}` : ""}</p>`;
+  let html = head(id, serviceState(id)) + `<p>PHP ${esc(s.php_version)} · ${s.patchable ? "corrigeable" : "non corrigeable"}${s.owner_team ? ` · exploité par ${esc(s.owner_team)}` : ""}</p>`;
   if (s.cve?.length) html += `<div class="chips">${s.cve.map(c => chip("orange", `${c.id} ${c.name}: ${String(c.status).replaceAll("_", " ")}`)).join("")}</div>`;
-  if (f) html += `<p><b>Suspect since tick ${esc(f.since_tick)}</b>: ${esc(f.text)}</p><div><button class="act" onclick="human('human unblock ${esc(id)}')">Trust it again</button></div>`;
-  html += `<h4>Agents that declare reading it</h4><div class="chips">${users.map(u => chip(agentState(u)[0], u)).join("") || `<span class="empty">none</span>`}</div>`;
+  if (f) html += `<p><b>Suspect depuis le tick ${esc(f.since_tick)}</b> : ${esc(f.text)}</p><div><button class="act" onclick="human('human unblock ${esc(id)}')">Lui refaire confiance</button></div>`;
+  html += `<h4>Agents qui déclarent le lire</h4><div class="chips">${users.map(u => chip(agentState(u)[0], u)).join("") || `<span class="empty">aucun</span>`}</div>`;
   const radius = D.st.graph?.nodes?.find(n => n.id === id)?.radius;
-  if (radius) html += `<h4>Impact radius (layer 1)${sample("graph")}</h4><p>${radius.agents} agents of ${agentIds().length} depend on it (${pct(radius.share)}): ${esc(radius.direct.join(", "))} directly${radius.transitive.length ? `, ${esc(radius.transitive.join(", "))} through them` : ""}. ${eur(radius.eur)} of executions rest on it.</p>`;
+  if (radius) html += `<h4>Rayon d'impact (couche 1)${sample("graph")}</h4><p>${radius.agents} agents sur ${agentIds().length} en dépendent (${pct(radius.share)}) : ${esc(radius.direct.join(", "))} directement${radius.transitive.length ? `, ${esc(radius.transitive.join(", "))} par leur intermédiaire` : ""}. ${eur(radius.eur)} d'exécutions reposent sur lui.</p>`;
   const reached = (D.st.contamination_graph?.edges || []).filter(e => e.source === id && e.contaminated).map(e => e.target);
-  if (reached.length) html += `<h4>Where its suspect data went</h4><div class="chips">${reached.map(t => chip("red", t)).join("")}</div>`;
-  html += `<h4>Evidence (shadow ledger, independent price anchor)</h4>` + ledgerTable(ledgerGroups(e => e.service === id));
+  if (reached.length) html += `<h4>Où sont allées ses données suspectes</h4><div class="chips">${reached.map(t => chip("red", t)).join("")}</div>`;
+  html += `<h4>Preuves (registre fantôme, ancre de prix indépendante)</h4>` + ledgerTable(ledgerGroups(e => e.service === id));
   return html;
 }
 
 function renderActions() {
   const st = D.st, actions = st.actions || [], decisions = D.decisions;
   const n = k => actions.filter(a => a.action === k).length, advice = actions.filter(a => a.layer === "auditor").length;
-  let html = `<div class="counts">${count(decisions.filter(d => d.approved).length, "approved at the gate", "green")}${count(decisions.filter(d => !d.approved).length, "refused at the gate", "red")}`
-    + `${count(n("slow"), "agents slowed", "orange")}${count(n("quarantine"), "quarantines", "red")}${count(n("flag"), "metric flags", "orange")}${count(st.contagion_blocked || 0, "contaminated chains cut", "red")}`
-    + `${st.auditor_llm ? count(advice, "LLM auditor advice", "orange") : count("off", "LLM auditor", "grey")}${count(`${st.counters?.raw_alerts ?? 0} → ${st.counters?.incidents ?? 0} → ${st.counters?.notifications ?? 0}`, "raw alerts → incidents → human notices", "blue")}</div>`;
+  let html = `<div class="counts">${count(decisions.filter(d => d.approved).length, "approuvées au portique", "green")}${count(decisions.filter(d => !d.approved).length, "refusées au portique", "red")}`
+    + `${count(n("slow"), "agents ralentis", "orange")}${count(n("quarantine"), "quarantaines", "red")}${count(n("flag"), "signalements d'indicateurs", "orange")}${count(st.contagion_blocked || 0, "chaînes contaminées coupées", "red")}`
+    + `${st.auditor_llm ? count(advice, "avis de l'auditeur LLM", "orange") : count("éteint", "auditeur LLM", "grey")}${count(`${st.counters?.raw_alerts ?? 0} → ${st.counters?.incidents ?? 0} → ${st.counters?.notifications ?? 0}`, "alertes brutes → incidents → avis aux humains", "blue")}</div>`;
   const waits = [];
-  if (bankLight() === "ROUGE") waits.push(`<tr><td>Bank on red: every agent paused</td><td class="num"><button class="act" onclick="human('human resume')">Resume</button></td></tr>`);
-  for (const a of st.quarantined || []) waits.push(`<tr><td>${esc(a)} quarantined: key revoked, tools cut</td><td class="num"><button class="act" onclick="human('human unblock ${esc(a)}')">Lift quarantine</button></td></tr>`);
-  for (const [s, f] of Object.entries(suspects())) waits.push(`<tr><td>${esc(s)} suspect since tick ${esc(f.since_tick)}: every action it fed is refused. ${esc(f.text)}</td><td class="num"><button class="act ghost" onclick="human('human unblock ${esc(s)}')">Trust it again</button></td></tr>`);
-  html += `<h2>Waiting for a human<span class="hint">only a signed human loosens the brake</span></h2>` + (waits.length ? table(`<th>what</th><th class="num">decision</th>`, waits) : `<p class="empty">nothing</p>`);
+  if (bankLight() === "ROUGE") waits.push(`<tr><td>Banque au rouge : tous les agents sont en pause</td><td class="num"><button class="act" onclick="human('human resume')">Reprendre</button></td></tr>`);
+  for (const a of st.quarantined || []) waits.push(`<tr><td>${esc(a)} en quarantaine : clé révoquée, outils coupés</td><td class="num"><button class="act" onclick="human('human unblock ${esc(a)}')">Lever la quarantaine</button></td></tr>`);
+  for (const [s, f] of Object.entries(suspects())) waits.push(`<tr><td>${esc(s)} suspect depuis le tick ${esc(f.since_tick)} : toute action qu'il a alimentée est refusée. ${esc(f.text)}</td><td class="num"><button class="act ghost" onclick="human('human unblock ${esc(s)}')">Lui refaire confiance</button></td></tr>`);
+  html += `<h2>En attente d'un humain<span class="hint">seul un humain qui signe desserre le frein</span></h2>` + (waits.length ? table(`<th>quoi</th><th class="num">décision</th>`, waits) : `<p class="empty">rien</p>`);
   const incidents = (st.incidents || []).filter(i => i.level !== "VERT").sort((x, y) => y.last_tick - x.last_tick);
-  html += `<h2>Open incidents<span class="hint">repeats grouped</span></h2>` + (incidents.length ? table(`<th>incident</th><th>root</th><th>level</th><th>reasons</th><th>ticks</th><th class="num">raw alerts</th>`,
-    incidents.map(i => `<tr><td>${esc(i.id)}</td><td>${esc(i.root)}</td><td class="${i.level === "ORANGE" ? "a-slow" : "a-block"}"><b>${esc((STATE[i.level] || [, i.level])[1])}</b></td><td>${esc(i.reasons.join(", "))}</td><td>${i.first_tick} → ${i.last_tick}</td><td class="num">${i.raw_count}</td></tr>`)) : `<p class="empty">none</p>`);
-  html += `<h2>Why a service was isolated<span class="hint">shadow ledger rebuilt from signed executions, independent price anchor</span></h2>` + ledgerTable(ledgerGroups());
+  html += `<h2>Incidents ouverts<span class="hint">répétitions regroupées</span></h2>` + (incidents.length ? table(`<th>incident</th><th>origine</th><th>niveau</th><th>raisons</th><th>ticks</th><th class="num">alertes brutes</th>`,
+    incidents.map(i => `<tr><td>${esc(i.id)}</td><td>${esc(i.root)}</td><td class="${i.level === "ORANGE" ? "a-slow" : "a-block"}"><b>${esc((STATE[i.level] || [, i.level])[1])}</b></td><td>${esc(i.reasons.join(", "))}</td><td>${i.first_tick} → ${i.last_tick}</td><td class="num">${i.raw_count}</td></tr>`)) : `<p class="empty">aucun</p>`);
+  html += `<h2>Pourquoi un service a été isolé<span class="hint">registre fantôme reconstruit à partir des exécutions signées, ancre de prix indépendante</span></h2>` + ledgerTable(ledgerGroups());
   const claims = (st.claim_evidence || []).slice().reverse();
-  html += `<h2>What an agent claimed, and what KRYS found${sample("claim_evidence")}</h2>` + (claims.length ? table(`<th>agent</th><th>client</th><th>claimed</th><th>found</th>`,
-    claims.slice(0, 8).map(c => `<tr><td>${esc(c.agent)}</td><td>${esc(c.client_id)}</td><td>${esc(c.assertion)}</td><td class="a-block">${esc(c.truth)}</td></tr>`)) : `<p class="empty">no false claim caught</p>`);
+  html += `<h2>Ce qu'un agent a affirmé, et ce que Krys a constaté${sample("claim_evidence")}</h2>` + (claims.length ? table(`<th>agent</th><th>client</th><th>affirmé</th><th>constaté</th>`,
+    claims.slice(0, 8).map(c => `<tr><td>${esc(c.agent)}</td><td>${esc(c.client_id)}</td><td>${esc(c.assertion)}</td><td class="a-block">${esc(c.truth)}</td></tr>`)) : `<p class="empty">aucune fausse affirmation détectée</p>`);
   const refused = decisions.filter(d => !d.approved).slice().reverse().slice(0, 15);
-  html += `<h2>Refused at the gate, newest first</h2>` + (refused.length ? table(`<th>tick</th><th>request</th><th>reason</th><th>decided by</th>`,
-    refused.map(d => `<tr><td>${d.tick}</td><td>${esc(d.request_id)}</td><td class="a-block">${esc(d.reason)}</td><td>${esc(d.decided_by)}</td></tr>`)) : `<p class="empty">nothing refused yet</p>`);
-  html += `<h2>Every KRYS decision on an agent, newest first<label class="hint"><input type="checkbox" ${showApprovals ? "checked" : ""} onchange="showApprovals=this.checked;render()"> show approvals</label></h2>`;
+  html += `<h2>Refusés au portique, du plus récent au plus ancien</h2>` + (refused.length ? table(`<th>tick</th><th>demande</th><th>raison</th><th>décidé par</th>`,
+    refused.map(d => `<tr><td>${d.tick}</td><td>${esc(d.request_id)}</td><td class="a-block">${esc(d.reason)}</td><td>${esc(d.decided_by)}</td></tr>`)) : `<p class="empty">aucun refus pour l'instant</p>`);
+  html += `<h2>Chaque décision de Krys sur un agent, de la plus récente à la plus ancienne<label class="hint"><input type="checkbox" ${showApprovals ? "checked" : ""} onchange="showApprovals=this.checked;render()"> montrer les approbations</label></h2>`;
   const rows = actions.filter(a => showApprovals || a.action !== "green").slice().reverse().slice(0, 40);
-  html += rows.length ? table(`<th>tick</th><th>agent / target</th><th>action</th><th>why</th><th>layer</th><th class="num">suspicion</th>`,
-    rows.map(a => `<tr><td>${a.tick}</td><td>${esc(a.agent)}</td><td class="a-${esc(a.action)}"><b>${esc(a.action)}</b></td><td>${esc(a.text || a.reason)}</td><td>${esc(a.layer)}</td><td class="num">${a.suspicion ?? ""}</td></tr>`)) : `<p class="empty">no action yet</p>`;
+  html += rows.length ? table(`<th>tick</th><th>agent / cible</th><th>action</th><th>pourquoi</th><th>couche</th><th class="num">soupçon</th>`,
+    rows.map(a => `<tr><td>${a.tick}</td><td>${esc(a.agent)}</td><td class="a-${esc(a.action)}"><b>${esc(actionName(a.action))}</b></td><td>${esc(a.text || a.reason)}</td><td>${esc(a.layer)}</td><td class="num">${a.suspicion ?? ""}</td></tr>`)) : `<p class="empty">aucune action pour l'instant</p>`;
   put("actions", html);
 }
 
@@ -247,15 +253,15 @@ const METRICS = {
     const ind = D.st.metrics || {}, th = ind.thresholds?.price_drift_z || 4, z = Object.entries(ind.price_drift_z || {}).sort((a, b) => b[1] - a[1]);
     const anchors = ledgerGroups(e => e.reason === "ANCHOR_DIVERGENCE"), top = z[0]?.[1] ?? 0, feed = suspects()["market-feed"];
     // once market-feed is suspect, a calm last tick does not make its prices clean again
-    return {title: "Price feed", state: feed ? ["red", "suspect"] : top >= th || anchors.length ? ["red", "manipulated?"] : top >= .8 * th ? ["orange", "watch"] : ["green", "clean"],
-      text: (feed ? `market-feed suspect since tick ${esc(feed.since_tick)}: what it fed is refused. ` : "") + (z.length ? `Largest one-tick jump: ${esc(z[0][0])} ${top.toFixed(1)}σ, alert at ${th}σ. ${anchors.length} divergence${anchors.length === 1 ? "" : "s"} from the independent anchor.` : "Needs 20 ticks of prices."),
-      detail: () => `<h4>One-tick move per asset, in standard deviations</h4><div>${z.map(([a, v]) => row(a, v, th, `${v.toFixed(1)}σ`)).join("") || `<p class="empty">needs 20 ticks of prices</p>`}</div><h4>Quant's prices against the independent anchor</h4>${ledgerTable(anchors)}`};
+    return {title: "Flux de prix", state: feed ? ["red", "suspect"] : top >= th || anchors.length ? ["red", "manipulé ?"] : top >= .8 * th ? ["orange", "à surveiller"] : ["green", "propre"],
+      text: (feed ? `market-feed suspect depuis le tick ${esc(feed.since_tick)} : ce qu'il a alimenté est refusé. ` : "") + (z.length ? `Plus grand saut en un tick : ${esc(z[0][0])} ${num(top, 1)}σ, alerte à ${num(th, 1)}σ. ${anchors.length} divergence${anchors.length === 1 ? "" : "s"} avec l'ancre indépendante.` : "Il faut 20 ticks de prix."),
+      detail: () => `<h4>Mouvement en un tick par actif, en écarts-types</h4><div>${z.map(([a, v]) => row(a, v, th, `${num(v, 1)}σ`)).join("") || `<p class="empty">il faut 20 ticks de prix</p>`}</div><h4>Les prix du Quant face à l'ancre indépendante</h4>${ledgerTable(anchors)}`};
   },
   ledger: () => {
     const ind = D.st.metrics || {}, r = ind.reconciliation || {}, th = ind.thresholds?.reconciliation_gap_pct || 1, ev = ledgerGroups(e => e.reason !== "ANCHOR_DIVERGENCE");
-    return {title: "Ledger", state: (r.gap_pct ?? 0) >= th || ev.length ? ["red", "lies?"] : r.gap_pct == null ? ["grey", "waiting"] : ["green", "consistent"],
-      text: r.gap_pct != null ? `Risk's cash and the book of record ${r.gap_pct.toFixed(1)}% apart, alert at ${th}%. ${ev.length} shadow-ledger mismatch${ev.length === 1 ? "" : "es"}.` : "Waiting for Risk's heartbeat.",
-      detail: () => `<h4>Risk's cash against the book of record</h4>${r.gap_pct != null ? row("gap", r.gap_pct, th, `${r.gap_pct.toFixed(1)}%`) + row("Risk sees", 0, 1, eur(r.risk_cash_eur)) + row("book of record", 0, 1, eur(r.record_cash_eur)) : `<p class="empty">waiting for Risk's heartbeat</p>`}<h4>Balances against the shadow ledger rebuilt from signed executions</h4>${ledgerTable(ev)}`};
+    return {title: "Registre", state: (r.gap_pct ?? 0) >= th || ev.length ? ["red", "mensonge ?"] : r.gap_pct == null ? ["grey", "en attente"] : ["green", "cohérent"],
+      text: r.gap_pct != null ? `La trésorerie vue par Risk et le registre de référence s'écartent de ${num(r.gap_pct, 1)}%, alerte à ${num(th, 1)}%. ${ev.length} écart${ev.length === 1 ? "" : "s"} avec le registre fantôme.` : "En attente du battement de Risk.",
+      detail: () => `<h4>La trésorerie de Risk face au registre de référence</h4>${r.gap_pct != null ? row("écart", r.gap_pct, th, `${num(r.gap_pct, 1)}%`) + row("vue par Risk", 0, 1, eur(r.risk_cash_eur)) + row("registre de référence", 0, 1, eur(r.record_cash_eur)) : `<p class="empty">en attente du battement de Risk</p>`}<h4>Soldes face au registre fantôme reconstruit à partir des exécutions signées</h4>${ledgerTable(ev)}`};
   },
   limits: () => {
     const ind = D.st.metrics || {}, h = ind.thresholds?.breach_horizon_ticks || 10, all = [];
@@ -263,116 +269,116 @@ const METRICS = {
     all.sort((a, b) => (b[2].pct >= 100) - (a[2].pct >= 100) || (a[2].ticks_to_breach ?? 1e9) - (b[2].ticks_to_breach ?? 1e9) || b[2].pct - a[2].pct);
     const next = all[0], over = all.filter(x => x[2].pct >= 100).length, soon = all.filter(x => x[2].ticks_to_breach != null && x[2].ticks_to_breach <= h).length;
     const beh = Object.entries(D.st.behavior || {}).filter(([, b]) => b.alert).map(([a]) => a);
-    return {title: "Limits", state: over || beh.length ? ["red", "breached"] : soon ? ["orange", "closing in"] : ["green", "in bounds"],
-      text: next ? `${over ? `${over} over the limit as the agents see it, worst first` : "Nearest"}: ${esc(next[0])} ${esc(LIMIT_NAMES[next[1]] || next[1])} at ${next[2].pct.toFixed(0)}%${next[2].ticks_to_breach != null ? `, breaks in ${Math.round(next[2].ticks_to_breach)} ticks` : ""}. Warns under ${h} ticks.` : "No limit read yet.",
-      detail: () => `<h4>Every limit, share used and ticks before breach (extrapolated from the last 10 ticks)</h4>` + (all.length ? table(`<th>agent</th><th>limit</th><th class="num">used</th><th class="num">ticks to breach</th>`,
-        all.map(([a, n, v]) => `<tr><td>${esc(a)}</td><td>${esc(LIMIT_NAMES[n] || n)}</td><td class="num ${v.pct >= 100 ? "a-red" : v.pct >= 80 ? "a-slow" : ""}">${v.pct.toFixed(0)}%</td><td class="num">${v.ticks_to_breach != null ? Math.round(v.ticks_to_breach) : "-"}</td></tr>`)) : `<p class="empty">none</p>`)
-        + `<h4>Orders over the last 20, against each trader's clean maximum</h4>` + (Object.keys(D.st.behavior || {}).length ? table(`<th>trader</th><th class="num">cumulated</th><th class="num">clean maximum</th><th class="num">near-limit orders</th><th>alert</th>`,
-        Object.entries(D.st.behavior).map(([a, b]) => `<tr><td>${esc(a)}</td><td class="num">${eur(b.cumulative_eur)}</td><td class="num">${eur(b.reference_max_eur)}</td><td class="num">${b.near_count}/${b.near_threshold}</td><td class="${b.alert ? "a-red" : "a-green"}">${b.alert ? "yes" : "no"}</td></tr>`)) : `<p class="empty">no order yet</p>`)};
+    return {title: "Limites", state: over || beh.length ? ["red", "dépassée"] : soon ? ["orange", "proche"] : ["green", "dans les bornes"],
+      text: next ? `${over ? `${over} au-delà de la limite vue par les agents, la pire d'abord` : "La plus proche"} : ${esc(next[0])}, ${esc(LIMIT_NAMES[next[1]] || next[1])} à ${num(next[2].pct)}%${next[2].ticks_to_breach != null ? `, dépassée dans ${Math.round(next[2].ticks_to_breach)} ticks` : ""}. Alerte sous ${h} ticks.` : "Aucune limite lue pour l'instant.",
+      detail: () => `<h4>Chaque limite, part utilisée et ticks avant dépassement (extrapolés des 10 derniers ticks)</h4>` + (all.length ? table(`<th>agent</th><th>limite</th><th class="num">utilisée</th><th class="num">ticks avant dépassement</th>`,
+        all.map(([a, n, v]) => `<tr><td>${esc(a)}</td><td>${esc(LIMIT_NAMES[n] || n)}</td><td class="num ${v.pct >= 100 ? "a-red" : v.pct >= 80 ? "a-slow" : ""}">${num(v.pct)}%</td><td class="num">${v.ticks_to_breach != null ? Math.round(v.ticks_to_breach) : "-"}</td></tr>`)) : `<p class="empty">aucune</p>`)
+        + `<h4>Ordres sur les 20 derniers, face au maximum sain de chaque trader</h4>` + (Object.keys(D.st.behavior || {}).length ? table(`<th>trader</th><th class="num">cumul</th><th class="num">maximum sain</th><th class="num">ordres près de la limite</th><th>alerte</th>`,
+        Object.entries(D.st.behavior).map(([a, b]) => `<tr><td>${esc(a)}</td><td class="num">${eur(b.cumulative_eur)}</td><td class="num">${eur(b.reference_max_eur)}</td><td class="num">${b.near_count}/${b.near_threshold}</td><td class="${b.alert ? "a-red" : "a-green"}">${b.alert ? "oui" : "non"}</td></tr>`)) : `<p class="empty">aucun ordre pour l'instant</p>`)};
   },
   behavior: () => {
     const rows = [];
     for (const [a, obs] of Object.entries(D.st.cusum || {})) for (const [k, c] of Object.entries(obs)) rows.push([a, k, c]);
     const over = rows.filter(([, , c]) => c.cusum >= c.threshold), worst = rows.sort((x, y) => y[2].cusum / y[2].threshold - x[2].cusum / x[2].threshold)[0];
-    return {title: "Behavior", state: over.length ? ["red", "drifting"] : worst && worst[2].cusum >= .7 * worst[2].threshold ? ["orange", "watch"] : ["green", "usual"],
-      text: worst ? `Each trader's order count and size against its clean profile (CUSUM). Closest: ${esc(worst[0])} order ${esc(worst[1])} at ${worst[2].cusum.toFixed(1)} of ${worst[2].threshold.toFixed(1)}.` : "No order yet.",
-      detail: () => `<h4>CUSUM per trader, against its calibrated threshold</h4>` + (rows.length ? table(`<th>trader</th><th>series</th><th class="num">value</th><th class="num">robust z</th><th class="num">CUSUM</th><th class="num">threshold</th>`,
-        rows.map(([a, k, c]) => `<tr><td>${esc(a)}</td><td>order ${esc(k)}</td><td class="num">${typeof c.value === "number" && c.value > 1000 ? eur(c.value) : c.value}</td><td class="num">${c.z.toFixed(1)}</td><td class="num ${c.cusum >= c.threshold ? "a-red" : ""}">${c.cusum.toFixed(1)}</td><td class="num">${c.threshold.toFixed(1)}</td></tr>`)) : `<p class="empty">no order yet</p>`)};
+    return {title: "Comportement", state: over.length ? ["red", "dérive"] : worst && worst[2].cusum >= .7 * worst[2].threshold ? ["orange", "à surveiller"] : ["green", "habituel"],
+      text: worst ? `Nombre et taille des ordres de chaque trader face à son profil sain (CUSUM). Le plus proche : ${esc(worst[0])}, ordres (${esc(worst[1])}), à ${num(worst[2].cusum, 1)} sur ${num(worst[2].threshold, 1)}.` : "Aucun ordre pour l'instant.",
+      detail: () => `<h4>CUSUM par trader, face à son seuil calibré</h4>` + (rows.length ? table(`<th>trader</th><th>série</th><th class="num">valeur</th><th class="num">z robuste</th><th class="num">CUSUM</th><th class="num">seuil</th>`,
+        rows.map(([a, k, c]) => `<tr><td>${esc(a)}</td><td>ordres (${esc(k)})</td><td class="num">${typeof c.value === "number" && c.value > 1000 ? eur(c.value) : c.value}</td><td class="num">${num(c.z, 1)}</td><td class="num ${c.cusum >= c.threshold ? "a-red" : ""}">${num(c.cusum, 1)}</td><td class="num">${num(c.threshold, 1)}</td></tr>`)) : `<p class="empty">aucun ordre pour l'instant</p>`)};
   },
   herding: () => {
     const h = D.st.herding || {}, ind = D.st.metrics || {}, th = ind.thresholds?.herding_share ?? 1;
     const same = Object.entries(ind.herding || {}).filter(([, x]) => x.share >= th), crit = (h.findings || []).some(f => f.severity === "critical");
-    return {title: "Herding", state: crit || same.length ? ["red", "herd"] : h.mimetism_index >= 2 ? ["orange", "watch"] : ["green", "independent"],
-      text: `Mimetism index ${(h.mimetism_index ?? 0).toFixed(1)}× the desk's usual level; ${(h.effective_agents ?? h.traders ?? 3).toFixed(1)} of ${h.traders ?? 3} traders act independently.${sample("herding")}`,
+    return {title: "Grégarité", state: crit || same.length ? ["red", "troupeau"] : h.mimetism_index >= 2 ? ["orange", "à surveiller"] : ["green", "indépendants"],
+      text: `Indice de mimétisme ${num(h.mimetism_index ?? 0, 1)}× le niveau habituel du desk ; ${num(h.effective_agents ?? h.traders ?? 3, 1)} traders sur ${h.traders ?? 3} agissent indépendamment.${sample("herding")}`,
       detail: () => {
         const tr = Object.keys(h.correlation || {}).concat(Object.values(h.correlation || {}).flatMap(Object.keys)).filter((v, i, a) => a.indexOf(v) === i).sort();
         const corr = (a, b) => a === b ? 1 : h.correlation?.[a]?.[b] ?? h.correlation?.[b]?.[a];
         const loop = h.reflexive_loop?.last;
-        return `<p>Over the last ${h.window_ticks ?? "-"} ticks, ${pct(h.same_side_share)} of the other traders took the same side of the same asset within 5 ticks of an order (usual: ${pct(h.baseline_share)}). Worst so far: index ${h.worst?.mimetism_index ?? "-"} at tick ${h.worst?.mimetism_tick ?? "-"}, ${h.worst?.effective_agents ?? "-"} independent traders at tick ${h.worst?.effective_tick ?? "-"}.</p>`
-          + `<h4>Correlation of the traders' decisions</h4>` + (tr.length ? table(`<th></th>${tr.map(t => `<th class="num">${esc(t)}</th>`).join("")}`, tr.map(a => `<tr><th>${esc(a)}</th>${tr.map(b => { const c = corr(a, b); return `<td class="num ${c >= .6 && a !== b ? "a-red" : ""}">${c == null ? "-" : c.toFixed(2)}</td>`; }).join("")}</tr>`)) : `<p class="empty">no order yet</p>`)
-          + `<h4>Reflexive loop: a sale, the Quant's price drop, a new sale</h4><p>${h.reflexive_loop?.links ?? 0} links, ${h.reflexive_loop?.max_depth ?? 0} deep at most.${loop ? ` Last at tick ${loop.tick} on ${esc(loop.asset)}: price ${loop.drop_pct}%, then ${esc(String(loop.sell).split(":")[0])} sold again.` : ""}</p>`
-          + `<h4>Same side within 3 ticks, per asset (the live check)</h4>` + (Object.entries(ind.herding || {}).map(([a, x]) => row(`${a} ${x.side}`, x.share, th, `${x.traders.length}/3`)).join("") || `<p class="empty">no order yet</p>`);
+        return `<p>Sur les ${h.window_ticks ?? "-"} derniers ticks, ${pct(h.same_side_share)} des autres traders ont pris le même sens sur le même actif dans les 5 ticks d'un ordre (d'habitude : ${pct(h.baseline_share)}). Le pire jusqu'ici : indice ${num(h.worst?.mimetism_index, 1)} au tick ${h.worst?.mimetism_tick ?? "-"}, ${num(h.worst?.effective_agents, 1)} traders indépendants au tick ${h.worst?.effective_tick ?? "-"}.</p>`
+          + `<h4>Corrélation des décisions des traders</h4>` + (tr.length ? table(`<th></th>${tr.map(t => `<th class="num">${esc(t)}</th>`).join("")}`, tr.map(a => `<tr><th>${esc(a)}</th>${tr.map(b => { const c = corr(a, b); return `<td class="num ${c >= .6 && a !== b ? "a-red" : ""}">${c == null ? "-" : num(c, 2)}</td>`; }).join("")}</tr>`)) : `<p class="empty">aucun ordre pour l'instant</p>`)
+          + `<h4>Boucle réflexive : une vente, la baisse de prix du Quant, une nouvelle vente</h4><p>${h.reflexive_loop?.links ?? 0} maillons, ${h.reflexive_loop?.max_depth ?? 0} de profondeur au plus.${loop ? ` Dernière au tick ${loop.tick} sur ${esc(loop.asset)} : prix ${num(loop.drop_pct, 1)}%, puis ${esc(String(loop.sell).split(":")[0])} a revendu.` : ""}</p>`
+          + `<h4>Même sens en 3 ticks, par actif (le contrôle en direct)</h4>` + (Object.entries(ind.herding || {}).map(([a, x]) => row(`${a} ${({buy: "achat", sell: "vente"})[x.side] ?? x.side}`, x.share, th, `${x.traders.length}/3`)).join("") || `<p class="empty">aucun ordre pour l'instant</p>`);
       }};
   },
   contagion: () => {
     const st = D.st, iso = st.isolated_services || [], recs = Object.values(st.propagation || {}), R = r0();
-    return {title: "Contamination", state: iso.length ? ["red", "contained"] : recs.length ? ["orange", "spreading"] : ["green", "none"],
-      text: `${iso.length} service${iso.length === 1 ? "" : "s"} isolated, ${st.contagion_blocked || 0} contaminated chains cut at the gate${R != null ? `, R0 ${R.toFixed(1)} agents per poisoned message` : ""}.`,
-      detail: () => `<p>Every message whose provenance goes through a suspect service is marked, and the mark follows depends_on. The gate refuses only marked operations, with the chain as proof.</p><div class="chips">${iso.map(s => chip("red", `${s} isolated`)).join("")}</div>`
-        + `<h4>Poisoned messages and the agents that acted on them, newest first</h4>` + (recs.length ? table(`<th>service</th><th class="num">tick</th><th>agents reached</th><th class="num">reactions</th>`,
-        recs.slice().reverse().slice(0, 15).map(r => `<tr><td>${esc(r.service)}</td><td class="num">${r.source_tick}</td><td>${esc((r.agents || []).join(", "))}</td><td class="num">${r.reaction_count}</td></tr>`)) : `<p class="empty">none</p>`)};
+    return {title: "Contamination", state: iso.length ? ["red", "contenue"] : recs.length ? ["orange", "se propage"] : ["green", "aucune"],
+      text: `${iso.length} service${iso.length === 1 ? "" : "s"} isolé${iso.length === 1 ? "" : "s"}, ${st.contagion_blocked || 0} chaînes contaminées coupées au portique${R != null ? `, R0 ${num(R, 1)} agents par message empoisonné` : ""}.`,
+      detail: () => `<p>Chaque message dont la provenance passe par un service suspect est marqué, et la marque suit depends_on. Le portique ne refuse que les opérations marquées, avec la chaîne pour preuve.</p><div class="chips">${iso.map(s => chip("red", `${s} isolé`)).join("")}</div>`
+        + `<h4>Messages empoisonnés et agents qui ont agi dessus, du plus récent au plus ancien</h4>` + (recs.length ? table(`<th>service</th><th class="num">tick</th><th>agents atteints</th><th class="num">réactions</th>`,
+        recs.slice().reverse().slice(0, 15).map(r => `<tr><td>${esc(r.service)}</td><td class="num">${r.source_tick}</td><td>${esc((r.agents || []).join(", "))}</td><td class="num">${r.reaction_count}</td></tr>`)) : `<p class="empty">aucun</p>`)};
   },
   auditor: () => {
     const st = D.st, acts = (st.actions || []).filter(a => a.layer === "auditor");
-    return {title: "LLM auditor", state: !st.auditor_llm ? ["grey", "off"] : acts.length ? ["orange", `${acts.length} advice`] : ["green", "quiet"],
-      text: st.auditor_llm ? "Reads the agents' reasoning; can only raise an agent's suspicion, never approve." : "Off: runs only with MISTRAL_API_KEY. It can only raise suspicion, never approve.",
-      detail: () => `<p>A second opinion on the LLM agents' justifications. Its advice raises suspicion and never approves anything; the gate stays deterministic.</p>` + (acts.length ? table(`<th>tick</th><th>agent</th><th>advice</th><th class="num">suspicion</th>`,
-        acts.slice().reverse().map(a => `<tr><td>${a.tick}</td><td>${esc(a.agent)}</td><td>${esc(a.reason)}</td><td class="num">${a.suspicion}</td></tr>`)) : `<p class="empty">no advice${st.auditor_llm ? " yet" : ": it is off"}</p>`)};
+    return {title: "Auditeur LLM", state: !st.auditor_llm ? ["grey", "éteint"] : acts.length ? ["orange", `${acts.length} avis`] : ["green", "silencieux"],
+      text: st.auditor_llm ? "Lit le raisonnement des agents ; ne peut qu'augmenter le soupçon sur un agent, jamais approuver." : "Éteint : ne tourne qu'avec MISTRAL_API_KEY. Il ne peut qu'augmenter le soupçon, jamais approuver.",
+      detail: () => `<p>Un second avis sur les justifications des agents LLM. Ses avis augmentent le soupçon et n'approuvent jamais rien ; le portique reste déterministe.</p>` + (acts.length ? table(`<th>tick</th><th>agent</th><th>avis</th><th class="num">soupçon</th>`,
+        acts.slice().reverse().map(a => `<tr><td>${a.tick}</td><td>${esc(a.agent)}</td><td>${esc(a.reason)}</td><td class="num">${a.suspicion}</td></tr>`)) : `<p class="empty">aucun avis${st.auditor_llm ? " pour l'instant" : " : il est éteint"}</p>`)};
   },
 };
 
 function renderMetrics() {
   const st = D.st, h = st.herding || {}, ceo = st.layer1?.ceo || {}, R = r0();
-  let html = `<h2>For the CEO${sample("herding", "layer1")}</h2><div class="counts">`
-    + big(h.effective_agents != null ? `${h.effective_agents.toFixed(1)} of ${h.traders}` : "-", "traders acting independently", h.effective_agents != null && h.effective_agents < h.traders / 2 ? "orange" : "green", "effective number, from the eigenvalues of their decisions")
-    + big(R != null ? R.toFixed(1) : "-", "R0 of the contagion", R >= 1 ? "red" : "green", "agents that acted on each poisoned message")
-    + big(eur(ceo.unpatchable_eur), "executed on code that cannot be patched", ceo.unpatchable_share > .5 ? "red" : "orange", ceo.unpatchable_share != null ? `${pct(ceo.unpatchable_share)} of executions, through ${esc((ceo.unpatchable_services || []).join(", "))}` : "")
-    + big(pct(ceo.reconstitution_rate), "decisions traced back to a source", ceo.reconstitution_rate >= .95 ? "green" : "orange", "executions whose depends_on chain is complete") + `</div>`;
-  html += `<h2>Live indicators, right after the limit checks</h2><div class="grid">${Object.entries(METRICS).map(([k, f]) => { const m = f(); return block("metric", k, m.state, m.text, m.title); }).join("")}</div>`;
+  let html = `<h2>Pour la direction${sample("herding", "layer1")}</h2><div class="counts">`
+    + big(h.effective_agents != null ? `${num(h.effective_agents, 1)} sur ${h.traders}` : "-", "traders qui agissent indépendamment", h.effective_agents != null && h.effective_agents < h.traders / 2 ? "orange" : "green", "nombre effectif, d'après les valeurs propres de leurs décisions")
+    + big(R != null ? num(R, 1) : "-", "R0 de la contagion", R >= 1 ? "red" : "green", "agents qui ont agi sur chaque message empoisonné")
+    + big(eur(ceo.unpatchable_eur), "exécutés sur du code impossible à corriger", ceo.unpatchable_share > .5 ? "red" : "orange", ceo.unpatchable_share != null ? `${pct(ceo.unpatchable_share)} des exécutions, via ${esc((ceo.unpatchable_services || []).join(", "))}` : "")
+    + big(pct(ceo.reconstitution_rate), "décisions remontées jusqu'à une source", ceo.reconstitution_rate >= .95 ? "green" : "orange", "exécutions dont la chaîne depends_on est complète") + `</div>`;
+  html += `<h2>Indicateurs en direct, juste après les contrôles de limites</h2><div class="grid">${Object.entries(METRICS).map(([k, f]) => { const m = f(); return block("metric", k, m.state, m.text, m.title); }).join("")}</div>`;
   const fs = findings().slice().reverse().slice(0, 12);
-  html += `<h2>Findings, newest first<span class="hint">what the layers report to the decision layer</span>${sample("findings")}</h2>` + (fs.length ? table(`<th>tick</th><th>layer</th><th>kind</th><th>target</th><th>severity</th><th class="num">score</th><th>what</th>`,
-    fs.map(f => `<tr><td>${f.tick}</td><td>${f.layer}</td><td>${esc(f.kind.replaceAll("_", " "))}</td><td>${esc(f.target)}</td><td class="${f.severity === "critical" ? "a-red" : f.severity === "warning" ? "a-slow" : ""}">${esc(f.severity)}</td><td class="num">${(+f.score).toFixed(2)}</td><td>${esc(f.detail?.text || Object.entries(f.detail || {}).filter(([, v]) => typeof v !== "object").map(([k, v]) => `${k.replaceAll("_", " ")} ${v}`).join(" · "))}</td></tr>`)) : `<p class="empty">none yet</p>`);
+  html += `<h2>Constats, du plus récent au plus ancien<span class="hint">ce que les couches signalent à la couche de décision</span>${sample("findings")}</h2>` + (fs.length ? table(`<th>tick</th><th>couche</th><th>type</th><th>cible</th><th>gravité</th><th class="num">score</th><th>quoi</th>`,
+    fs.map(f => `<tr><td>${f.tick}</td><td>${f.layer}</td><td>${esc(f.kind.replaceAll("_", " "))}</td><td>${esc(f.target)}</td><td class="${f.severity === "critical" ? "a-red" : f.severity === "warning" ? "a-slow" : ""}">${esc(SEVERITY[f.severity] ?? f.severity)}</td><td class="num">${num(+f.score, 2)}</td><td>${esc(f.detail?.text || Object.entries(f.detail || {}).filter(([, v]) => typeof v !== "object").map(([k, v]) => `${k.replaceAll("_", " ")} ${v}`).join(" · "))}</td></tr>`)) : `<p class="empty">aucun pour l'instant</p>`);
   const alerts = (st.metrics?.alerts || []).slice().reverse().slice(0, 12);
-  html += `<h2>Latest metric alerts</h2>` + (alerts.length ? table(`<th>tick</th><th>rule</th><th>target</th><th class="num">value</th><th class="num">threshold</th><th>what it means</th>`,
-    alerts.map(a => `<tr><td>${a.tick}</td><td>${esc(a.rule)}</td><td>${esc(a.target)}</td><td class="num">${a.value}</td><td class="num">${a.threshold ?? ""}</td><td>${esc(a.text)}</td></tr>`)) : `<p class="empty">none</p>`);
+  html += `<h2>Dernières alertes des indicateurs</h2>` + (alerts.length ? table(`<th>tick</th><th>règle</th><th>cible</th><th class="num">valeur</th><th class="num">seuil</th><th>ce que cela signifie</th>`,
+    alerts.map(a => `<tr><td>${a.tick}</td><td>${esc(a.rule)}</td><td>${esc(a.target)}</td><td class="num">${a.value}</td><td class="num">${a.threshold ?? ""}</td><td>${esc(a.text)}</td></tr>`)) : `<p class="empty">aucune</p>`);
   html += evaluation();
   put("metrics", html);
 }
 
 /** The replays of every scenario without (A) and with (B) KRYS, and the bench's metrics. */
 function evaluation() {
-  const I = D.I, m = I.metrics || {}, when = new Date(I.generated_at).toLocaleString("en-GB");
-  let html = `<h2>Without and with KRYS<span class="hint">replays of ${esc(when)}</span>${sample("improvements")}</h2>`;
+  const I = D.I, m = I.metrics || {}, when = new Date(I.generated_at).toLocaleString("fr-FR");
+  let html = `<h2>Sans protection et avec Krys<span class="hint">rejeux du ${esc(when)}</span>${sample("improvements")}</h2>`;
   const p = I.scenarios.find(s => s.scenario === PITCH);
   // three separate figures, never one inside another: the fraud blocked is larger than the net result saved
-  if (p) html += `<div class="counts">${big(eur(p.avoided_fraud_eur), "fraud blocked", "green")}${big(eur(p.avoided_loss_eur), "net result saved", "green")}${big(eur(-p.brake_cost_eur), "cost of the blocks", "orange", "trading result lost to refused orders")}</div>
-    <p class="note">${esc(PITCH)}, same seed: ${eur(p.unprotected_net_eur)} without KRYS (of which ${eur(p.avoided_fraud_eur)} of fraud), ${eur(p.protected_net_eur)} with it.</p>`;
+  if (p) html += `<div class="counts">${big(eur(p.avoided_fraud_eur), "fraude bloquée", "green")}${big(eur(p.avoided_loss_eur), "résultat net préservé", "green")}${big(eur(-p.brake_cost_eur), "coût des blocages", "orange", "résultat de trading perdu sur les ordres refusés")}</div>
+    <p class="note">${esc(PITCH)}, même graine : ${eur(p.unprotected_net_eur)} sans protection (dont ${eur(p.avoided_fraud_eur)} de fraude), ${eur(p.protected_net_eur)} avec Krys.</p>`;
   // the table is two thirds of the screen wide: thousands in k€, detection as ticks before (−) or after (+) the attack
   const k = v => v != null && Math.abs(v) >= 1e3 && Math.abs(v) < 1e6 ? Math.round(v / 1e3) + " k€" : eur(v);
-  html += `<div style="margin-top:12px">` + table(`<th>scenario</th><th class="num">without</th><th class="num">with</th><th class="num">fraud blocked</th><th class="num">net result saved</th><th class="num">cost of the blocks</th><th class="num">clean money frozen</th><th class="num">contaminated ops</th><th>detected, ticks vs attack</th>`,
-    I.scenarios.map(g => `<tr><td>${esc(g.scenario)}</td><td class="num">${k(g.unprotected_net_eur)}</td><td class="num">${k(g.protected_net_eur)}</td><td class="num">${k(g.avoided_fraud_eur)}</td><td class="num a-green">${k(g.avoided_loss_eur)}</td><td class="num a-slow">${k(-g.brake_cost_eur)}</td><td class="num">${k(g.frozen_eur)}</td><td class="num">${g.contaminated_operations.unprotected} → ${g.contaminated_operations.protected}</td><td>${(g.detection || []).map(d => `<span style="white-space:nowrap">${esc(d.service)} ${d.detected_at == null ? `<span class="a-block">missed</span>` : (d.ticks_to_detect > 0 ? "+" : d.ticks_to_detect < 0 ? "−" : "") + Math.abs(d.ticks_to_detect)}</span>`).join("<br>") || "-"}</td></tr>`),
-    `<tfoot><tr><th>total</th><th></th><th></th><th></th><th class="num">${k(I.totals.avoided_loss_eur)}</th><th class="num">${k(-I.totals.brake_cost_eur)}</th><th class="num">${k(I.totals.frozen_eur)}</th><th class="num">${I.totals.missed_operations} still passed</th><th></th></tr></tfoot>`) + `</div>`;
+  html += `<div style="margin-top:12px">` + table(`<th>scénario</th><th class="num">sans protection</th><th class="num">avec <span class="name">Krys</span></th><th class="num">fraude bloquée</th><th class="num">résultat net préservé</th><th class="num">coût des blocages</th><th class="num">argent sain gelé</th><th class="num">opérations contaminées</th><th>détecté, en ticks par rapport à l'attaque</th>`,
+    I.scenarios.map(g => `<tr><td>${esc(g.scenario)}</td><td class="num">${k(g.unprotected_net_eur)}</td><td class="num">${k(g.protected_net_eur)}</td><td class="num">${k(g.avoided_fraud_eur)}</td><td class="num a-green">${k(g.avoided_loss_eur)}</td><td class="num a-slow">${k(-g.brake_cost_eur)}</td><td class="num">${k(g.frozen_eur)}</td><td class="num">${g.contaminated_operations.unprotected} → ${g.contaminated_operations.protected}</td><td>${(g.detection || []).map(d => `<span style="white-space:nowrap">${esc(d.service)} ${d.detected_at == null ? `<span class="a-block">manqué</span>` : (d.ticks_to_detect > 0 ? "+" : d.ticks_to_detect < 0 ? "−" : "") + Math.abs(d.ticks_to_detect)}</span>`).join("<br>") || "-"}</td></tr>`),
+    `<tfoot><tr><th>total</th><th></th><th></th><th></th><th class="num">${k(I.totals.avoided_loss_eur)}</th><th class="num">${k(-I.totals.brake_cost_eur)}</th><th class="num">${k(I.totals.frozen_eur)}</th><th class="num">${I.totals.missed_operations} encore passées</th><th></th></tr></tfoot>`) + `</div>`;
   if (m.scenarios) {
-    const iv = x => x ? `${(+x.mean).toFixed(2)} <span class="hint">[${(+x.low).toFixed(2)}–${(+x.high).toFixed(2)}]</span>` : "-";
-    html += `<h2>The bench's metrics<span class="hint">make metrics · ${m.totals?.attempts ?? "-"} attempts over ${m.totals?.attack_runs ?? "-"} attack runs, ${m.totals?.clean_runs ?? "-"} clean runs</span>${sample("improvements", "eval")}</h2>`
-      + table(`<th>scenario</th><th class="num">attacks that succeed, without → with</th><th class="num">gate precision</th><th class="num">gate recall</th><th class="num">detection</th><th class="num">containment</th><th class="num">clean work kept</th><th>agents red</th><th class="num">gate p50 / p99</th>`,
-        m.scenarios.map(s => `<tr><td>${esc(s.scenario)}</td><td class="num">${pct(s.asr?.without?.rate)} → <b class="${s.asr?.with?.rate ? "a-red" : "a-green"}">${pct(s.asr?.with?.rate)}</b></td><td class="num">${pct(s.gate?.precision)}</td><td class="num">${pct(s.gate?.recall)}</td><td class="num">${s.detection?.detection_ticks ?? "-"} ticks</td><td class="num">${s.detection?.containment_ticks ?? "-"} ticks</td><td class="num">${pct(s.utility?.ratio)}</td><td>${(s.impact?.red_with || []).length} of ${s.impact?.agents ?? "-"}</td><td class="num">${s.gate_latency_ms?.p50 ?? "-"} / ${s.gate_latency_ms?.p99 ?? "-"} ms</td></tr>`));
+    const iv = x => x ? `${num(+x.mean, 2)} <span class="hint">[${num(+x.low, 2)}–${num(+x.high, 2)}]</span>` : "-";
+    html += `<h2>Les mesures du banc<span class="hint">make metrics · ${m.totals?.attempts ?? "-"} tentatives sur ${m.totals?.attack_runs ?? "-"} rejeux d'attaque, ${m.totals?.clean_runs ?? "-"} rejeux sains</span>${sample("improvements", "eval")}</h2>`
+      + table(`<th>scénario</th><th class="num">attaques réussies, sans protection → avec <span class="name">Krys</span></th><th class="num">précision du portique</th><th class="num">rappel du portique</th><th class="num">détection</th><th class="num">confinement</th><th class="num">travail sain conservé</th><th>agents en rouge</th><th class="num">portique p50 / p99</th>`,
+        m.scenarios.map(s => `<tr><td>${esc(s.scenario)}</td><td class="num">${pct(s.asr?.without?.rate)} → <b class="${s.asr?.with?.rate ? "a-red" : "a-green"}">${pct(s.asr?.with?.rate)}</b></td><td class="num">${pct(s.gate?.precision)}</td><td class="num">${pct(s.gate?.recall)}</td><td class="num">${s.detection?.detection_ticks ?? "-"} ticks</td><td class="num">${s.detection?.containment_ticks ?? "-"} ticks</td><td class="num">${pct(s.utility?.ratio)}</td><td>${(s.impact?.red_with || []).length} sur ${s.impact?.agents ?? "-"}</td><td class="num">${s.gate_latency_ms?.p50 ?? "-"} / ${s.gate_latency_ms?.p99 ?? "-"} ms</td></tr>`));
     const c = m.clean;
     const share = x => x ? `${pct(x.rate ?? x.mean)} <span class="hint">[${pct(x.low)}–${pct(x.high)}]</span>` : "-";
-    if (c) html += `<div class="counts" style="margin-top:12px">${big(iv(c.false_blocks_per_run), "clean operations refused per run", "orange", `${c.runs} clean runs, 95% interval`)}${big(iv(c.false_alerts_per_run), "false alerts per run", "orange")}${big(share(c.runs_with_false_isolation), "clean runs with a service isolated wrongly", "orange")}${big(share(c.utility), "clean work kept", "green")}${m.gate_latency_ms ? big(`${m.gate_latency_ms.p50} / ${m.gate_latency_ms.p99} ms`, "gate latency p50 / p99", "blue", `${m.gate_latency_ms.n} decisions, ${m.gate_latency_ms.timeouts} timeouts`) : ""}</div>`;
+    if (c) html += `<div class="counts" style="margin-top:12px">${big(iv(c.false_blocks_per_run), "opérations saines refusées par rejeu", "orange", `${c.runs} rejeux sains, intervalle à 95 %`)}${big(iv(c.false_alerts_per_run), "fausses alertes par rejeu", "orange")}${big(share(c.runs_with_false_isolation), "rejeux sains avec un service isolé à tort", "orange")}${big(share(c.utility), "travail sain conservé", "green")}${m.gate_latency_ms ? big(`${num(m.gate_latency_ms.p50, 1)} / ${num(m.gate_latency_ms.p99, 1)} ms`, "latence du portique p50 / p99", "blue", `${m.gate_latency_ms.n} décisions, ${m.gate_latency_ms.timeouts} délais dépassés`) : ""}</div>`;
   }
-  html += `<h2>Each rule, graded on the replays</h2>` + table(`<th>rule</th><th>layer</th><th class="num">fired</th><th class="num">right</th><th class="num">wrong</th><th class="num">contaminated money stopped</th><th class="num">clean money frozen</th>`,
+  html += `<h2>Chaque règle, notée sur les rejeux</h2>` + table(`<th>règle</th><th>couche</th><th class="num">déclenchée</th><th class="num">à raison</th><th class="num">à tort</th><th class="num">argent contaminé arrêté</th><th class="num">argent sain gelé</th>`,
     I.rules.map(r => `<tr><td>${esc(r.rule)}</td><td>${esc(r.layer)}</td><td class="num">${r.fired}</td><td class="num">${r.true}</td><td class="num">${r.false}</td><td class="num">${eur(r.blocked_eur)}</td><td class="num">${eur(r.frozen_eur)}</td></tr>`));
   return html;
 }
 
 function renderImprove() {
   const I = D.I, th = D.st.metrics?.thresholds || I.thresholds || {};
-  let html = `<h2>Thresholds in force<span class="hint">a change is signed by a human and journaled</span></h2>` + table(`<th>threshold</th><th class="num">now</th><th>set to</th>`,
-    Object.entries(th).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${v}</td><td><input type="number" step="any" id="th-${esc(k)}" value="${v}"> <button class="act ghost" onclick="human('human set_threshold ${esc(k)} ' + $('th-${esc(k)}').value)">Apply</button></td></tr>`));
-  html += `<h2>What the replays say${sample("improvements")}</h2><div class="card">${I.summary.map(s => `<div>${esc(s)}</div>`).join("")}</div><h2>Proposals for a human</h2>`;
+  let html = `<h2>Seuils en vigueur<span class="hint">tout changement est signé par un humain et journalisé</span></h2>` + table(`<th>seuil</th><th class="num">actuel</th><th>nouvelle valeur</th>`,
+    Object.entries(th).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${v}</td><td><input type="number" step="any" id="th-${esc(k)}" value="${v}"> <button class="act ghost" onclick="human('human set_threshold ${esc(k)} ' + $('th-${esc(k)}').value)">Appliquer</button></td></tr>`));
+  html += `<h2>Ce que disent les rejeux${sample("improvements")}</h2><div class="card">${I.summary.map(s => `<div>${esc(s)}</div>`).join("")}</div><h2>Propositions pour un humain</h2>`;
   for (const p of I.proposals) {
-    const kind = {threshold: "threshold", gap: "coverage gap", rule: "rule"}[p.kind] || p.kind;
+    const kind = {threshold: "seuil", gap: "trou de couverture", rule: "règle"}[p.kind] || p.kind;
     let evidence = "";
-    if (p.evidence?.sweep) evidence += table(`<th class="num">value</th><th>catches</th><th class="num">right alerts</th><th class="num">false alerts</th><th class="num">ticks to detect, summed</th>`,
+    if (p.evidence?.sweep) evidence += table(`<th class="num">valeur</th><th>détecte</th><th class="num">bonnes alertes</th><th class="num">fausses alertes</th><th class="num">ticks pour détecter, cumulés</th>`,
       p.evidence.sweep.map(r => `<tr${r.value === p.proposed ? ` style="color:var(--blue)"` : ""}><td class="num">${r.value}</td><td>${esc(r.caught.join(", ")) || "-"}</td><td class="num">${r.true_alerts}</td><td class="num">${r.false_alerts}</td><td class="num">${r.ticks_to_detect}</td></tr>`));
-    if (p.replay) evidence += table(`<th>replayed scenario</th><th class="num">net result saved</th><th class="num">clean money frozen</th>`,
+    if (p.replay) evidence += table(`<th>scénario rejoué</th><th class="num">résultat net préservé</th><th class="num">argent sain gelé</th>`,
       Object.entries(p.replay.by_scenario).map(([n, v]) => `<tr><td>${esc(n)}</td><td class="num">${eur(v.avoided_loss_eur)}</td><td class="num">${eur(v.frozen_eur)}</td></tr>`));
-    for (const m of p.evidence?.missed || []) evidence += `<div style="margin:8px 0"><b>t${m.tick} ${esc(m.kind)} ${eur(m.amount_eur)} → ${esc(m.target)}</b>, fed by ${esc((m.compromised_sources || []).join(", "))}<br>` +
-      m.chain.map(c => `<span class="chip">t${c.tick} ${esc(c.from)} · ${esc(c.type)}${c.fed_by_compromised.length ? " · fed by " + esc(c.fed_by_compromised.join(", ")) : ""}</span> ${esc(c.said)}`).join("<br>") + `</div>`;
+    for (const m of p.evidence?.missed || []) evidence += `<div style="margin:8px 0"><b>t${m.tick} ${esc(m.kind)} ${eur(m.amount_eur)} → ${esc(m.target)}</b>, alimenté par ${esc((m.compromised_sources || []).join(", "))}<br>` +
+      m.chain.map(c => `<span class="chip">t${c.tick} ${esc(c.from)} · ${esc(c.type)}${c.fed_by_compromised.length ? " · alimenté par " + esc(c.fed_by_compromised.join(", ")) : ""}</span> ${esc(c.said)}`).join("<br>") + `</div>`;
     html += `<div class="card proposal"><h3><span><span class="badge">${esc(kind)}</span>${esc(p.target)}</span>` +
-      (p.kind === "threshold" ? `<span>${p.proven ? chip("green", "replay agrees") : chip("red", `replay disagrees: keep ${p.current}`)} <button class="act ${p.proven ? "" : "ghost"}" onclick="human('${esc(p.apply)}')">Apply ${p.current} → ${p.proposed}</button></span>` : "") +
-      `</h3><div class="why">${esc(p.why)}</div>${evidence ? `<details><summary>evidence</summary>${evidence}</details>` : ""}</div>`;
+      (p.kind === "threshold" ? `<span>${p.proven ? chip("green", "le rejeu confirme") : chip("red", `le rejeu infirme : garder ${p.current}`)} <button class="act ${p.proven ? "" : "ghost"}" onclick="human('${esc(p.apply)}')">Appliquer ${p.current} → ${p.proposed}</button></span>` : "") +
+      `</h3><div class="why">${esc(p.why)}</div>${evidence ? `<details><summary>preuves</summary>${evidence}</details>` : ""}</div>`;
   }
   put("improve", html);
 }
@@ -381,27 +387,27 @@ function renderImprove() {
 function renderSummary() {
   const st = D.st, bad = [], good = [];
   const ask = (list, text, command, label, ghost) => list.push(`<tr><td>${text}</td><td class="num">${command ? `<button class="act${ghost ? " ghost" : ""}" onclick="${command.startsWith("#") ? `location.hash='${command}'` : `human('${esc(command)}')`}">${label}</button>` : ""}</td></tr>`);
-  if (bankLight() === "ROUGE") ask(bad, "The bank is on red: every agent is paused.", "human resume", "Resume");
+  if (bankLight() === "ROUGE") ask(bad, "La banque est au rouge : tous les agents sont en pause.", "human resume", "Reprendre");
   const risk = D.S.agents?.risk?.status;
-  if (risk?.halted) ask(bad, `Risk halted trading (${esc(risk.halt_reason)}): only a human starts it again.`, "human resume_trading", "Resume trading");
-  for (const a of st.quarantined || []) ask(bad, `${esc(a)} is quarantined: its key is revoked and its tools cut.`, `human unblock ${a}`, "Lift quarantine");
-  for (const [s, f] of Object.entries(suspects())) ask(bad, `${esc(s)} is suspect since tick ${esc(f.since_tick)}: every action it fed is refused.`, `human unblock ${s}`, "Trust it again", true);
-  for (const [who, why] of Object.entries(D.S.agents?.compliance?.status?.blocked || {})) ask(bad, `Compliance blocked ${esc(who)} (${esc(why)}): only a human unblocks it.`, `human unblock ${who}`, "Unblock", true);
+  if (risk?.halted) ask(bad, `Risk a arrêté le trading (${esc(risk.halt_reason)}) : seul un humain le relance.`, "human resume_trading", "Reprendre le trading");
+  for (const a of st.quarantined || []) ask(bad, `${esc(a)} est en quarantaine : sa clé est révoquée et ses outils coupés.`, `human unblock ${a}`, "Lever la quarantaine");
+  for (const [s, f] of Object.entries(suspects())) ask(bad, `${esc(s)} est suspect depuis le tick ${esc(f.since_tick)} : toute action qu'il a alimentée est refusée.`, `human unblock ${s}`, "Lui refaire confiance", true);
+  for (const [who, why] of Object.entries(D.S.agents?.compliance?.status?.blocked || {})) ask(bad, `Compliance a bloqué ${esc(who)} (${esc(why)}) : seul un humain le débloque.`, `human unblock ${who}`, "Débloquer", true);
   const lost = agentIds().filter(id => D.S.agents[id].vigie_lost);
-  if (lost.length) ask(bad, `${esc(lost.join(", "))} lost KRYS's heartbeat and went orange by themselves: check that KRYS runs.`);
+  if (lost.length) ask(bad, `${esc(lost.join(", "))} ${lost.length === 1 ? "a perdu le battement de Krys et est passé" : "ont perdu le battement de Krys et sont passés"} seul${lost.length === 1 ? "" : "s"} à l'orange : vérifiez que Krys tourne.`);
   const props = D.I.proposals || [], th = st.metrics?.thresholds || {}, open = props.filter(p => p.kind !== "threshold");
-  if (open.length) ask(bad, `The replays found ${open.length} gap${open.length === 1 ? "" : "s"} or rule${open.length === 1 ? "" : "s"} to revisit: ${esc(open.map(p => p.target).join(", "))}.`, "#improve", "Read them", true);
-  for (const p of props.filter(p => p.kind === "threshold" && p.proven && th[p.target] !== p.proposed)) ask(good, `The replays agree: ${esc(p.why)}`, p.apply, `Apply ${p.current} → ${p.proposed}`);
-  const n = (k, word) => `<b>${k}</b> ${word}${k === 1 ? "" : "s"}`;
-  let html = `<p class="lead">${n(bad.length, "problem")} and ${n(good.length, "piece")} of good news wait for you${live && !stale ? "" : ": no simulation running, so no decision can be sent"}</p>`;
-  html += `<h2>Problems only a human clears</h2>` + (bad.length ? table(`<th>what</th><th class="num">your decision</th>`, bad) : `<p class="empty">none</p>`);
-  html += `<h2>Good news only a human applies</h2>` + (good.length ? table(`<th>what</th><th class="num">your decision</th>`, good) : `<p class="empty">none</p>`);
+  if (open.length) ask(bad, `Les rejeux ont trouvé ${open.length} trou${open.length === 1 ? "" : "s"} ou règle${open.length === 1 ? "" : "s"} à revoir : ${esc(open.map(p => p.target).join(", "))}.`, "#improve", "Les lire", true);
+  for (const p of props.filter(p => p.kind === "threshold" && p.proven && th[p.target] !== p.proposed)) ask(good, `Les rejeux confirment : ${esc(p.why)}`, p.apply, `Appliquer ${p.current} → ${p.proposed}`);
+  const n = (k, one, many) => `<b>${k}</b> ${k === 1 ? one : many}`;
+  let html = `<p class="lead">${n(bad.length, "problème", "problèmes")} et ${n(good.length, "bonne nouvelle", "bonnes nouvelles")} vous attendent${live && !stale ? "" : " : aucune simulation ne tourne, aucune décision ne peut donc être envoyée"}</p>`;
+  html += `<h2>Problèmes que seul un humain lève</h2>` + (bad.length ? table(`<th>quoi</th><th class="num">votre décision</th>`, bad) : `<p class="empty">aucun</p>`);
+  html += `<h2>Bonnes nouvelles que seul un humain applique</h2>` + (good.length ? table(`<th>quoi</th><th class="num">votre décision</th>`, good) : `<p class="empty">aucune</p>`);
   put("summary", html);
 }
 
 /** Every guardrail in force: each agent's limits as config.yaml sets them with how much of each is used now, KRYS's, the LLM's. */
-const THRESHOLDS = {price_drift_z: "Price move in one tick that raises an alert, in standard deviations", reconciliation_gap_pct: "Gap between Risk's cash and the book of record that raises an alert, %",
-  herding_share: "Share of the traders on one side of one asset within 3 ticks that raises an alert", breach_horizon_ticks: "Warns when a limit will break within, ticks"};
+const THRESHOLDS = {price_drift_z: "Mouvement de prix en un tick qui déclenche une alerte, en écarts-types", reconciliation_gap_pct: "Écart entre la trésorerie de Risk et le registre de référence qui déclenche une alerte, en %",
+  herding_share: "Part des traders du même côté d'un actif en 3 ticks qui déclenche une alerte", breach_horizon_ticks: "Alerte quand une limite sera dépassée dans ce délai, en ticks"};
 function renderGuardrails() {
   const root = $("guardrails"), make = (tag, text, cls) => {
     const el = document.createElement(tag);
@@ -409,59 +415,59 @@ function renderGuardrails() {
     if (cls) el.className = cls;
     return el;
   };
-  if (!GR) { root.replaceChildren(make("p", "Guardrail settings are unavailable. Usage cannot be assessed.", "gr-note")); root._guardrailsSignature = null; return; }
+  if (!GR) { root.replaceChildren(make("p", "Les réglages des garde-fous sont indisponibles. L'usage ne peut pas être évalué.", "gr-note")); root._guardrailsSignature = null; return; }
   const {trader: t, compliance: c, risk: r, payment: pay, quant: q} = GR.agents;
   const L = D.S.limits || {}, p = D.S.params || {};
   const numeric = value => typeof value === "number" && Number.isFinite(value);
-  const money = value => numeric(value) ? (value / 1e6).toLocaleString("en", {minimumFractionDigits: 2, maximumFractionDigits: 8}) + " M€" : value ?? "Not supplied";
-  const unit = (value, suffix) => value == null ? "Not supplied" : `${value} ${suffix}`;
-  const ratio = value => numeric(value) ? pct(value) : value ?? "Not supplied";
-  const list = value => Array.isArray(value) ? value.join(", ") || "None" : value ?? "Not supplied";
-  const flag = value => typeof value === "boolean" ? (value ? "On" : "Off") : value ?? "Not reported";
+  const money = value => numeric(value) ? (value / 1e6).toLocaleString("fr-FR", {minimumFractionDigits: 2, maximumFractionDigits: 8}) + " M€" : value ?? "Non fourni";
+  const unit = (value, suffix) => value == null ? "Non fourni" : `${value} ${suffix}`;
+  const ratio = value => numeric(value) ? pct(value) : value ?? "Non fourni";
+  const list = value => Array.isArray(value) ? value.join(", ") || "Aucun" : value ?? "Non fourni";
+  const flag = value => typeof value === "boolean" ? (value ? "Activé" : "Désactivé") : value ?? "Non signalé";
   const scale = D.S.agents?.risk?.status?.trader_scale ?? 1;
   const blocked = Object.keys(D.S.agents?.compliance?.status?.blocked || {});
-  const groups = ["Trader", "Compliance", "Risk", "Payment", "Quant", "KRYS", "LLM"].map(name => ({name, items: []}));
+  const groups = ["Trader", "Compliance", "Risk", "Payment", "Quant", "Krys", "LLM"].map(name => ({name, items: []}));
   const add = (group, title, value, why, usage, note = "") => groups.find(g => g.name === group).items.push({title, value, why, usage, note});
   const traderUsage = key => Object.entries(L.traders || {}).map(([label, values]) => ({label, value: values[key]}));
-  const bankUsage = key => [{label: "Bank", value: L.bank?.[key]}];
-  add("Trader", "Largest order", money(t.max_order_eur), "Caps the size of a single order.", undefined,
-    scale < 1 ? `Current Risk size factor: × ${scale}; VaR is over ${ratio(r.var_warning_ratio)} of its limit.` : "");
-  add("Trader", "Position per asset", money(t.max_position_eur), "Limits concentration in one asset.", traderUsage("max_position_pct"));
-  add("Trader", "Daily loss stop", money(t.max_daily_loss_eur), "Stops this trader until the next day once its loss limit is reached.", traderUsage("daily_loss_pct"));
-  add("Trader", "Minimum confidence", t.min_confidence, "Does not trade below this confidence score.");
-  add("Trader", "Order cooldown", unit(t.cooldown_ticks, "ticks"), "Waits between two orders on the same asset.");
-  add("Compliance", "Restricted assets", list(p.restricted_list ?? c.restricted_list), "Refuses any order touching a listed asset.");
-  add("Compliance", "Confidential news", "Refused", "Refuses an order based on insider information.");
-  add("Compliance", "Split orders", `${c.structuring_max_orders} under ${money(c.small_order_eur)} / ${c.structuring_window_ticks} ticks`, "Checks repeated small orders over this window.");
-  add("Compliance", "Wash-trade window", unit(c.wash_window_ticks, "ticks"), "Checks selling back what was recently bought.");
-  add("Compliance", "Cancellation watch", `Over ${c.spoofing_max_cancels} / ${c.spoofing_window_ticks} ticks`, "Checks repeated cancellations for possible spoofing.");
-  add("Compliance", "High-risk countries", list(c.high_risk_countries), "Reviews the beneficiary's KYC file; only a human lifts a payment block.", undefined,
-    blocked.length ? `${blocked.length} payment blocks currently reported.` : "");
-  add("Risk", "Gross exposure", money(r.max_exposure_eur), "Caps the total exposure of the bank.", bankUsage("exposure_pct"));
-  add("Risk", "One-day VaR · 99%", money(r.max_var_eur), `Above ${ratio(r.var_warning_ratio)} of this limit, trader sizes use factor × ${r.var_warning_scale}.`, bankUsage("var_pct"));
-  add("Risk", "Daily bank loss stop", money(r.max_daily_loss_eur), "Halts trading until a human resumes it.", bankUsage("daily_loss_pct"));
-  add("Risk", "Cash floor", money(r.min_cash_eur), "Usage is the minimum floor / available cash. At 100%, no cash buffer remains.", bankUsage("liquidity_floor_pct"));
-  add("Payment", "Largest transfer", money(pay.max_transfer_eur), "Caps one transfer before it is executed.");
-  add("Payment", "Daily transfers", money(pay.max_daily_eur), "Caps the amount transferred during the day.", [{label: "Payments", value: L.payments?.daily_pct}]);
-  add("Payment", "Changed-IBAN lock", unit(pay.iban_change_lock_ticks, "ticks"), "Refuses payments soon after the destination account changes.");
-  add("Quant", "Maximum data age", unit(q.max_data_age_ticks, "ticks"), "Does not price market data older than this.");
-  add("Quant", "One-tick price jump", unit(q.jump_threshold_pct, "%"), `Drops confidence to ${q.low_confidence}, below the traders' ${t.min_confidence}, when this jump is exceeded.`);
-  add("KRYS", "Gate monitoring", flag(D.S.vigie?.enabled ?? GR.vigie.enabled), "Watches messages and approves orders and payments before execution.");
-  add("KRYS", "Approval wait", unit(GR.gate.timeout_s, "seconds"), `An unanswered request is ${GR.gate.default_on_timeout === "reject" ? "refused" : "approved"} after this wait.`, undefined,
-    D.S.vigie?.gate == null ? "" : `Current gate: ${D.S.vigie.gate}`);
+  const bankUsage = key => [{label: "Banque", value: L.bank?.[key]}];
+  add("Trader", "Plus gros ordre", money(t.max_order_eur), "Plafonne la taille d'un seul ordre.", undefined,
+    scale < 1 ? `Facteur de taille actuel de Risk : × ${scale} ; la VaR dépasse ${ratio(r.var_warning_ratio)} de sa limite.` : "");
+  add("Trader", "Position par actif", money(t.max_position_eur), "Limite la concentration sur un actif.", traderUsage("max_position_pct"));
+  add("Trader", "Arrêt sur perte du jour", money(t.max_daily_loss_eur), "Arrête ce trader jusqu'au lendemain dès que sa limite de perte est atteinte.", traderUsage("daily_loss_pct"));
+  add("Trader", "Confiance minimale", t.min_confidence, "Ne négocie pas sous ce score de confiance.");
+  add("Trader", "Délai entre deux ordres", unit(t.cooldown_ticks, "ticks"), "Attend entre deux ordres sur le même actif.");
+  add("Compliance", "Actifs restreints", list(p.restricted_list ?? c.restricted_list), "Refuse tout ordre qui touche un actif de la liste.");
+  add("Compliance", "Informations confidentielles", "Refusées", "Refuse un ordre fondé sur une information privilégiée.");
+  add("Compliance", "Ordres fractionnés", `${c.structuring_max_orders} sous ${money(c.small_order_eur)} / ${c.structuring_window_ticks} ticks`, "Surveille les petits ordres répétés sur cette fenêtre.");
+  add("Compliance", "Fenêtre d'aller-retour", unit(c.wash_window_ticks, "ticks"), "Surveille la revente de ce qui vient d'être acheté (wash trade).");
+  add("Compliance", "Surveillance des annulations", `Plus de ${c.spoofing_max_cancels} / ${c.spoofing_window_ticks} ticks`, "Surveille les annulations répétées (spoofing possible).");
+  add("Compliance", "Pays à haut risque", list(c.high_risk_countries), "Examine le dossier KYC du bénéficiaire ; seul un humain lève un blocage de paiement.", undefined,
+    blocked.length ? `${blocked.length} blocage${blocked.length === 1 ? "" : "s"} de paiement signalé${blocked.length === 1 ? "" : "s"} actuellement.` : "");
+  add("Risk", "Exposition brute", money(r.max_exposure_eur), "Plafonne l'exposition totale de la banque.", bankUsage("exposure_pct"));
+  add("Risk", "VaR à un jour · 99 %", money(r.max_var_eur), `Au-delà de ${ratio(r.var_warning_ratio)} de cette limite, la taille des ordres des traders est multipliée par ${r.var_warning_scale}.`, bankUsage("var_pct"));
+  add("Risk", "Arrêt sur perte du jour de la banque", money(r.max_daily_loss_eur), "Arrête le trading jusqu'à ce qu'un humain le relance.", bankUsage("daily_loss_pct"));
+  add("Risk", "Plancher de trésorerie", money(r.min_cash_eur), "L'usage rapporte le plancher à la trésorerie disponible. À 100 %, il ne reste aucune marge.", bankUsage("liquidity_floor_pct"));
+  add("Payment", "Plus gros virement", money(pay.max_transfer_eur), "Plafonne un virement avant son exécution.");
+  add("Payment", "Virements du jour", money(pay.max_daily_eur), "Plafonne le montant viré dans la journée.", [{label: "Paiements", value: L.payments?.daily_pct}]);
+  add("Payment", "Verrou après changement d'IBAN", unit(pay.iban_change_lock_ticks, "ticks"), "Refuse les paiements peu après un changement du compte destinataire.");
+  add("Quant", "Âge maximal des données", unit(q.max_data_age_ticks, "ticks"), "Ne valorise pas de données de marché plus anciennes.");
+  add("Quant", "Saut de prix en un tick", unit(q.jump_threshold_pct, "%"), `Abaisse la confiance à ${q.low_confidence}, sous le seuil des traders (${t.min_confidence}), quand ce saut est dépassé.`);
+  add("Krys", "Surveillance par le portique", flag(D.S.vigie?.enabled ?? GR.vigie.enabled), "Surveille les messages et approuve ordres et paiements avant leur exécution.");
+  add("Krys", "Attente d'approbation", unit(GR.gate.timeout_s, "secondes"), `Une demande sans réponse est ${GR.gate.default_on_timeout === "reject" ? "refusée" : "approuvée"} après cette attente.`, undefined,
+    D.S.vigie?.gate == null ? "" : `Portique actuel : ${D.S.vigie.gate}`);
   const actors = Object.values(D.S.agents || {}), lost = actors.filter(a => a.vigie_lost).length;
-  add("KRYS", "Missing heartbeat", unit(GR.vigie.heartbeat_timeout_ticks, "ticks"), "An agent goes orange by itself after hearing no KRYS heartbeat for this long.", undefined,
-    actors.length ? `${lost} of ${actors.length} agents report a lost heartbeat.` : "No heartbeat status supplied.");
-  const thresholdTitles = {price_drift_z: "Price move alert", reconciliation_gap_pct: "Cash mismatch alert", herding_share: "Same-side traders", breach_horizon_ticks: "Limit warning horizon"};
-  const thresholdUnits = {price_drift_z: "standard deviations", reconciliation_gap_pct: "%", herding_share: "share", breach_horizon_ticks: "ticks"};
+  add("Krys", "Battement manquant", unit(GR.vigie.heartbeat_timeout_ticks, "ticks"), "Un agent passe seul à l'orange après ce délai sans battement de Krys.", undefined,
+    actors.length ? `${lost} agent${lost === 1 ? "" : "s"} sur ${actors.length} signale${lost === 1 ? "" : "nt"} un battement perdu.` : "Aucun état de battement fourni.");
+  const thresholdTitles = {price_drift_z: "Alerte de mouvement de prix", reconciliation_gap_pct: "Alerte d'écart de trésorerie", herding_share: "Traders du même côté", breach_horizon_ticks: "Horizon d'alerte des limites"};
+  const thresholdUnits = {price_drift_z: "écarts-types", reconciliation_gap_pct: "%", herding_share: "part", breach_horizon_ticks: "ticks"};
   for (const [key, value] of Object.entries(D.st.metrics?.thresholds || {})) {
-    add("KRYS", thresholdTitles[key] || key, thresholdUnits[key] ? unit(value, thresholdUnits[key]) : value,
-      THRESHOLDS[key] || "A configured monitoring threshold; changes require a signed human decision.");
+    add("Krys", thresholdTitles[key] || key, thresholdUnits[key] ? unit(value, thresholdUnits[key]) : value,
+      THRESHOLDS[key] || "Un seuil de surveillance configuré ; le changer exige une décision humaine signée.");
   }
-  add("LLM", "Reasoning agents", flag(GR.llm.enabled), "Shows whether the agents use an LLM to reason.");
+  add("LLM", "Agents qui raisonnent", flag(GR.llm.enabled), "Indique si les agents raisonnent avec un LLM.");
   const promptGuard = p.guardrails ?? GR.llm.guardrails;
-  add("LLM", "Prompt protection", promptGuard === "on" ? "On" : promptGuard === "off" ? "Off" : promptGuard, "Cuts instruction phrases from external text and adds a system reminder.");
-  add("LLM", "Reasoning auditor", flag(D.st.auditor_llm), "May raise suspicion after reviewing reasoning; it never approves an operation.");
+  add("LLM", "Protection des prompts", promptGuard === "on" ? "Activée" : promptGuard === "off" ? "Désactivée" : promptGuard, "Retire les phrases d'instruction des textes externes et ajoute un rappel système.");
+  add("LLM", "Auditeur du raisonnement", flag(D.st.auditor_llm), "Peut augmenter le soupçon après avoir relu le raisonnement ; il n'approuve jamais une opération.");
   // Garder les nœuds lors d'un rafraîchissement identique évite de perdre le
   // point de lecture ; aucune consommation n'est déduite d'un réglage seul.
   const sampleData = D.fake.has("all"), signature = JSON.stringify([groups, sampleData, GR.vigie.orange_amount_factor]);
@@ -471,48 +477,48 @@ function renderGuardrails() {
   const meter = (reading, title) => {
     const line = make("div", null, "gr-reading"), status = state(reading.value);
     if (!numeric(reading.value)) {
-      line.append(make("p", `${reading.label}: ${reading.value == null ? "Usage not supplied" : "Unusable reading: " + reading.value}`, "gr-note"));
+      line.append(make("p", `${reading.label} : ${reading.value == null ? "Usage non fourni" : "Lecture inutilisable : " + reading.value}`, "gr-note"));
       return line;
     }
     const text = `${reading.value}%`, bounded = Math.min(100, Math.max(0, reading.value));
-    line.append(make("p", `${reading.label} · ${text} of limit`, "gr-usage-text"));
+    line.append(make("p", `${reading.label} · ${text} de la limite`, "gr-usage-text"));
     const gauge = make("div", null, `gr-meter gr-${status}`);
     gauge.setAttribute("role", "meter"); gauge.setAttribute("aria-label", `${title} — ${reading.label}`);
     gauge.setAttribute("aria-valuemin", "0"); gauge.setAttribute("aria-valuemax", "100");
-    gauge.setAttribute("aria-valuenow", bounded); gauge.setAttribute("aria-valuetext", `${text} of limit`);
+    gauge.setAttribute("aria-valuenow", bounded); gauge.setAttribute("aria-valuetext", `${text} de la limite`);
     const fill = make("span", null, "gr-fill"); fill.style.width = `${bounded}%`; gauge.append(fill);
-    line.append(gauge, make("span", status === "red" ? "At or above limit" : status === "orange" ? "Near limit" : "Within limit", `gr-state gr-${status}`));
+    line.append(gauge, make("span", status === "red" ? "À la limite ou au-delà" : status === "orange" ? "Près de la limite" : "Dans la limite", `gr-state gr-${status}`));
     return line;
   };
   const readings = groups.flatMap(group => group.items.flatMap(item => (item.usage || []).filter(reading => numeric(reading.value)).map(reading => ({group, item, reading}))));
   const near = readings.filter(({reading}) => reading.value >= 80).sort((a, b) => b.reading.value - a.reading.value);
   const summary = make("div", null, "gr-attention"); summary.id = "gr-near";
-  summary.append(make("h2", "What is approaching a limit"));
+  summary.append(make("h2", "Ce qui approche d'une limite"));
   if (near.length) {
     const items = make("ul", null, "gr-near-list");
     for (const {group, item, reading} of near) {
       const li = make("li"); li.append(make("h3", `${group.name} · ${item.title}`), meter(reading, item.title)); items.append(li);
     }
     summary.append(items);
-  } else summary.append(make("p", readings.length ? "No limits close to threshold" : "No usage readings available", "gr-clear"));
-  summary.append(make("p", "Readings at 80% or above are orange; at 100% or above, red. Missing usage is not zero.", "gr-note"));
-  root.replaceChildren(make("h1", "Guardrails"), summary);
-  root.append(make("p", "Each agent checks its own limits; KRYS checks the agents. Settings come from /guardrails; usage comes from the bank view.", "gr-intro"));
-  if (sampleData) root.append(make("p", "Sample bank readings — not live data", "gr-source"));
-  root.append(make("p", `On orange, order and payment limits use factor × ${GR.vigie.orange_amount_factor}. Configured settings below remain unchanged.`, "gr-note"));
+  } else summary.append(make("p", readings.length ? "Aucune limite proche de son seuil" : "Aucune lecture d'usage disponible", "gr-clear"));
+  summary.append(make("p", "Les lectures à 80 % ou plus sont en orange ; à 100 % ou plus, en rouge. Un usage manquant n'est pas un zéro.", "gr-note"));
+  root.replaceChildren(make("h1", "Garde-fous"), summary);
+  root.append(make("p", "Chaque agent contrôle ses propres limites ; Krys contrôle les agents. Les réglages viennent de /guardrails, l'usage de la vue de la banque.", "gr-intro"));
+  if (sampleData) root.append(make("p", "Lectures d'exemple de la banque, pas des données en direct", "gr-source"));
+  root.append(make("p", `À l'orange, les limites d'ordres et de paiements sont multipliées par ${GR.vigie.orange_amount_factor}. Les réglages ci-dessous restent inchangés.`, "gr-note"));
   const grid = make("div", null, "gr-grid");
   for (const group of groups) {
     const card = make("article", null, "gr-actor"); card.append(make("h2", group.name));
     const settings = make("dl", null, "gr-settings");
     for (const item of group.items) {
       const dt = make("dt", item.title), dd = make("dd");
-      dd.append(make("p", item.value ?? "Not supplied", "gr-setting"));
+      dd.append(make("p", item.value ?? "Non fourni", "gr-setting"));
       if (item.usage) {
         for (const reading of item.usage) dd.append(meter(reading, item.title));
-        if (!item.usage.length) dd.append(make("p", "Usage not supplied", "gr-note"));
+        if (!item.usage.length) dd.append(make("p", "Usage non fourni", "gr-note"));
       }
       if (item.note) dd.append(make("p", item.note, "gr-note"));
-      dd.append(make("p", "Why: " + item.why, "gr-why")); settings.append(dt, dd);
+      dd.append(make("p", "Pourquoi : " + item.why, "gr-why")); settings.append(dt, dd);
     }
     card.append(settings); grid.append(card);
   }
@@ -548,10 +554,10 @@ function toast(text) {
   clearTimeout(toast.timer); toast.timer = setTimeout(() => t.hidden = true, 3500);
 }
 async function human(command) {
-  if (!live || stale) return toast("No simulation running: start one to send a decision");
+  if (!live || stale) return toast("Aucune simulation ne tourne : lancez-en une pour envoyer une décision");
   const r = await fetch("/inject", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({command})}).catch(() => null);
   const body = await r?.json().catch(() => ({}));
-  toast(r?.ok ? `Sent, signed by human: ${command}` : `Refused: ${body?.detail || r?.status || "API unreachable"}`);
+  toast(r?.ok ? `Envoyé, signé par un humain : ${command}` : `Refusé : ${body?.detail || r?.status || "API injoignable"}`);
 }
 
 // --- the page: its menu, its polling ---------------------------------------------------------------------------

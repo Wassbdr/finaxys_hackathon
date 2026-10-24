@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>KRYS · ARGUS</title>
+<title>Console · Argus</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 8' shape-rendering='crispEdges'%3E%3Crect x='5' y='0' width='1' height='1' fill='%23A8C8FF'/%3E%3Crect x='0' y='1' width='2' height='1' fill='%236AA6FF'/%3E%3Crect x='4' y='1' width='3' height='1' fill='%236AA6FF'/%3E%3Crect x='9' y='1' width='2' height='1' fill='%236AA6FF'/%3E%3Crect x='5' y='2' width='1' height='1' fill='%232B6BFF'/%3E%3Crect x='4' y='3' width='3' height='1' fill='%231446C8'/%3E%3Crect x='4' y='4' width='3' height='1' fill='%230B2A6F'/%3E%3Crect x='3' y='5' width='5' height='2' fill='%230B2A6F'/%3E%3Crect x='2' y='7' width='7' height='1' fill='%23081B45'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/console/static/tokens.css">
 <link rel="stylesheet" href="/console/static/helper.css">
@@ -124,6 +124,8 @@
   input[type=checkbox], input[type=range] { accent-color: var(--blue); }
   details summary { cursor: pointer; color: var(--dim); font-size: 12.5px; margin-top: 8px; }
   .proposal { margin-bottom: 12px; } .proposal .why { margin: 8px 0 0; color: var(--dim); }
+  /* a name keeps its case in a label set in capitals: Krys is never written KRYS */
+  .name { text-transform: none; letter-spacing: 0; }
   .badge { font: 500 10.5px var(--mono); letter-spacing: .07em; text-transform: uppercase; padding: 2px 8px; border-radius: 2px; background: var(--wash-2); margin-right: 8px; }
 
   /* The details of a block: a white sheet over the page, its ink the page's (on the old frosted glass, coloured or grey
@@ -191,21 +193,21 @@
 </script>
 </head>
 <body>
-<nav class="menu" aria-label="Tabs">
-  <a class="brand" href="/" aria-label="La Vigie, the pitch page"><svg viewBox="0 0 11 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="5" y="0" width="1" height="1" fill="#A8C8FF"/><rect x="0" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="4" y="1" width="3" height="1" fill="#6AA6FF"/><rect x="9" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="5" y="2" width="1" height="1" fill="#2B6BFF"/><rect x="4" y="3" width="3" height="1" fill="#1446C8"/><rect x="4" y="4" width="3" height="1" fill="#0B2A6F"/><rect x="3" y="5" width="5" height="2" fill="#0B2A6F"/><rect x="2" y="7" width="7" height="1" fill="#081B45"/></svg><span>La Vigie</span></a>
+<nav class="menu" aria-label="Onglets de la console">
+  <a class="brand" href="/" aria-label="Argus, page de présentation"><svg viewBox="0 0 11 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="5" y="0" width="1" height="1" fill="#A8C8FF"/><rect x="0" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="4" y="1" width="3" height="1" fill="#6AA6FF"/><rect x="9" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="5" y="2" width="1" height="1" fill="#2B6BFF"/><rect x="4" y="3" width="3" height="1" fill="#1446C8"/><rect x="4" y="4" width="3" height="1" fill="#0B2A6F"/><rect x="3" y="5" width="5" height="2" fill="#0B2A6F"/><rect x="2" y="7" width="7" height="1" fill="#081B45"/></svg><span>Argus</span></a>
   <div class="tabs">
-    <a href="#summary" data-tab="summary" data-name="Summary" data-help="Summary|What waits for a human now: the problems only a human clears, and the good news only a human applies">Summary</a>
-    <a href="/simulation" data-name="Simulation" data-help="Simulation|A replay of the bench without and with KRYS, in 3D or 2D|Opens its own page">Simulation</a>
-    <a href="#agents" data-tab="agents" data-name="Agents" data-help="Agents|Each agent's state and who feeds whom">Agents</a>
-    <a href="#guardrails" data-tab="guardrails" data-name="Guardrails" data-help="Guardrails|Every limit in force, each agent's and KRYS's, with how much of it is used now">Guardrails</a>
-    <a href="#metrics" data-tab="metrics" data-name="Metrics" data-help="Metrics|The live indicators and the bench's figures without and with KRYS">Metrics</a>
-    <a href="#improve" data-tab="improve" data-name="Improvements" data-help="Improvements|The thresholds in force and what the replays propose to change">Improvements</a>
-    <a href="/regulation#marche" data-name="Sentinel">Sentinel</a>
-    <a href="#impact" data-tab="impact" data-name="Impact" data-help="Impact|Mesures archivées des trois banques, dénominateurs et limites">Impact</a>
-    <a href="#details" data-tab="details" data-name="Détails">Détails</a>
+    <a href="#summary" data-tab="summary" data-name="À décider" data-help="À décider|Ce qui attend un humain : les problèmes que seul un humain lève, et les bonnes nouvelles que seul un humain applique">À décider</a>
+    <a href="/simulation" data-name="Simulation" data-help="Simulation|La journée rejouée avec les contrôles classiques et avec Krys, en 3D ou en 2D|Ouvre sa propre page">Simulation</a>
+    <a href="#agents" data-tab="agents" data-name="Agents" data-help="Agents|L'état de chaque agent et qui alimente qui">Agents</a>
+    <a href="#guardrails" data-tab="guardrails" data-name="Garde-fous" data-help="Garde-fous|Chaque limite en vigueur, celles des agents et celles de Krys, avec la part utilisée maintenant">Garde-fous</a>
+    <a href="#metrics" data-tab="metrics" data-name="Indicateurs" data-help="Indicateurs|Les indicateurs en direct et les chiffres du banc, sans protection et avec Krys">Indicateurs</a>
+    <a href="#improve" data-tab="improve" data-name="Améliorations" data-help="Améliorations|Les seuils en vigueur et ce que les rejeux proposent de changer">Améliorations</a>
+    <a href="/regulation#marche" data-name="Marché" data-help="Marché|Sentinel, la détection d'abus de marché|Ouvre l'espace Régulation">Marché</a>
+    <a href="#impact" data-tab="impact" data-name="Impact" data-help="Impact|Mesures archivées, dénominateurs et limites">Impact</a>
+    <a href="#details" data-tab="details" data-name="Détails" data-help="Détails|Des décisions aux preuves : provenance, journal, portique et mesures">Détails</a>
     <span class="line" aria-hidden="true"></span>
   </div>
-  <div class="bank"><span id="conn"></span>Bank<span class="box lamp calm" id="light">-</span></div>
+  <div class="bank"><span id="conn"></span>Banque<span class="box lamp calm" id="light">-</span></div>
 </nav>
 <main>
   <section id="impact" hidden></section>
@@ -219,7 +221,7 @@
   <section id="metrics" hidden></section>
   <section id="improve" hidden></section>
 </main>
-<dialog class="glass" id="dlg"><button type="button" class="x" aria-label="Close" onclick="dlg.close()">×</button><div class="in" id="detail"></div></dialog>
+<dialog class="glass" id="dlg"><button type="button" class="x" aria-label="Fermer" onclick="dlg.close()">×</button><div class="in" id="detail"></div></dialog>
 <div class="toast" id="toast" hidden></div>
 <script src="/dashboard/dashboard.js"></script>
 <script src="/console/static/helper.js"></script>

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>La Vigie · la tour de contrôle des agents IA bancaires</title>
-<meta name="description" content="La Vigie voit ce qu'aucun agent ne voit : la provenance de chaque donnée, les cumuls entre agents et la contagion d'une faille, et s'interpose avant chaque action irréversible.">
+<title>Argus · Krys, la tour de contrôle des agents IA bancaires</title>
+<meta name="description" content="Krys voit ce qu'aucun agent ne voit : la provenance de chaque donnée, les cumuls entre agents et la contagion d'une faille, et s'interpose avant chaque action irréversible.">
 <link rel="icon" id="favicon">
 <link rel="stylesheet" href="/console/static/tokens.css">
 <style>
@@ -26,6 +26,8 @@
   .btn:active { transform: scale(.98); }
   .btn svg { width: 15px; height: 15px; transition: transform .25s var(--ease); }
   .btn:hover svg { transform: translateX(3px); }
+  /* a name keeps its case in a label set in capitals: Krys is never written KRYS */
+  .name { text-transform: none; letter-spacing: 0; }
   .btn.soft { background: var(--wash-2); color: var(--text); } .btn.soft:hover { background: var(--b1); }
   .btn.small { height: 38px; padding: 0 14px; font-size: 11.5px; }
   .marker { display: inline-flex; align-items: center; gap: 10px; margin: 0; color: var(--dim); font: 500 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
@@ -226,11 +228,11 @@
 </head>
 <body>
 <header class="nav" id="nav">
-  <a class="logo" href="#top" aria-label="La Vigie, haut de page"><span class="mark" aria-hidden="true"></span>La Vigie</a>
+  <a class="logo" href="#top" aria-label="Argus, haut de page"><span class="mark" aria-hidden="true"></span>Argus</a>
   <a class="link" href="#produit">Le produit</a>
   <a class="link" href="#recit">Le récit</a>
   <a class="link" href="#recit" data-card="6">Les résultats</a>
-  <a class="btn small" href="/dashboard">Console live <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a>
+  <a class="btn small" href="/dashboard">Console en direct <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a>
 </header>
 
 <main id="top">
@@ -239,13 +241,13 @@
     <div class="hero-copy">
       <p class="marker">Tour de contrôle des agents IA bancaires</p>
       <h1 id="h1">Chaque agent respecte ses règles. <span>Personne ne surveille la banque.</span></h1>
-      <p class="lead">La Vigie voit ce qu'aucun agent ne voit : d'où vient chaque donnée, ce que les agents cumulent ensemble, comment une faille IT se propage jusqu'au virement. Et elle s'interpose avant chaque action irréversible.</p>
+      <p class="lead">Krys voit ce qu'aucun agent ne voit : d'où vient chaque donnée, ce que les agents cumulent ensemble, comment une faille IT se propage jusqu'au virement. Et elle s'interpose avant chaque action irréversible.</p>
       <div class="ctas">
-        <a class="btn" href="#produit">Voir la Vigie à l'œuvre <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a>
+        <a class="btn" href="#produit">Voir <span class="name">Krys</span> à l'œuvre <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a>
         <a class="btn soft" href="#recit">Lire le récit en 9 fiches</a>
       </div>
     </div>
-    <div class="stats" aria-label="Le scénario PHP2Shell, sans puis avec la Vigie">
+    <div class="stats" aria-label="Le scénario PHP2Shell, sans protection puis avec Krys">
       <div class="stat"><b data-fig="fraud" data-count>2,85 M€</b><span>de fraude au virement bloquée</span></div>
       <div class="stat"><b data-fig="ops">26 → 0</b><span>opérations contaminées exécutées</span></div>
       <div class="stat"><b data-fig="early" data-count>10 s</b><span id="early-label">de détection avant la compromission</span></div>
@@ -256,9 +258,9 @@
   <section class="product" id="produit" aria-label="Le produit">
     <div class="window">
       <div class="window-bar"><i></i><i></i><i></i><span>localhost:8000/dashboard · Simulation</span><a href="/dashboard#simulation">Ouvrir en plein écran ↗</a></div>
-      <iframe src="/dashboard?embed=simulation" title="La Vigie, simulation 3D du scénario PHP2Shell" loading="lazy"></iframe>
+      <iframe src="/dashboard?embed=simulation" title="Argus, simulation 3D du scénario PHP2Shell" loading="lazy"></iframe>
     </div>
-    <p class="caption"><span><b>Le vrai produit, pas une maquette.</b> La journée PHP2Shell rejouée depuis le banc A/B : dans <b>Settings</b>, basculez entre <b>Ours</b> (avec la Vigie) et <b>Theirs</b> (sans).</span><span>Survolez un agent pour voir ses liens, faites tourner la scène à la souris.</span></p>
+    <p class="caption"><span><b>Le vrai produit, pas une maquette.</b> La journée PHP2Shell rejouée depuis le banc d'essai : à gauche les <b>contrôles classiques</b>, à droite <b>Krys</b> ; les <b>Réglages</b> changent de scénario ou de vue.</span><span>Survolez un agent pour voir ses liens, faites tourner la scène à la souris.</span></p>
   </section>
 
   <section class="story" id="recit" aria-labelledby="story-title">
@@ -268,7 +270,7 @@
       <p class="sub">Neuf fiches, une journée. Glissez-les, ou utilisez les flèches de votre clavier.</p>
     </div>
 
-    <div class="deck" id="deck" role="region" aria-roledescription="carrousel" aria-label="Le récit de la Vigie">
+    <div class="deck" id="deck" role="region" aria-roledescription="carrousel" aria-label="Le récit d'Argus">
       <article class="card" data-tone="calm" role="group" aria-roledescription="fiche" aria-label="1 sur 9 : Le décor">
         <div class="inner">
           <div class="copy">
@@ -346,12 +348,12 @@
         </div>
       </article>
 
-      <article class="card" data-tone="vigie" role="group" aria-roledescription="fiche" aria-label="5 sur 9 : La Vigie">
+      <article class="card" data-tone="vigie" role="group" aria-roledescription="fiche" aria-label="5 sur 9 : Krys">
         <div class="inner">
           <div class="copy">
-            <p class="kicker"><b>05</b> La Vigie</p>
+            <p class="kicker"><b>05</b> <span class="name">Krys</span></p>
             <h3>Une seule vue sur la banque, <span>quatre couches de contrôle.</span></h3>
-            <p>La Vigie écoute tous les messages du bus et l'état de chaque service. Elle reconstruit la provenance de chaque décision et confronte ce que disent les agents à ce qu'elle mesure elle-même.</p>
+            <p>Krys écoute tous les messages du bus et l'état de chaque service. Elle reconstruit la provenance de chaque décision et confronte ce que disent les agents à ce qu'elle mesure elle-même.</p>
             <ul class="facts">
               <li><span><b>Identité</b> : signatures HMAC, faux agents rejetés</span></li>
               <li><span><b>Règles</b> : les limites, cumulées entre agents</span></li>
@@ -376,7 +378,7 @@
           <div class="copy">
             <p class="kicker"><b>06</b> Le portique</p>
             <h3>Rien d'irréversible <span>sans son feu vert.</span></h3>
-            <p>Avant chaque ordre au marché et chaque virement, l'exécuteur demande l'approbation de la Vigie. Une opération dont la provenance traverse un service suspect est refusée, avec la chaîne de messages comme preuve.</p>
+            <p>Avant chaque ordre au marché et chaque virement, l'exécuteur demande l'approbation de Krys. Une opération dont la provenance traverse un service suspect est refusée, avec la chaîne de messages comme preuve.</p>
             <ul class="facts">
               <li><span>Décision en <b data-fig="p50">12,7 ms</b> (p50), <span data-fig="p99">23,4 ms</span> (p99)</span></li>
               <li><span>Déterministe : un LLM auditeur peut alerter, jamais approuver</span></li>
@@ -386,7 +388,7 @@
           <figure class="art">
             <svg class="gate" viewBox="0 0 456 330" aria-hidden="true">
               <defs><linearGradient id="gateGlow" x1="0" x2="1"><stop offset="0" stop-color="#2B6BFF" stop-opacity="0"/><stop offset=".5" stop-color="#2B6BFF" stop-opacity=".18"/><stop offset="1" stop-color="#2B6BFF" stop-opacity="0"/></linearGradient></defs>
-              <text class="cap" x="262" y="34">PORTIQUE · VIGIE</text>
+              <text class="cap" x="262" y="34">PORTIQUE</text>
               <rect class="glow" x="232" y="50" width="60" height="236"/>
               <rect class="post" x="260.5" y="50" width="3" height="236"/>
               <g class="msg ok" style="--d:0s"><rect x="20" y="78" width="132" height="30" rx="2"/><text x="40" y="97">ordre · ACME</text></g>
@@ -404,7 +406,7 @@
           <div class="copy">
             <p class="kicker"><b>07</b> Les résultats</p>
             <h3>Même graine, même horloge. <span>Deux mondes.</span></h3>
-            <p>On rejoue la journée PHP2Shell deux fois, sans la Vigie puis avec. Rien d'autre ne change que le portique.</p>
+            <p>On rejoue la journée PHP2Shell deux fois, sans protection puis avec Krys. Rien d'autre ne change que le portique.</p>
             <ul class="facts">
               <li><span>Opérations contaminées exécutées : <b data-fig="ops">26 → 0</b></span></li>
               <li><span>Compromission repérée <b data-fig="early">10 s</b> en avance, dès la publication de la CVE</span></li>
@@ -413,8 +415,8 @@
           </div>
           <figure class="art" style="align-content:center">
             <div class="ab" aria-hidden="true">
-              <div class="col"><span class="capt">Sans la Vigie</span><div class="pillar"><i id="bar-without" style="--h:1"></i></div><b data-fig="without">−2,88 M€</b></div>
-              <div class="col with"><span class="capt">Avec la Vigie</span><div class="pillar"><i id="bar-with" style="--h:.31"></i></div><b data-fig="with">−0,88 M€</b></div>
+              <div class="col"><span class="capt">Sans protection</span><div class="pillar"><i id="bar-without" style="--h:1"></i></div><b data-fig="without">−2,88 M€</b></div>
+              <div class="col with"><span class="capt">Avec <span class="name">Krys</span></span><div class="pillar"><i id="bar-with" style="--h:.31"></i></div><b data-fig="with">−0,88 M€</b></div>
             </div>
             <div class="trio">
               <div><b data-fig="fraud">2,85 M€</b><span>fraude bloquée</span></div>
@@ -432,7 +434,7 @@
             <h3>Le LLM juge. <span>Python décide.</span></h3>
             <p>Chaque limite est un <code>if</code> Python, jamais une consigne de prompt. Chaque décision est écrite dans un journal append-only chaîné par hash, vérifiable après coup.</p>
             <ul class="facts">
-              <li><span>Si la Vigie tombe, chaque agent passe seul en orange : plus rien d'irréversible</span></li>
+              <li><span>Si Krys tombe, chaque agent passe seul en orange : plus rien d'irréversible</span></li>
               <li><span><code>make verify</code> revérifie toute la chaîne du journal</span></li>
               <li><span>Aucun code vulnérable, aucun exploit, aucun vrai argent</span></li>
             </ul>
@@ -461,9 +463,9 @@
           <div class="copy">
             <p class="kicker"><b>09</b> À vous</p>
             <h3>Lancez l'attaque <span>vous-même.</span></h3>
-            <p>Toute la banque tourne en local, un processus par agent. Lancez-la, injectez le scénario PHP2Shell, et regardez la Vigie réagir en direct dans la console.</p>
+            <p>Toute la banque tourne en local, un processus par agent. Lancez-la, injectez le scénario PHP2Shell, et regardez Krys réagir en direct dans la console.</p>
             <div class="ctas">
-              <a class="btn" href="/dashboard">Ouvrir la console live <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a>
+              <a class="btn" href="/dashboard">Ouvrir la console en direct <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a>
               <a class="btn soft" href="/dashboard#simulation">Simulation 3D</a>
             </div>
           </div>
@@ -490,7 +492,7 @@
     <p class="marker">La démo</p>
     <h2 id="close-title">Le reste se voit <span>en direct.</span></h2>
     <div class="ctas">
-      <a class="btn" href="/dashboard">Ouvrir la console live <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a>
+      <a class="btn" href="/dashboard">Ouvrir la console en direct <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a>
       <a class="btn soft" href="#recit">Relire le récit</a>
     </div>
   </section>
@@ -498,8 +500,8 @@
 </main>
 
 <footer>
-  <a class="logo" href="#top"><span class="mark" aria-hidden="true"></span>La Vigie</a>
-  <p>Banque Horizon est fictive : aucun vrai argent, aucune vraie donnée, aucun code vulnérable. « Compromis » est un mode des services simulés qui altère les données renvoyées. Chiffres : banc A/B du <span data-fig="when">23 octobre 2026</span>, scénario php2shell_day, graine 42, même horloge pour les deux mondes.</p>
+  <a class="logo" href="#top"><span class="mark" aria-hidden="true"></span>Argus</a>
+  <p>La banque simulée est fictive : aucun vrai argent, aucune vraie donnée, aucun code vulnérable. « Compromis » est un mode des services simulés qui altère les données renvoyées. Chiffres : banc d'essai du <span data-fig="when">23 octobre 2026</span>, scénario php2shell_day, graine 42, même horloge pour les deux mondes.</p>
   <nav aria-label="Liens"><a href="/dashboard">Console</a><a href="/dashboard#simulation">Simulation 3D</a></nav>
 </footer>
 
