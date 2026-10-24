@@ -51,13 +51,17 @@ def test_conformite_dom_xss_badges_draft_and_minimal_connections():
     result = subprocess.run(['node', str(ROOT/'tests/console_conformite_dom.cjs'),
                              str(ROOT/'vigie/console/conformite.js')], capture_output=True, text=True, timeout=15)
     assert result.returncode == 0, result.stdout + result.stderr
-    # Édouard a retiré l'onglet Conformité et ses badges au survol (24/10) : le module reste disponible pour la page
-    # Régulation de l'équipe, mais aucune page de la console ni de la démo ne le charge plus.
+    # La Conformité vit dans l'espace Régulation (onglet par défaut), sans comparaison : ni la console ni la Simulation
+    # ne la chargent, et ses badges au survol (retirés par Édouard le 24/10) ne reviennent pas.
     page = (ROOT/'vigie/dashboard.html').read_text()
     assert 'data-tab="conformite"' not in page and 'id="conformite"' not in page
     assert '/console/conformite/conformite.js' not in page
     demo = (ROOT/'vigie/demo_page.html').read_text()
     assert 'id="conformite-resume"' not in demo and '/console/conformite/conformite.js' not in demo
+    regulation = (ROOT/'vigie/regulation.html').read_text()
+    assert '<section id="conformite" data-adopted="1"' in regulation
+    assert regulation.count('<script src="/console/conformite/conformite.js"></script>') == 1
+    assert '<a href="#conformite" data-sub="conformite">Conformité</a>' in regulation
 
 
 def test_dora_button_question_reuses_signed_chat_draft_without_human_command():

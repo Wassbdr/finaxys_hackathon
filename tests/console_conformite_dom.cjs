@@ -29,7 +29,10 @@ const attack = '<img src=x onerror="globalThis.pwned=true"><script>boom()</scrip
   assert(!root.all().some(n => n.href?.startsWith('javascript:')));
   assert(root.all().some(n => n.tagName === 'button' && n.textContent === 'Préparer la notification DORA'));
   const compact = doc.createElement('details'); ui.render(compact, data, true);
-  assert(compact.all().some(n => n.href === '/dashboard#conformite'));
+  assert(compact.all().some(n => n.href === '/regulation#conformite'));
+  // l'espace Régulation d'une banque qui a adopté Argus ne compare pas : la comparaison vit dans la Simulation
+  const adopted = doc.createElement('div'); adopted.dataset = {adopted: '1'}; ui.render(adopted, data);
+  assert(!adopted.textContent.includes('Contrôles classiques :') && adopted.textContent.includes('Argus :'));
   assert(compact.textContent.includes('Limite :'));
   const actions = doc.createElement('div'), row = doc.createElement('tr'), cell = doc.createElement('td'); row.append(cell); actions.append(row);
   ui.decorate(actions, data.badges); ui.decorate(actions, data.badges);
@@ -56,6 +59,6 @@ const attack = '<img src=x onerror="globalThis.pwned=true"><script>boom()</scrip
   // Sans fichier de mesure, aucun état vert ne doit être inventé.
   ids.conformite = doc.createElement('div');
   await ui.mount(doc, async () => ({ok: false}));
-  assert(!ids.conformite.textContent.includes('✅'));
+  assert(!ids.conformite.textContent.includes('Couvert dans la démo'));
   assert(ids.conformite.textContent.includes('indisponibles'));
 })().catch(error => { console.error(error); process.exitCode = 1; });

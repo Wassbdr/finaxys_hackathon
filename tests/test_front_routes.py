@@ -133,3 +133,19 @@ def test_the_console_reads_the_krys_bank_and_says_live_or_replay():
     html = (ROOT/'vigie/dashboard.html').read_text()
     assert '<a href="/console" aria-current="page">Console</a>' in html and '<a href="/regulation">Régulation</a>' in html
     assert 'id="mode"' in html and 'id="light"' in html and 'id="waiting"' in html
+
+
+def test_regulation_serves_compliance_and_sentinel_in_argus_colours():
+    c = client()
+    page = c.get('/regulation').text
+    assert '/console/conformite/conformite.js' in page and 'data-src="/pages/sentinel"' in page
+    for resource in ('/console/conformite/conformite.js', '/console/conformite/data/conformite.json', '/console/static/sentinel.css'):
+        assert c.get(resource).status_code == 200, resource
+    sentinel = c.get('/pages/sentinel')
+    assert sentinel.status_code == 200 and sentinel.headers['content-type'].startswith('text/html')
+    assert 'fonts.googleapis' not in sentinel.text and 'fonts.gstatic' not in sentinel.text
+    assert sentinel.text.count('/console/static/sentinel.css') == 1
+    assert sentinel.text.index('</style>') < sentinel.text.index('/console/static/sentinel.css')
+    # the colleague's file itself does not change
+    assert 'fonts.googleapis' in (ROOT/'vendor/sentinel/docs/sentinel-demo.html').read_text()
+    assert c.get('/pages/other').status_code == 404

@@ -1,7 +1,7 @@
 # Argus — onglet Conformité
 
-Base `f9c9d9107715e4803786fc59e835cf559de4306c`. Accès : `/dashboard#conformite` ;
-résumé repliable dans `/demo/page`. Le module possède ses fichiers et ne modifie
+Base `f9c9d9107715e4803786fc59e835cf559de4306c`. Accès : `/regulation#conformite`,
+onglet par défaut de l'espace Régulation, sans la colonne de comparaison aux contrôles classiques. Le module possède ses fichiers et ne modifie
 pas `dashboard.js`. Trois lignes raccordent l’onglet à `dashboard.html`, deux à
 la démo ; trois lignes raccordent les ressources publiques à `api/app.py`.
 

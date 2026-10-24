@@ -8,23 +8,65 @@
 <link rel="stylesheet" href="/console/static/tokens.css">
 <link rel="stylesheet" href="/console/static/header.css">
 <style>
-  /* L'espace Régulation, provisoire : la page Sentinel du collègue (détection d'abus de marché) sous l'en-tête commun
-     (header.css). L'onglet Conformité et le feu de la banque arrivent avec la page définitive. */
+  /* L'espace Régulation, sous l'en-tête commun (header.css) : la Conformité d'Argus (DORA, AI Act, MiFID RTS 6, le
+     brouillon de notification DORA) et le Marché, la page Sentinel du collègue aux couleurs d'Argus. */
   * { box-sizing: border-box; }
   html { color-scheme: light; }
   body { margin: 0; font: 14px/1.5 var(--sans); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
   ::selection { background: var(--b2); }
-  .colleague-page iframe { display: block; width: 100%; height: calc(100vh - var(--menu)); border: 0; background: var(--surface); }
+  [hidden] { display: none !important; }
+  .subtabs { display: flex; gap: 4px; padding: 0 24px; border-bottom: 1px solid var(--line); background: var(--bg); }
+  .subtabs a { padding: 12px 14px 10px; border-bottom: 2px solid transparent; color: var(--dim); text-decoration: none; font-size: 15px; }
+  .subtabs a:hover, .subtabs a[aria-current] { color: var(--text); }
+  .subtabs a[aria-current] { font-weight: 500; border-bottom-color: var(--blue); }
+  .subtabs a:focus-visible { outline: 3px solid rgb(31 91 255 / .35); outline-offset: -3px; }
+  #conformite { max-width: 1120px; margin: 0 auto; padding: 24px 32px 64px; }
+  .s-green { --c: var(--green); } .s-orange { --c: var(--orange); } .s-red { --c: var(--red); }
+  .colleague-page iframe { display: block; width: 100%; height: calc(100vh - var(--menu) - 46px); border: 0; background: var(--surface); }
 </style>
 </head>
 <body>
 <header class="top">
   <a class="brand" href="/" aria-label="Argus, page de présentation"><svg viewBox="0 0 11 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="5" y="0" width="1" height="1" fill="#A8C8FF"/><rect x="0" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="4" y="1" width="3" height="1" fill="#6AA6FF"/><rect x="9" y="1" width="2" height="1" fill="#6AA6FF"/><rect x="5" y="2" width="1" height="1" fill="#2B6BFF"/><rect x="4" y="3" width="3" height="1" fill="#1446C8"/><rect x="4" y="4" width="3" height="1" fill="#0B2A6F"/><rect x="3" y="5" width="5" height="2" fill="#0B2A6F"/><rect x="2" y="7" width="7" height="1" fill="#081B45"/></svg><span>Argus</span></a>
   <nav class="spaces" aria-label="Espaces d'Argus"><a href="/simulation">Simulation</a><a href="/console">Console</a><a href="/regulation" aria-current="page">Régulation</a></nav>
+  <div class="bank"><span class="mode" id="mode"></span>Banque<span class="box lamp calm" id="light">-</span></div>
 </header>
+<nav class="subtabs" aria-label="Rubriques de la Régulation">
+  <a href="#conformite" data-sub="conformite">Conformité</a>
+  <a href="#marche" data-sub="marche">Marché · Sentinel</a>
+</nav>
 <main>
-  <section id="marche" class="colleague-page" data-src="/pages/sentinel" aria-label="Marché : Sentinel, la détection d'abus de marché"></section>
+  <section id="conformite" data-adopted="1" aria-label="Conformité : DORA, AI Act, MiFID RTS 6"><p>Chargement de la matrice de conformité…</p></section>
+  <section id="marche" hidden class="colleague-page" data-src="/pages/sentinel" aria-label="Marché : Sentinel, la détection d'abus de marché"></section>
 </main>
+<script>
+  "use strict";
+  // Two parts, Conformité by default; an address names one. Sentinel loads only once its part shows (colleague-pages.js).
+  {
+    const subs = [...document.querySelectorAll("[data-sub]")];
+    const show = () => {
+      const want = subs.some(a => a.dataset.sub === location.hash.slice(1)) ? location.hash.slice(1) : "conformite";
+      for (const a of subs) a.toggleAttribute("aria-current", a.dataset.sub === want);
+      for (const id of ["conformite", "marche"]) document.getElementById(id).hidden = id !== want;
+    };
+    show();
+    addEventListener("hashchange", show);
+    // the common header: live or a recording, and the light of the Krys bank (world C of the three-bank demo)
+    const light = async () => {
+      const get = url => fetch(url, {cache: "no-store"}).then(r => (r.ok ? r.json() : null), () => null);
+      const h = await get("/health"), s = h && await get("/state" + (h.worlds?.includes("C") ? "?world=C" : ""));
+      const mode = document.getElementById("mode"), lamp = document.getElementById("light");
+      mode.textContent = !s ? "" : h.mode === "replay" ? "Rejeu" : "Direct";
+      mode.className = s && h.mode !== "replay" ? "mode live" : "mode";
+      const c = {VERT: "green", ORANGE: "orange", ROUGE: "red"}[s?.light?.light];
+      lamp.parentElement.hidden = !s;
+      lamp.className = !c || c === "green" ? "box lamp calm" : `box lamp s-${c}`;
+      lamp.textContent = !c ? "-" : c === "green" ? "normal" : {ORANGE: "orange", ROUGE: "rouge"}[s.light.light];
+    };
+    light(); setInterval(light, 5000);
+  }
+</script>
 <script src="/console/colleague-pages.js"></script>
+<script src="/console/conformite/conformite.js"></script>
 </body>
 </html>
