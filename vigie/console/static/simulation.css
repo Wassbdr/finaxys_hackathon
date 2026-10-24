@@ -1,7 +1,7 @@
 /* The Simulation's 3D scene (simulation.js), moved from the console's stylesheet when the Simulation got its own page.
-   Its Settings box stands in a row of its own above the scene, so that it hides neither the page's menu nor the titles
-   of the scene's two sides; the scene fills the window under the menu once scrolled to. */
-#simulation { position: relative; padding-top: 44px; }
+   Its Simulation button stands over the scene's top left, above the Settings box, on one line with the titles of the
+   scene's two sides (Marius, 24-10); the scene fills the window under the menu once scrolled to. */
+#simulation { position: relative; }
 #simulation .empty { color: var(--faint); margin: 0; }
 #simulation .chip { font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 2px; color: var(--c, var(--dim)); background: color-mix(in srgb, var(--c, #7D8696) 10%, white); }
 @keyframes pop { from { opacity: 0; scale: .97; } }
@@ -9,7 +9,7 @@
 /* The recon dashboard's Settings box (recon-v3-mr/web: helper.tsx Settings and Choice, map.tsx Fold, globals.css
    .fold): above the scene and under the popups; 100 px folded, 236 px under the pointer, with the keyboard in it or
    pinned, its body unrolling in .3 s; the body keeps the open width so that its lines do not wrap while it opens */
-.settings { position: absolute; top: 4px; left: 0; z-index: 40; border-radius: 4px; background: var(--surface); box-shadow: var(--lift); }
+.settings { position: absolute; top: 44px; left: 0; z-index: 40; border-radius: 4px; background: var(--surface); box-shadow: var(--lift); }
 .fold { position: relative; display: flex; flex-direction: column; width: 100px; overflow: hidden; border-radius: 4px; border: 1px solid var(--line-2);
   background: var(--surface); color: var(--dim); transition: width .3s ease-out; }
 .fold-head { display: flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 14px; line-height: 1.25; font-weight: 500; white-space: nowrap; }
@@ -35,12 +35,12 @@
 @media (max-width: 639px) { .settings { display: none; } }
 @media (prefers-reduced-motion: reduce) { .fold, .fold-body, .fold-pin { transition: none; } }
 /* the window's two sides, each under its title, and a soft line between them (Marius, 24-10) */
-.sim-side { position: absolute; z-index: 1; top: 24px; left: 24px; margin: 0; pointer-events: none; white-space: nowrap;
+.sim-side { position: absolute; z-index: 1; top: 4px; left: 116px; margin: 0; line-height: 32px; pointer-events: none; white-space: nowrap;
   font-size: 20px; font-weight: 400; letter-spacing: -.02em; color: var(--text); }
 .duo .sim-side.ours { left: calc(50% + 24px); }
 /* what each Vigie refused last, on the left of its side, the one before fading out as it fades in, in the same place
    (Marius, 24-10) */
-.sim-refused { position: absolute; z-index: 1; top: 10%; left: 24px; display: grid; max-width: 360px; margin: 0; padding: 0; list-style: none;
+.sim-refused { position: absolute; z-index: 1; top: calc(10% + 44px); left: 24px; display: grid; max-width: 360px; margin: 0; padding: 0; list-style: none;
   font-size: 12px; line-height: 1.35; pointer-events: none; }
 .duo .sim-refused.ours { left: calc(50% + 24px); }
 .sim-refused:empty { display: none; }
@@ -54,9 +54,9 @@
 .sim-refused span span { white-space: nowrap; }
 .sim-refused .chip { border-radius: 999px; }
 /* what each side's Vigie kept from being lost so far, in its top right corner (Marius, 24-10) */
-.sim-saved { position: absolute; z-index: 1; top: 24px; right: calc(50% + 24px); margin: 0; text-align: right; font-size: 12px; color: var(--dim); pointer-events: none; }
+.sim-saved { position: absolute; z-index: 1; top: 4px; right: calc(50% + 24px); margin: 0; text-align: right; font-size: 12px; color: var(--dim); pointer-events: none; }
 .sim-saved.ours { right: 24px; }
-.sim-saved b { display: block; font-size: 20px; font-weight: 400; letter-spacing: -.02em; color: var(--text); font-variant-numeric: tabular-nums; }
+.sim-saved b { display: block; font-size: 20px; line-height: 32px; font-weight: 400; letter-spacing: -.02em; color: var(--text); font-variant-numeric: tabular-nums; }
 .sim-saved.worse b { color: var(--red); }
 /* each side's scene: a layer over the whole window, clipped to its half (simulation.js) */
 .sim-view { position: absolute; inset: 0; }
@@ -64,14 +64,14 @@
 .duo .sim-view.classic { clip-path: inset(0 50% 0 0); }
 /* Krys alone until the Simulation button, beside the Settings, brings the classic controls in (Marius, 24-10) */
 .sim-stage:not(.duo) :is(.sim-view, .sim-side, .sim-refused, .sim-saved):not(.ours) { visibility: hidden; }
-.sim-duo { position: absolute; top: 4px; left: 112px; z-index: 30; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--line-2);
+.sim-duo { position: absolute; top: 4px; left: 0; z-index: 30; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--line-2);
   background: var(--surface); color: var(--dim); font: 500 14px/1.25 var(--sans); cursor: pointer; }
 .sim-duo:hover { color: var(--text); }
 .sim-duo[aria-pressed=true] { background: var(--text); color: #fff; }
 .sim-stage.duo::before { content: ""; position: absolute; left: 50%; top: 10%; height: 60%; border-left: 1px solid var(--line); pointer-events: none; }
-.sim-stage { position: relative; height: calc(100dvh - var(--menu) - 44px); overflow: hidden;
+.sim-stage { position: relative; height: calc(100dvh - var(--menu)); overflow: hidden;
   background: radial-gradient(70% 60% at 50% 40%, rgb(31 91 255 / .08), transparent 70%), var(--bg); }
-.embed .sim-stage { height: calc(100dvh - 44px); }
+.embed .sim-stage { height: 100dvh; }
 .sim-stage canvas { display: block; }
 .sim-stage .sim-2d { position: absolute; inset: 0; width: 100%; height: 100%; }
 .sim-labels { position: absolute; inset: 0; pointer-events: none; }

@@ -96,7 +96,7 @@ const ui = { sc: sec.querySelector("#sim-sc"), play: sec.querySelector("#sim-pla
 // width; Krys alone takes the whole window until the Simulation button brings the classic controls in on the left
 // half, Krys moving to the right one (Marius, 24-10)
 const stage = document.createElement("div"), VIGIE = SIDE ? "Contrôles classiques" : "Krys";
-let MID = SIDE ? 0.25 : 0.5, WIDE = SIDE ? 0.5 : 1, duo = false, LIFT = 0, relift = false;
+let MID = SIDE ? 0.25 : 0.5, WIDE = SIDE ? 0.5 : 1, duo = false, LIFT = 0, relift = 0, grow = 1, tall = false;
 stage.className = "sim-view " + (SIDE ?? "ours");
 sec.querySelector(".sim-stage").prepend(stage);
 
@@ -746,13 +746,14 @@ export function frameAll(start) {
   Object.assign(MAP, { x0: Math.min(...xs) - 3, x1: Math.max(...xs.map(x => x + 3), ...pads.map(p => p.x + p.hx + p.r + 3.5)), z0: Math.min(...zs) - 4, z1: Math.max(...zs) + 4.5 });
   fit2d(stage.clientWidth, stage.clientHeight);
   if (set.display === "2D" && !start) return;
-  const pts = ids.flatMap(id => [[-1.5, 0, 0], [1.5, 0, 0], [0, 0, -1.5], [0, 0, 1.5], [0, id === "vigie" ? 4.5 : 2.5, 0]]
-    .map(([x, y, z]) => world.localToWorld(v(POS[id][0] + x, y, POS[id][1] + z))));
+  const pts = ids.flatMap(id => [[-1.5, 0, 0], [1.5, 0, 0], [0, 0, -1.5], [0, 0, 1.5], [0, id === "vigie" ? 6.45 : 2.5, 0]]
+    .map(([x, y, z]) => world.localToWorld(v(POS[id][0] + x * SIZE, y * SIZE, POS[id][1] + z * SIZE))));
+  const [a, b] = band();
   const c = new THREE.Box3().setFromPoints(pts).getCenter(v(0, 0, 0)), dir = camera.position.clone().sub(controls.target).normalize(), cam = camera.clone();
   const tan = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)), right = v(0, 0, 0), up = v(0, 0, 0);
   let d = 40;
   // the distance at which the points span 45% of the screen's width (90% for Krys alone), so that with their names
-  // everything takes at most its share of it, and 65% of its height, the top and bottom agents getting more room (Marius, 24-10), and the aim that centres them in its half: seen at an angle, the near agents look
+  // everything takes at most its share of it, and the height of band() but the lowest name's line (Marius, 24-10), and the aim that centres them in its half: seen at an angle, the near agents look
   // bigger than the far ones, so the middle of the box is not the middle of the picture; found in a few steps
   for (let i = 0; i < 6; i++) {
     cam.position.copy(dir).multiplyScalar(d).add(c);
@@ -763,9 +764,13 @@ export function frameAll(start) {
     right.setFromMatrixColumn(cam.matrixWorld, 0);
     up.setFromMatrixColumn(cam.matrixWorld, 1);
     c.addScaledVector(right, ((x0 + x1) / 2 - (2 * MID - 1)) * d * tan * cam.aspect).addScaledVector(up, ((y0 + y1) / 2 - (2 * LIFT) / stage.clientHeight) * d * tan);
-    d *= Math.max((x1 - x0) / 2 / (0.9 * WIDE), (y1 - y0) / 2 / 0.65);
+    const wide = (x1 - x0) / 2 / (0.9 * WIDE), high = (y1 - y0) / 2 / ((grow * (b - a - 16)) / stage.clientHeight);
+    d *= Math.max(wide, high);
+    tall = high >= wide;
   }
-  relift = true;
+  // the wheel's limit would hold the camera nearer than the framing
+  controls.maxDistance = Math.max(80, d);
+  relift ||= 3;
   goal = { target: c, pos: dir.multiplyScalar(d).add(c) };
   if (start) return camera.position.copy(goal.pos), controls.target.copy(goal.target), (goal = null);
   set.view = null;
@@ -782,6 +787,7 @@ load(ui.sc.value);
 // the camera still turning about the middle of the scene, and only that share is drawn
 function place(w = stage.clientWidth, h = stage.clientHeight) {
   fit2d(w, h);
+  camera.aspect = w / h;
   camera.setViewOffset(w, h, w * (0.5 - MID), LIFT, w, h);
   renderer.setScissor((MID - WIDE / 2) * w, 0, WIDE * w, h);
 }
@@ -888,15 +894,18 @@ function fit2d(w, h) {
   Object.assign(flat, { width: w * dpr, height: h * dpr });
   g2.setTransform(dpr, 0, 0, dpr, 0, 0);
   // a little further out than the agents' own box, and no wider than half the screen, as in 3D (Marius, 24-10)
-  s2 = Math.min((WIDE * w) / (MAP.x1 - MAP.x0), (0.85 * h) / (MAP.z1 - MAP.z0));
-  // the top agent's ring (MAP keeps 4 of margin, the widest ring is 1.6) at topGap()
-  o2 = [MID * w - ((MAP.x0 + MAP.x1) / 2) * s2, topGap() - (MAP.z0 + 4 - 1.6 * SIZE) * s2];
+  // from the top agent's ring to the lowest service's name, 17 px under its box, in the middle of band()
+  const [a, b] = band(), top = MAP.z0 + 4 - 1.3 * SIZE, bottom = MAP.z1 - 4.5 + 0.65 * SIZE;
+  s2 = Math.min((WIDE * w) / (MAP.x1 - MAP.x0), (b - a - 17) / (bottom - top));
+  o2 = [MID * w - ((MAP.x0 + MAP.x1) / 2) * s2, (a + b - 17) / 2 - ((top + bottom) / 2) * s2];
 }
-// the graph's top 6% of the window's diagonal under the menu as the page opens (Marius, 24-10), in the scene's pixels;
-// a scene further down the page, under a demo's figures, starts its graph just under its top
-function topGap() {
-  const menu = document.querySelector("header.top")?.offsetHeight ?? 0;
-  return Math.max(8, menu + 0.06 * Math.hypot(innerWidth, innerHeight) - (stage.getBoundingClientRect().top + scrollY));
+// the band the graph fills, in the scene's pixels: the window under the menu as the page opens but 3% of the window's
+// diagonal above and below, the scene's buttons and titles standing over it (Marius, 24-10); a scene further down the
+// page, under a demo's figures, keeps those margins inside itself
+function band() {
+  const top = stage.getBoundingClientRect().top + scrollY, menu = document.querySelector("header.top")?.offsetHeight ?? 0;
+  const m = 0.03 * Math.hypot(innerWidth, innerHeight), h = stage.clientHeight;
+  return innerHeight - top > h / 2 ? [Math.max(0, menu + m - top), Math.min(h, innerHeight - m - top)] : [m, h - m];
 }
 function flatOn(d) {
   renderer.domElement.hidden = labels.domElement.hidden = d === "2D";
@@ -1256,14 +1265,18 @@ renderer.setAnimationLoop(now => {
     if (camera.position.distanceTo(goal.pos) < 0.05) goal = null;
   }
   controls.update();
-  // once framed, the picture moved up, its size kept, so that its top, the Vigie's lamp, stands at topGap() (Marius,
-  // 24-10)
+  // once framed, the picture moved, its size kept, so that from its top, the Vigie's lamp, to its lowest name it stands
+  // in the middle of band() (Marius, 24-10), a name hanging a line under its anchor; when its height is what limits it,
+  // framed again a time or two first, at the height it misses band() by
   if (relift && !goal) {
-    relift = false;
+    relift--;
     camera.updateMatrixWorld();
-    const tops = tower.visible ? [lamp.getWorldPosition(v(0, 0, 0)).setY(6.45 * SIZE)] : Object.values(nodes).filter(n => n.eyes && n.g.parent === world).map(n => n.g.getWorldPosition(v(0, 0, 0)).setY(2.5 * SIZE));
-    LIFT += ((1 - Math.max(...tops.map(p => p.project(camera).y))) / 2) * stage.clientHeight - topGap();
-    place();
+    const y = p => ((1 - p.project(camera).y) / 2) * stage.clientHeight, shown = Object.values(nodes).filter(n => n.g.parent === world);
+    const tops = tower.visible ? [lamp.getWorldPosition(v(0, 0, 0)).setY(6.45 * SIZE)] : shown.filter(n => n.eyes).map(n => n.g.getWorldPosition(v(0, 0, 0)).setY(2.5 * SIZE));
+    const feet = shown.map(n => y(n.g.children.find(c => c.isCSS2DObject).getWorldPosition(v(0, 0, 0))) + 16), [a, b] = band();
+    const top = Math.min(...tops.map(y)), bottom = Math.max(...feet);
+    if (tall && relift && Math.abs((bottom - top) / (b - a) - 1) > 0.004) (grow *= (b - a) / (bottom - top)), frameAll(true);
+    else (relift = 0), (LIFT += (top + bottom - a - b) / 2), place();
   }
   const unpaint = hoverPaint();
   if (set.display === "2D") draw2d();
