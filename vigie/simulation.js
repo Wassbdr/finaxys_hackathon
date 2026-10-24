@@ -420,13 +420,21 @@ function send(from, to, kind, bad, delay) {
   if (!l || (l.vigie && worldName !== "ours")) return;
   const back = from !== l.a && team(from) !== l.a, q = flying.includes(l.last) && l.last;
   if (q && q.kind === kind && q.back === back && q.bad === !!bad) return;
-  const wait = Math.max(delay, q ? q.dur - q.at : 0);
-  if (wait > delay + 1 / TPS) return;
+  const wait = Math.max(delay, q ? q.dur - q.at : 0), refused = kind === "refuse";
+  if (wait > delay + 1 / TPS && !refused) return;
   const shape = kind === "wire" || kind === "fraud" ? "coin" : kind === "order" || kind === "payment" ? "box" : "dot";
-  const m = mesh(GEO[shape], shine(PLAIN));  // in the page's ink, whatever it carries (Marius, 24-10)
+  // in the page's ink, whatever it carries, but the order the gate is about to refuse, in red and slower (Marius, 24-10)
+  const m = mesh(GEO[shape], shine(refused ? DOT.refuse : PLAIN));
   m.visible = false;
   world.add(m);
-  flying.push((l.last = { m, l, back, from, to, kind, bad: !!bad, at: -wait, dur: Math.min(0.3, 0.12 + l.curve.getLength() / 100) }));
+  flying.push((l.last = { m, l, back, from, to, kind, bad: !!bad, at: -wait, dur: refused ? 0.6 : Math.min(0.3, 0.12 + l.curve.getLength() / 100) }));
+  if (refused) l.curve.getPoint(back ? 1 : 0, m.position), watch(l.last);
+}
+
+// the camera closes in on a refused order's dot and follows it to the gate, then goes back to where it was once the
+// refusal has shown (Marius, 24-10); grabbing the camera calls it off
+function watch(p) {
+  zoom = { p, until: time + 1.5, back: zoom?.back ?? { target: controls.target.clone(), pos: camera.position.clone() } };
 }
 
 function burst(id, color, size = 2) {
@@ -550,11 +558,12 @@ function hud() {
   if (halted) ui.stop.textContent = `Stopped at tick ${halted[0]}: ${halted[2]} · P resumes`;
 }
 
-let goal = null, fit = 1, halted = null;
+let goal = null, fit = 1, halted = null, zoom = null;
 function view(k) {
   const V = VIEWS[k], blobs = Object.values(nodes).filter(n => n.eyes && n.g.parent === world);
   const target = V.on ? blobs.reduce((c, n) => c.add(n.g.position), v(0, 0, 0)).divideScalar(blobs.length).setY(1) : v(-1.5, 0.8, -1);
   goal = { target, pos: v(...V.dir).setLength(V.dist * fit).add(target) };
+  zoom = null;
 }
 // the angle saved with the layout (Layout › Save as default) becomes the default 3/4 view, the distance fitted on load
 // (Marius, 24-10)
@@ -571,6 +580,7 @@ function halt(e) {
   unfly();
   acc = 0;
   halted = e;
+  zoom = null;
   const id = actor(e[2]), n = nodes[id];
   if (set.focus && n && (id !== "vigie" || worldName === "ours")) {
     const target = n.g.getWorldPosition(v(0, 0, 0)).add(v(0, 1, 0));
@@ -653,6 +663,7 @@ addEventListener("keydown", e => {
 // Space fits every agent and service on the screen, the camera keeping its angle, the 2D map refitted to them; the tab
 // opens fitted the same way, both views at once, straight away (Marius, 24-10)
 function frameAll(start) {
+  zoom = null;
   const ids = Object.keys(POS).filter(id => nodes[id] && (id !== "vigie" || worldName === "ours"));
   const xs = ids.map(id => POS[id][0]), zs = ids.map(id => POS[id][1]);
   Object.assign(MAP, { x0: Math.min(...xs) - 3, x1: Math.max(...xs.map(x => x + 3), ...pads.map(p => p.x + p.hx + p.r + 3.5)), z0: Math.min(...zs) - 4, z1: Math.max(...zs) + 4.5 });
@@ -682,7 +693,7 @@ function frameAll(start) {
   set.view = null;
   paint();
 }
-controls.addEventListener("start", () => ((goal = null), (set.view = null), paint()));
+controls.addEventListener("start", () => ((goal = null), (zoom = null), (set.view = null), paint()));
 if (set.sc in F.scenarios) ui.sc.value = set.sc;
 load(ui.sc.value);
 
@@ -1126,6 +1137,11 @@ renderer.setAnimationLoop(now => {
   lamp.material.emissive.setHex(beacon);
   lamp.material.emissiveIntensity = 1.6 + Math.sin(time * 3) * 0.8;
   beam.color.setHex(beacon);
+  if (zoom && flying.includes(zoom.p)) {
+    const t = zoom.p.m.getWorldPosition(v(0, 0, 0));
+    goal = { target: t, pos: camera.position.clone().sub(controls.target).setLength(16 * fit).add(t) };
+    zoom.until = time + 1.5;
+  } else if (zoom && time > zoom.until) (goal = zoom.back), (zoom = null);
   if (goal) {
     controls.target.lerp(goal.target, k);
     camera.position.lerp(goal.pos, k);
