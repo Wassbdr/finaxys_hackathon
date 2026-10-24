@@ -1,0 +1,26 @@
+{
+  "measured_commit": "cf4973abf1e3706be5ef99bf41c450bc9315b136",
+  "historical_commit": "f03a2ad794d349909de15857c03bb8f689366f09",
+  "preregistered_plan": "vigie/surete_utilite_plan.json",
+  "main_seeds": [
+    42,
+    43
+  ],
+  "main_cases": [
+    "php2shell_day",
+    "ledger_legacy",
+    "rumeur_mimetisme",
+    "jour_noir",
+    "dossier_piege",
+    "propre"
+  ],
+  "extra_scenarios": {
+    "dossier_piege": "scenarios/dossier_piege.yaml"
+  },
+  "controller": "vigie.main.Runtime",
+  "classic": "vigie.classique.Classique",
+  "no_threshold_selection": true,
+  "extra_scenario_sha256": {
+    "dossier_piege": "918dfdb6a53eaf21c988cbaadd122420c5f2ed7fb52112d3d84f1beb8c3effe1"
+  }
+}

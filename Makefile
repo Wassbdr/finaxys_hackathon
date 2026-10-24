@@ -109,3 +109,7 @@ cout-panne:
 .PHONY: verify-cout-panne
 verify-cout-panne:
 	HORIZON_NO_LLM=1 $(PY) -m vigie.panne_verify $(RUN)
+
+.PHONY: remesure-fusion
+remesure-fusion:
+	systemd-run --user --wait --collect --pipe -q --working-directory="$(CURDIR)" -p CPUQuota=300% -p MemoryMax=4G nice -n 10 flock -w 172800 "$(HOME)/.cache/tako/banc.lock" tako-court -- $(PY) -m vigie.remesure_fusion $(RUN) --measure --extra
