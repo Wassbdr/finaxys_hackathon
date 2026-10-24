@@ -6,40 +6,29 @@
 <title>La Vigie · la tour de contrôle des agents IA bancaires</title>
 <meta name="description" content="La Vigie voit ce qu'aucun agent ne voit : la provenance de chaque donnée, les cumuls entre agents et la contagion d'une faille, et s'interpose avant chaque action irréversible.">
 <link rel="icon" id="favicon">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/console/static/tokens.css">
 <style>
   /* The Vigie's pitch page, on paper. One gesture carries it: the lookout's light sweeping the horizon, drawn in pixels
      along a ramp of blues, from sky to deep sea. The same ramp, dithered in blocks, makes the mark and the last band.
-     Type is one grotesque at weight 400, corners are sharp, red is kept for the threat. */
-  :root {
-    --bg: #F8F6F0; --surface: #FFFFFF; --wash: #EEF3FB; --wash-2: #E2EBFA;
-    --ink: #0E1726; --ink-2: #455064; --faint: #7D8696; --line: rgb(14 23 38 / .1); --line-2: rgb(14 23 38 / .18);
-    --b1: #DDEBFF; --b2: #A8C8FF; --b3: #6AA6FF; --b4: #2B6BFF; --b5: #1446C8; --b6: #0B2A6F; --navy: #081B45;
-    --blue: #1F5BFF; --threat: #E0412F;
-    --sans: "Geist", "Helvetica Neue", Arial, system-ui, sans-serif;
-    --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
-    --ease: cubic-bezier(.22, .9, .25, 1);
-    --lift: 0 1px 0 rgb(14 23 38 / .04), -8px 18px 44px rgb(20 60 140 / .1);
-  }
+     Type is one grotesque at weight 400, corners are sharp, red is kept for the threat. Its tokens are tokens.css, shared
+     by every page: the ink is --text, the second ink --dim, the threat --red. */
   * { box-sizing: border-box; }
   html { color-scheme: light; scroll-behavior: smooth; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--sans); -webkit-font-smoothing: antialiased; overflow-x: clip; }
-  ::selection { background: var(--b2); color: var(--ink); }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 400 16px/1.55 var(--sans); -webkit-font-smoothing: antialiased; overflow-x: clip; }
+  ::selection { background: var(--b2); color: var(--text); }
   a { color: inherit; }
   :focus-visible { outline: 3px solid rgb(31 91 255 / .35); outline-offset: 2px; }
   code { font: 400 .92em var(--mono); padding: 1px 5px; background: var(--wash-2); border-radius: 2px; }
 
-  .btn { display: inline-flex; align-items: center; gap: 12px; height: 46px; padding: 0 20px; border: 0; border-radius: 2px; background: var(--ink); color: #fff;
+  .btn { display: inline-flex; align-items: center; gap: 12px; height: 46px; padding: 0 20px; border: 0; border-radius: 2px; background: var(--text); color: #fff;
     font: 500 12.5px var(--mono); letter-spacing: .07em; text-transform: uppercase; text-decoration: none; cursor: pointer; transition: background-color .2s, transform .2s var(--ease); }
   .btn:hover { background: var(--b5); }
   .btn:active { transform: scale(.98); }
   .btn svg { width: 15px; height: 15px; transition: transform .25s var(--ease); }
   .btn:hover svg { transform: translateX(3px); }
-  .btn.soft { background: var(--wash-2); color: var(--ink); } .btn.soft:hover { background: var(--b1); }
+  .btn.soft { background: var(--wash-2); color: var(--text); } .btn.soft:hover { background: var(--b1); }
   .btn.small { height: 38px; padding: 0 14px; font-size: 11.5px; }
-  .marker { display: inline-flex; align-items: center; gap: 10px; margin: 0; color: var(--ink-2); font: 500 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+  .marker { display: inline-flex; align-items: center; gap: 10px; margin: 0; color: var(--dim); font: 500 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
   .marker::before { content: ""; width: 8px; height: 8px; background: var(--blue); }
 
   /* the mark: a lighthouse in pixel blocks, each row one step down the ramp (drawn by mark()) */
@@ -50,8 +39,8 @@
     border-bottom: 1px solid transparent; transition: background-color .3s, border-color .3s; }
   .nav.solid { background: rgb(248 246 240 / .94); border-bottom-color: var(--line); }
   .logo { display: inline-flex; align-items: center; gap: 12px; margin-right: auto; text-decoration: none; font: 500 21px var(--sans); letter-spacing: -.03em; }
-  .nav a.link { color: var(--ink-2); text-decoration: none; font-size: 15px; transition: color .2s; }
-  .nav a.link:hover { color: var(--ink); }
+  .nav a.link { color: var(--dim); text-decoration: none; font-size: 15px; transition: color .2s; }
+  .nav a.link:hover { color: var(--text); }
 
   /* --- the hero: the horizon, the lookout's light, the promise and its proof ---------------------------------- */
   .hero { position: relative; isolation: isolate; min-height: max(720px, 100svh); display: flex; flex-direction: column; overflow: hidden; }
@@ -59,13 +48,13 @@
   .hero-copy { max-width: 1280px; margin: 0 auto; padding: clamp(112px, 15vh, 168px) 20px 0; text-align: center; }
   .hero h1 { margin: 26px 0 0; font: 400 clamp(42px, 5.3vw, 80px)/1 var(--sans); letter-spacing: -.045em; text-wrap: balance; }
   .hero h1 span { display: block; color: var(--blue); }
-  .hero .lead { max-width: 640px; margin: 28px auto 0; color: var(--ink-2); font-size: clamp(16px, 1.45vw, 19px); text-wrap: pretty; }
+  .hero .lead { max-width: 640px; margin: 28px auto 0; color: var(--dim); font-size: clamp(16px, 1.45vw, 19px); text-wrap: pretty; }
   .ctas { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 36px; }
   .stats { display: grid; grid-template-columns: repeat(4, 1fr); width: min(1100px, 100%); margin: auto auto 0; padding: 64px 20px 52px; }
   .stat { padding: 0 24px; text-align: center; }
   .stat + .stat { border-left: 1px solid var(--line); }
   .stat b { display: block; font: 400 clamp(34px, 3.6vw, 54px)/1.05 var(--sans); letter-spacing: -.04em; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .stat span { display: block; margin-top: 8px; color: var(--ink-2); font-size: 13.5px; line-height: 1.4; }
+  .stat span { display: block; margin-top: 8px; color: var(--dim); font-size: 13.5px; line-height: 1.4; }
 
   /* --- the product itself, live, in a window ------------------------------------------------------------------- */
   .product { width: min(1240px, calc(100% - 32px)); margin: 28px auto 0; }
@@ -73,17 +62,17 @@
   .window-bar { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-bottom: 1px solid var(--line); background: var(--surface); color: var(--faint); font: 400 12px var(--mono); }
   .window-bar i { width: 10px; height: 10px; background: var(--wash-2); }
   .window-bar span { margin-left: 10px; }
-  .window-bar a { margin-left: auto; color: var(--ink-2); text-decoration: none; } .window-bar a:hover { color: var(--blue); }
+  .window-bar a { margin-left: auto; color: var(--dim); text-decoration: none; } .window-bar a:hover { color: var(--blue); }
   .window iframe { display: block; width: 100%; height: min(78vh, 820px); border: 0; }
   .caption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; margin: 16px 2px 0; color: var(--faint); font-size: 14px; }
-  .caption b { color: var(--ink); font-weight: 500; }
+  .caption b { color: var(--text); font-weight: 500; }
 
   /* --- the story: a deck of cards, one on top, the next two peeking under it ---------------------------------- */
   .story { padding: clamp(110px, 14vw, 170px) 0 40px; }
   .story-head { max-width: 960px; margin: 0 auto; padding: 0 20px; text-align: center; }
   h2 { margin: 22px 0 0; font: 400 clamp(38px, 5vw, 66px)/.98 var(--sans); letter-spacing: -.04em; text-wrap: balance; }
   h2 span { color: var(--blue); }
-  .story-head p.sub { max-width: 560px; margin: 20px auto 0; color: var(--ink-2); }
+  .story-head p.sub { max-width: 560px; margin: 20px auto 0; color: var(--dim); }
   .deck { display: grid; width: min(1120px, calc(100% - 32px)); margin: 64px auto 0; padding-bottom: 44px; outline: none; }
   .card { grid-area: 1 / 1; position: relative; border-radius: 4px; border: 1px solid var(--line); background: var(--surface); box-shadow: var(--lift);
     transform-origin: 50% 100%; touch-action: pan-y; user-select: none; cursor: grab; transition: transform .65s var(--ease), opacity .45s var(--ease); }
@@ -91,13 +80,13 @@
   .card[data-d="gone"] { pointer-events: none; }
   .card .inner { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap: clamp(28px, 4vw, 56px); height: 100%; padding: clamp(28px, 4vw, 52px); transition: opacity .45s var(--ease); }
   .card[data-d="1"] .inner { opacity: .25; } .card[data-d="2"] .inner, .card[data-d="3"] .inner { opacity: 0; }
-  .card { --tone: var(--ink-2); } .card[data-tone="threat"] { --tone: var(--threat); } .card[data-tone="vigie"] { --tone: var(--blue); }
+  .card { --tone: var(--dim); } .card[data-tone="threat"] { --tone: var(--red); } .card[data-tone="vigie"] { --tone: var(--blue); }
   .copy { display: flex; flex-direction: column; min-width: 0; }
-  .kicker { display: flex; align-items: center; gap: 12px; margin: 0; color: var(--ink-2); font: 500 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+  .kicker { display: flex; align-items: center; gap: 12px; margin: 0; color: var(--dim); font: 500 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
   .kicker b { color: var(--tone); font-weight: 500; }
   .card h3 { margin: 22px 0 0; font: 400 clamp(30px, 3.3vw, 46px)/1.02 var(--sans); letter-spacing: -.04em; text-wrap: balance; }
   .card h3 span { color: var(--tone); }
-  .card .copy > p { margin: 18px 0 0; color: var(--ink-2); font-size: 16.5px; text-wrap: pretty; }
+  .card .copy > p { margin: 18px 0 0; color: var(--dim); font-size: 16.5px; text-wrap: pretty; }
   .facts { display: grid; gap: 10px; margin: auto 0 0; padding: 26px 0 0; list-style: none; font-size: 14.5px; line-height: 1.45; }
   .facts li { display: grid; grid-template-columns: 14px 1fr; gap: 8px; }
   .facts li::before { content: ""; width: 6px; height: 6px; margin-top: 7px; background: var(--tone); }
@@ -107,55 +96,55 @@
   .art svg { width: 100%; height: auto; overflow: visible; }
 
   .deck-nav { display: flex; align-items: center; gap: 18px; width: min(1120px, calc(100% - 32px)); margin: 8px auto 0; }
-  .square { flex: none; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 2px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); cursor: pointer; transition: border-color .2s, background-color .2s, opacity .2s; }
-  .square:hover:not(:disabled) { border-color: var(--ink); }
+  .square { flex: none; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 2px; border: 1px solid var(--line-2); background: var(--surface); color: var(--text); cursor: pointer; transition: border-color .2s, background-color .2s, opacity .2s; }
+  .square:hover:not(:disabled) { border-color: var(--text); }
   .square:disabled { opacity: .35; cursor: default; }
   .square svg { width: 17px; height: 17px; }
   .chapters { flex: 1; display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; margin: 0; padding: 0; list-style: none; }
   .chapters button { width: 100%; padding: 10px 0 0; border: 0; background: none; color: var(--faint); font: 400 12.5px var(--sans); text-align: left; cursor: pointer; transition: color .2s; }
   .chapters button::before { content: ""; display: block; height: 3px; margin-bottom: 9px; background: var(--line); transition: background-color .35s; }
-  .chapters button:hover { color: var(--ink); }
+  .chapters button:hover { color: var(--text); }
   .chapters .past::before { background: var(--b2); }
   .chapters [aria-current]::before { background: var(--blue); }
-  .chapters [aria-current] { color: var(--ink); }
-  .count { flex: none; min-width: 64px; color: var(--ink-2); font: 500 13px var(--mono); text-align: center; }
+  .chapters [aria-current] { color: var(--text); }
+  .count { flex: none; min-width: 64px; color: var(--dim); font: 500 13px var(--mono); text-align: center; }
   .hint { margin: 22px 0 0; text-align: center; color: var(--faint); font-size: 13.5px; }
-  kbd { padding: 1px 6px; border: 1px solid var(--line-2); border-radius: 2px; background: var(--surface); font: 500 11px var(--mono); color: var(--ink-2); }
+  kbd { padding: 1px 6px; border: 1px solid var(--line-2); border-radius: 2px; background: var(--surface); font: 500 11px var(--mono); color: var(--dim); }
 
   /* --- the drawings of the cards: they play when their card comes on top --------------------------------------- */
   .net .e { fill: none; stroke: var(--line-2); stroke-width: 1.2; }
   .net .e.read { stroke-dasharray: 3 4; }
   .net .ag circle { fill: #fff; stroke: rgb(14 23 38 / .55); stroke-width: 1.2; transition: fill .4s, stroke .4s; }
-  .net text { font: 500 9.5px var(--mono); text-anchor: middle; fill: var(--ink); }
+  .net text { font: 500 9.5px var(--mono); text-anchor: middle; fill: var(--text); }
   .net .lbl { font-weight: 400; font-size: 9px; fill: var(--faint); }
   .net .sv rect { fill: #fff; stroke: var(--line-2); transition: fill .4s, stroke .4s; }
-  .net .sv text { font-size: 8.2px; fill: var(--ink-2); }
+  .net .sv text { font-size: 8.2px; fill: var(--dim); }
   .net .sv .ver { font-size: 8px; fill: var(--faint); }
-  .net .sv.bad rect { stroke: var(--threat); fill: #FDECEA; } .net .sv.bad text:not(.ver) { fill: var(--threat); }
-  .net .tag rect { fill: var(--threat); } .net .tag text { font-size: 7.5px; font-weight: 500; fill: #fff; letter-spacing: .06em; }
+  .net .sv.bad rect { stroke: var(--red); fill: #FDECEA; } .net .sv.bad text:not(.ver) { fill: var(--red); }
+  .net .tag rect { fill: var(--red); } .net .tag text { font-size: 7.5px; font-weight: 500; fill: #fff; letter-spacing: .06em; }
   .net .tag.old rect { fill: #fff; stroke: var(--blue); stroke-dasharray: 2 2; } .net .tag.old text { fill: var(--blue); }
   .net .tag { opacity: 0; transform: translateY(6px); transition: opacity .4s, transform .5s var(--ease); }
   .card.is-active .net .tag { opacity: 1; transform: none; transition-delay: calc(.35s + var(--i) * .25s); }
   .card.is-active .net-breach .sv.bad rect { animation: alarm 1.8s ease-in-out infinite; }
   @keyframes alarm { 50% { fill: #F9C9C2; } }
-  .net .dot { fill: var(--blue); } .net .dot.bad { fill: var(--threat); }
-  .card.is-active .net .e.hot { stroke: var(--threat); stroke-opacity: .75; transition: stroke .5s calc(.3s + var(--i) * .35s); }
-  .card.is-active .net .ag.hot circle { fill: #FDECEA; stroke: var(--threat); transition-delay: calc(.3s + var(--i) * .35s); }
+  .net .dot { fill: var(--blue); } .net .dot.bad { fill: var(--red); }
+  .card.is-active .net .e.hot { stroke: var(--red); stroke-opacity: .75; transition: stroke .5s calc(.3s + var(--i) * .35s); }
+  .card.is-active .net .ag.hot circle { fill: #FDECEA; stroke: var(--red); transition-delay: calc(.3s + var(--i) * .35s); }
 
   .meters { display: grid; gap: 34px; width: 100%; max-width: 440px; }
-  .mtitle { display: flex; justify-content: space-between; margin: 0 0 14px; font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
+  .mtitle { display: flex; justify-content: space-between; margin: 0 0 14px; font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
   .mtitle span { color: var(--faint); letter-spacing: .02em; text-transform: none; }
-  .meter { display: grid; grid-template-columns: 112px 1fr 70px; align-items: center; gap: 14px; margin-top: 12px; font-size: 13.5px; color: var(--ink-2); }
+  .meter { display: grid; grid-template-columns: 112px 1fr 70px; align-items: center; gap: 14px; margin-top: 12px; font-size: 13.5px; color: var(--dim); }
   .meter .track { position: relative; height: 10px; background: rgb(14 23 38 / .07); }
   .meter .track i { position: absolute; inset: 0 auto 0 0; width: calc(var(--w) * 100%); background: var(--b3); transform: scaleX(0); transform-origin: left; transition: transform .9s var(--ease); }
-  .meter.bad .track i { background: var(--threat); }
-  .meter .track s { position: absolute; top: -7px; bottom: -7px; left: calc(var(--at) * 100%); width: 0; border-left: 1.5px dashed var(--ink); opacity: .55; }
-  .meter b { font: 500 13px var(--mono); color: var(--ink); text-align: right; } .meter.bad b { color: var(--threat); }
+  .meter.bad .track i { background: var(--red); }
+  .meter .track s { position: absolute; top: -7px; bottom: -7px; left: calc(var(--at) * 100%); width: 0; border-left: 1.5px dashed var(--text); opacity: .55; }
+  .meter b { font: 500 13px var(--mono); color: var(--text); text-align: right; } .meter.bad b { color: var(--red); }
   .card.is-active .meter .track i { transform: none; transition-delay: .3s; } .card.is-active .meter.bad .track i { transition-delay: .7s; }
 
   .layer { transform: translateY(calc(var(--dy) * 1px)); transition: transform .9s var(--ease); }
   .layer polygon { stroke-width: 1.2; }
-  .layer text { font: 500 11px var(--mono); fill: var(--ink-2); } .layer .n { fill: var(--blue); }
+  .layer text { font: 500 11px var(--mono); fill: var(--dim); } .layer .n { fill: var(--blue); }
   .layer line { stroke: var(--b3); stroke-dasharray: 2 3; }
   .layer .lab { opacity: 0; transition: opacity .5s; }
   .card.is-active .layer { transform: none; transition-delay: calc(.2s + var(--n) * .12s); }
@@ -163,10 +152,10 @@
 
   .gate .post { fill: var(--blue); } .gate .glow { fill: url(#gateGlow); }
   .gate .msg rect { fill: #fff; stroke: var(--line-2); }
-  .gate .msg text { font: 500 10.5px var(--mono); fill: var(--ink); }
-  .gate .msg .prov { font-size: 9px; fill: var(--threat); }
-  .gate .no { font: 500 10px var(--mono); fill: var(--threat); opacity: 0; }
-  .gate .cap { font: 500 10px var(--mono); fill: var(--ink-2); letter-spacing: .12em; text-anchor: middle; }
+  .gate .msg text { font: 500 10.5px var(--mono); fill: var(--text); }
+  .gate .msg .prov { font-size: 9px; fill: var(--red); }
+  .gate .no { font: 500 10px var(--mono); fill: var(--red); opacity: 0; }
+  .gate .cap { font: 500 10px var(--mono); fill: var(--dim); letter-spacing: .12em; text-anchor: middle; }
   .gate .msg { opacity: 0; }
   .card.is-active .gate .msg.ok { animation: pass 5.4s var(--d) linear infinite; }
   .card.is-active .gate .msg.ok rect { animation: okay 5.4s var(--d) linear infinite; }
@@ -179,21 +168,21 @@
 
   .ab { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; width: 100%; max-width: 420px; }
   .ab .col { display: grid; justify-items: center; gap: 12px; }
-  .ab .capt { color: var(--ink-2); font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
-  .pillar { position: relative; width: 74%; height: 200px; border-top: 1.5px solid var(--ink); }
+  .ab .capt { color: var(--dim); font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+  .pillar { position: relative; width: 74%; height: 200px; border-top: 1.5px solid var(--text); }
   .pillar i { position: absolute; inset: 0 0 auto; height: calc(var(--h) * 100%); transform: scaleY(0); transform-origin: top; transition: transform 1.1s var(--ease);
-    background: linear-gradient(180deg, var(--threat), #F3A69C); }
+    background: linear-gradient(180deg, var(--red), #F3A69C); }
   .ab .with .pillar i { background: linear-gradient(180deg, var(--b5), var(--b3) 60%, var(--b2)); }
-  .ab b { font: 400 34px/1 var(--sans); letter-spacing: -.04em; color: var(--threat); white-space: nowrap; } .ab .with b { color: var(--b5); }
+  .ab b { font: 400 34px/1 var(--sans); letter-spacing: -.04em; color: var(--red); white-space: nowrap; } .ab .with b { color: var(--b5); }
   .card.is-active .pillar i { transform: none; transition-delay: .35s; } .card.is-active .with .pillar i { transition-delay: .8s; }
   .trio { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; max-width: 440px; margin-top: 30px; border-top: 1px solid var(--line-2); }
   .trio div { padding: 14px 10px 0; } .trio div + div { border-left: 1px solid var(--line); }
-  .trio b { display: block; font: 500 16px var(--mono); color: var(--ink); white-space: nowrap; } .trio span { display: block; margin-top: 4px; font-size: 12px; color: var(--faint); line-height: 1.35; }
+  .trio b { display: block; font: 500 16px var(--mono); color: var(--text); white-space: nowrap; } .trio span { display: block; margin-top: 4px; font-size: 12px; color: var(--faint); line-height: 1.35; }
 
   .chain .blk rect { fill: #fff; stroke: var(--line-2); }
   .chain .blk:last-of-type rect { stroke: var(--blue); }
-  .chain text { font: 500 9.5px var(--mono); fill: var(--ink); } .chain .t { fill: var(--faint); font-size: 8.5px; } .chain .h { fill: var(--blue); font-size: 9px; }
-  .chain .arrow { stroke: var(--ink-2); fill: none; }
+  .chain text { font: 500 9.5px var(--mono); fill: var(--text); } .chain .t { fill: var(--faint); font-size: 8.5px; } .chain .h { fill: var(--blue); font-size: 9px; }
+  .chain .arrow { stroke: var(--dim); fill: none; }
   .chain .blk, .chain .arrow { opacity: 0; transition: opacity .45s; }
   .card.is-active .chain .blk, .card.is-active .chain .arrow { opacity: 1; transition-delay: calc(.25s + var(--i) * .22s); }
   .chain .code rect { fill: var(--navy); }

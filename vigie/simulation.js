@@ -676,8 +676,11 @@ ui.play.onclick = () => {
 };
 ui.t.oninput = () => seek(+ui.t.value);
 // 2 or 3 shows the 2D map or the 3D scene, by the key's place so an AZERTY keyboard needs no Shift (Marius, 24-10)
+// on the Simulation page the scene shares the window with the live banks: its keys act only while it crosses the middle
+// of the window, and Space scrolls the page the rest of the time
+const onScreen = () => { const r = sec.getBoundingClientRect(); return r.top < innerHeight / 2 && r.bottom > innerHeight / 2; };
 if (!SIDE) addEventListener("keydown", e => {
-  if (sec.hidden || !/^(KeyP|Space|Digit[23]|Numpad[23])$/.test(e.code) || e.target.closest("input, select, button, textarea")) return;
+  if (sec.hidden || !onScreen() || !/^(KeyP|Space|Digit[23]|Numpad[23])$/.test(e.code) || e.target.closest("input, select, button, textarea")) return;
   e.preventDefault();
   if (e.code === "KeyP") ui.play.click();
   else if (e.code === "Space") frameAll(), peer?.frameAll();
