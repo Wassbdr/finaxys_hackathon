@@ -68,6 +68,9 @@
   .sim-live a { padding: 7px 12px; border: 1px solid var(--line-2); border-radius: 2px; background: var(--surface); color: var(--text); text-decoration: none; font-weight: 500; }
   .sim-live a:first-child { border-color: var(--blue); color: var(--b5); }
   .sim-live a:hover, .sim-live a:focus-visible { box-shadow: var(--lift); }
+  /* the colleague's pages (argus branch), each in its own tab, full width under the menu */
+  .colleague-page { margin: -22px -24px -64px; }
+  .colleague-page iframe { display: block; width: 100%; height: calc(100vh - var(--menu)); border: 0; background: var(--surface); }
   .s-green { --c: var(--green); } .s-orange { --c: var(--orange); } .s-red { --c: var(--red); } .s-grey { --c: var(--grey); }
 
   /* A block: its name, what it does and its state, as a pastille and as the bar on its left; a click opens the rest */
@@ -266,6 +269,9 @@
     <a href="#guardrails" data-tab="guardrails" data-name="Guardrails" data-help="Guardrails|Every limit in force, each agent's and KRYS's, with how much of it is used now">Guardrails</a>
     <a href="#metrics" data-tab="metrics" data-name="Metrics" data-help="Metrics|The live indicators and the bench's figures without and with KRYS">Metrics</a>
     <a href="#improve" data-tab="improve" data-name="Improvements" data-help="Improvements|The thresholds in force and what the replays propose to change">Improvements</a>
+    <a href="#presentation" data-tab="presentation" data-name="Présentation">Présentation</a>
+    <a href="#exchange" data-tab="exchange" data-name="Marché">Marché</a>
+    <a href="#sentinel" data-tab="sentinel" data-name="Sentinel">Sentinel</a>
     <a href="#impact" data-tab="impact" data-name="Impact" data-help="Impact|Mesures archivées des trois banques, dénominateurs et limites">Impact</a>
     <a href="#details" data-tab="details" data-name="Détails">Détails</a>
     <span class="line" aria-hidden="true"></span>
@@ -277,6 +283,9 @@
   <section id="details" hidden></section>
   <!-- Section sans onglet (retiré à la demande d'Édouard) : la bulle « Demandez à Krys » s'y accroche. -->
   <section id="mails-chat" hidden></section>
+  <section id="presentation" class="colleague-page" data-src="/pages/presentation" hidden></section>
+  <section id="exchange" class="colleague-page" data-src="/pages/exchange" hidden></section>
+  <section id="sentinel" class="colleague-page" data-src="/pages/sentinel" hidden></section>
   <section id="agents"></section>
   <section id="summary" hidden></section>
   <section id="guardrails" hidden></section>
@@ -292,5 +301,6 @@
 <script src="/console/mails-chat/mails-chat.js"></script>
 <script type="module" src="/dashboard/simulation.js"></script>
 <script src="/console/details.js"></script>
+<script src="/console/colleague-pages.js"></script>
 </body>
 </html>

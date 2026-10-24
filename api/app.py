@@ -181,6 +181,21 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
     def landing():
         return FileResponse(ROOT / "vigie" / "landing.html")
 
+    # Les pages du collègue (branche argus) servies telles quelles, dans une liste fermée : la console les montre en onglets.
+    COLLEAGUE_PAGES = {"presentation": "argus-presentation.html",
+                       "exchange": "sites/trader-exchange/dist/index.html",
+                       "sentinel": "vendor/sentinel/docs/sentinel-demo.html"}
+
+    @app.get("/console/colleague-pages.js")
+    def colleague_pages_script():
+        return FileResponse(ROOT / "vigie" / "console" / "colleague-pages.js", media_type="text/javascript")
+
+    @app.get("/pages/{name}")
+    def colleague_page(name: str):
+        if name not in COLLEAGUE_PAGES:
+            raise HTTPException(404)
+        return FileResponse(ROOT / COLLEAGUE_PAGES[name])
+
     @app.get("/argus")
     def argus():
         return FileResponse(ROOT / "vigie" / "argus.html")
