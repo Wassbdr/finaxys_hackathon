@@ -1,0 +1,11 @@
+data/
+models/
+artifacts/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+java/out/
+.DS_Store
+.env

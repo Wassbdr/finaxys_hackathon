@@ -1,0 +1,2 @@
+-e ./vendor/sentinel[dev]
+-e .[argus,dev]
