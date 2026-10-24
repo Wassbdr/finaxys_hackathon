@@ -106,8 +106,8 @@
   .square:hover:not(:disabled) { border-color: var(--text); }
   .square:disabled { opacity: .35; cursor: default; }
   .square svg { width: 17px; height: 17px; }
-  .chapters { flex: 1; display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; margin: 0; padding: 0; list-style: none; }
-  .chapters button { width: 100%; padding: 10px 0 0; border: 0; background: none; color: var(--faint); font: 400 12.5px var(--sans); text-align: left; cursor: pointer; transition: color .2s; }
+  .chapters { flex: 1; display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .chapters button { width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 10px 0 0; border: 0; background: none; color: var(--faint); font: 400 12.5px var(--sans); text-align: left; cursor: pointer; transition: color .2s; }
   .chapters button::before { content: ""; display: block; height: 3px; margin-bottom: 9px; background: var(--line); transition: background-color .35s; }
   .chapters button:hover { color: var(--text); }
   .chapters .past::before { background: var(--b2); }
@@ -209,9 +209,56 @@
   footer .logo { color: #fff; font-size: 19px; }
   footer nav { display: flex; gap: 22px; } footer nav a { color: #DCE6FB; text-decoration: none; } footer nav a:hover { color: #fff; }
 
+  /* --- the pitch and the questions: the bank's map, the day on both sides, the two banks at the end, the sources -- */
+  .net .tower rect.post { fill: var(--blue); } .net .tower rect.glow { fill: url(#towerGlow); }
+  .net .tower text { font: 500 8.5px var(--mono); letter-spacing: .1em; fill: var(--blue); }
+  .net .arrow { fill: none; stroke: var(--blue); stroke-width: 1.4; }
+  .net .tag.iso rect { fill: var(--blue); } .net .tag.cve rect { fill: #fff; stroke: var(--red); stroke-dasharray: 2 2; } .net .tag.cve text { fill: var(--red); }
+  .tl { display: grid; grid-template-columns: 62px 1fr 1fr; width: 100%; align-self: start; font-size: 13px; line-height: 1.4; }
+  .tl > div { padding: 9px 0; border-bottom: 1px solid var(--line); opacity: 0; transition: opacity .4s; }
+  .card.is-active .tl > div { opacity: 1; transition-delay: calc(.2s + var(--i) * .18s); }
+  .tl .th { padding-top: 0; font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); border-bottom-color: var(--line-2); }
+  .tl .th.k { color: var(--blue); }
+  .tl .t { font: 500 12px var(--mono); color: var(--faint); }
+  .tl .c { display: grid; gap: 5px; align-content: start; padding-right: 12px; }
+  .tl .both { grid-column: 2 / 4; color: var(--dim); }
+  .tl i { position: relative; display: block; padding-left: 13px; font-style: normal; }
+  .tl i::before { content: ""; position: absolute; left: 0; top: 7px; width: 6px; height: 6px; background: var(--line-2); }
+  .tl i.bad::before { background: var(--red); } .tl i.good::before { background: var(--blue); }
+  .tl i.hot { padding: 4px 6px 4px 19px; background: #FDECEA; color: var(--red); font-weight: 500; } .tl i.hot::before { left: 6px; top: 11px; }
+  .tl i.quiet { color: var(--faint); } .tl i.quiet::before { display: none; }
+  .duel { display: grid; grid-template-columns: 1fr 1fr; width: 100%; max-width: 500px; border-top: 1.5px solid var(--text); }
+  .duel > div { padding: 18px 16px 0; } .duel > div + div { border-left: 1px solid var(--line); }
+  .duel h4 { margin: 0; font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+  .duel .k h4 { color: var(--blue); }
+  .duel .big { display: block; margin: 14px 0 2px; font: 400 clamp(36px, 4vw, 54px)/1 var(--sans); letter-spacing: -.045em; white-space: nowrap; }
+  .duel .c .big { color: var(--red); } .duel .k .big { color: var(--b5); }
+  .duel dl { display: grid; gap: 12px; margin: 20px 0 0; } .duel dt { color: var(--faint); font-size: 12px; } .duel dd { margin: 2px 0 0; font: 500 14px var(--mono); }
+  .tbl { width: 100%; border-collapse: collapse; }
+  .tbl th { padding: 0 8px 10px; border-bottom: 1px solid var(--line-2); color: var(--dim); font: 500 10.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; text-align: right; }
+  .tbl td { padding: 8px; border-bottom: 1px solid var(--line); font: 400 12.5px var(--mono); text-align: right; white-space: nowrap; }
+  .tbl th:first-child, .tbl td:first-child { padding-left: 0; text-align: left; font-family: var(--sans); }
+  .tbl td.best { color: var(--b5); font-weight: 500; } .tbl td.worse { color: var(--red); }
+  .check { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; width: 100%; max-width: 480px; font-size: 13.5px; }
+  .check .mtitle { grid-column: 1 / 3; margin: 0; }
+  .check h4 { margin: 0 0 10px; font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); } .check .k h4 { color: var(--blue); }
+  .check ul { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+  .check li::before { content: "✓ "; color: var(--blue); } .check li.ko::before { content: "✕ "; color: var(--red); }
+  .check .verdict { margin: 14px 0 0; font: 500 12px var(--mono); } .check .verdict.ok { color: var(--red); } .check .verdict.ko { color: var(--b5); }
+  .check .after { margin: 8px 0 0; color: var(--faint); font-size: 12.5px; }
+  .ways { display: grid; gap: 14px; width: 100%; max-width: 470px; margin: 0; padding: 0; list-style: none; counter-reset: w; }
+  .ways li { display: grid; grid-template-columns: 34px 1fr; gap: 4px 12px; padding: 14px 16px; border: 1px solid var(--line-2); background: var(--surface); counter-increment: w; }
+  .ways li::before { content: counter(w, decimal-leading-zero); grid-row: 1 / 3; font: 500 13px var(--mono); color: var(--blue); }
+  .ways b { font-weight: 500; } .ways span { color: var(--dim); font-size: 13.5px; }
+  .ways .last { border-color: var(--text); background: var(--text); color: #fff; } .ways .last::before { content: "→"; color: var(--b2); } .ways .last span { color: #DCE6FB; }
+  .src { margin: 22px 0 0; padding-top: 14px; border-top: 1px solid var(--line); color: var(--faint); font-size: 12.5px; line-height: 1.55; }
+  .src > b { margin-right: 6px; color: var(--dim); font: 500 10.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+  .src code { font-size: .88em; }
+  .card h3 q { quotes: "« " " »"; }
+
   @media (max-width: 980px) {
     .stats { grid-template-columns: repeat(2, 1fr); row-gap: 28px; } .stat:nth-child(3) { border-left: 0; }
-    .card .inner { grid-template-columns: 1fr; } .art { order: -1; min-height: 0; padding: 18px; }
+    .card .inner { grid-template-columns: 1fr; } .tl { font-size: 12.5px; } .art { order: -1; min-height: 0; padding: 18px; }
     .chapters span { display: none; } .chapters button { padding-top: 0; } .chapters button::before { margin-bottom: 0; height: 4px; }
   }
   @media (max-width: 640px) {
@@ -229,8 +276,9 @@
 <header class="nav" id="nav">
   <a class="logo" href="#top" aria-label="Argus, haut de page"><span class="mark" aria-hidden="true"></span>Argus</a>
   <a class="link" href="#produit">Le produit</a>
-  <a class="link" href="#recit">Le récit</a>
-  <a class="link" href="#recit" data-card="6">Les résultats</a>
+  <a class="link" href="#pitch">Le pitch</a>
+  <a class="link" href="#pitch" data-deck="pitch" data-card="6">La différence</a>
+  <a class="link" href="#questions">Les questions</a>
   <a class="btn small" href="/console">Ouvrir la console <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a>
 </header>
 
@@ -243,7 +291,7 @@
       <p class="lead">Krys voit ce qu'aucun agent ne voit : d'où vient chaque donnée, ce que les agents cumulent ensemble, comment une faille IT se propage jusqu'au virement. Et elle s'interpose avant chaque action irréversible.</p>
       <div class="ctas">
         <a class="btn" href="#produit">Voir <span class="name">Krys</span> à l'œuvre <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a>
-        <a class="btn soft" href="#recit">Lire le récit en 9 fiches</a>
+        <a class="btn soft" href="#pitch">Le pitch en 8 fiches</a>
       </div>
     </div>
     <div class="stats" aria-label="Le scénario PHP2Shell, avec Krys">
@@ -262,103 +310,307 @@
     <p class="caption"><span><b>Le vrai produit, pas une maquette.</b> La journée PHP2Shell rejouée depuis le banc d'essai : à gauche les <b>contrôles classiques</b>, à droite <b>Krys</b> ; les <b>Réglages</b> changent de scénario ou de vue.</span><span>Survolez un agent pour voir ses liens, faites tourner la scène à la souris.</span></p>
   </section>
 
-  <section class="story" id="recit" aria-labelledby="story-title">
+  <section class="story" id="pitch" aria-labelledby="pitch-title">
     <div class="story-head">
-      <p class="marker">Le récit</p>
-      <h2 id="story-title">De la faille IT à la perte chiffrée, <span>et comment l'arrêter.</span></h2>
-      <p class="sub">Neuf fiches, une journée. Glissez-les, ou utilisez les flèches de votre clavier.</p>
+      <p class="marker">Le pitch</p>
+      <h2 id="pitch-title">Même journée, mêmes agents trompés. <span>Seul le portique change.</span></h2>
+      <p class="sub">Huit fiches : la faille, le problème, la solution, puis la journée PHP2Shell rejouée depuis le banc d'essai. Glissez-les, ou utilisez les flèches de votre clavier.</p>
     </div>
 
-    <div class="deck" id="deck" role="region" aria-roledescription="carrousel" aria-label="Le récit d'Argus">
-      <article class="card" data-tone="calm" role="group" aria-roledescription="fiche" aria-label="1 sur 9 : Le décor">
+    <div class="deck" role="region" aria-roledescription="carrousel" aria-label="Le pitch">
+      <article class="card" data-tone="threat" role="group" aria-roledescription="fiche">
         <div class="inner">
           <div class="copy">
-            <p class="kicker"><b>01</b> Le décor</p>
-            <h3>Une banque où les décisions sont prises par <span>des agents IA.</span></h3>
-            <p>Un Quant fixe les prix, trois Traders passent des ordres, Compliance et Risk contrôlent, un agent Paiement règle les factures. Ils s'échangent des messages signés et s'appuient sur cinq services internes écrits en PHP.</p>
+            <p class="kicker"><b>01</b> Le 21 octobre</p>
+            <h3>Des sites de l'État débranchés. <span>Pas par une attaque.</span></h3>
+            <p>Mercredi 21 octobre, les sites des impôts, des préfectures et de Météo-France sont coupés une bonne partie de l'après-midi, à la demande de l'ANSSI. Deux failles venaient d'être découvertes dans PHP : n'importe qui pouvait prendre la main sur un serveur, sans mot de passe.</p>
             <ul class="facts">
-              <li><span><b>8 agents</b>, un processus chacun, une horloge commune</span></li>
-              <li><span>Chaque limite est codée : ordre ≤ 5 M€, VaR ≤ 3 M€, virement ≤ 1 M€</span></li>
-              <li><span>Les calculs en Python, le jugement (news, dossiers KYC) au LLM</span></li>
+              <li><span>Comme si toutes les serrures d'une marque s'ouvraient avec un trombone : le temps de les changer, on ferme tout</span></li>
+              <li><span><b>Sauf qu'une banque, elle, ne peut pas fermer.</b></span></li>
             </ul>
           </div>
-          <figure class="art" data-net="calm"></figure>
+          <figure class="art" style="align-content:center">
+            <div class="big-fig"><b>7 / 10</b><span>sites tournent sur PHP</span></div>
+            <div class="trio">
+              <div><b>2</b><span>failles PHP découvertes</span></div>
+              <div><b>0</b><span>mot de passe pour prendre la main</span></div>
+              <div><b>1</b><span>banque, qui ne peut pas fermer</span></div>
+            </div>
+          </figure>
         </div>
       </article>
 
-      <article class="card" data-tone="threat" role="group" aria-roledescription="fiche" aria-label="2 sur 9 : La faille">
+      <article class="card" data-tone="threat" role="group" aria-roledescription="fiche">
         <div class="inner">
           <div class="copy">
-            <p class="kicker"><b>02</b> La faille</p>
-            <h3>Un vieux PHP, une CVE, <span>et rien à patcher.</span></h3>
-            <p>À T+30 s, une CVE fictive « PHP2Shell » est publiée. Dix secondes plus tard, market-feed et payment-gateway sont compromis : ils renvoient des données altérées, sans la moindre erreur visible.</p>
+            <p class="kicker"><b>02</b> Le problème</p>
+            <h3>Comment garder la main sur des agents <span>qu'on ne voit pas travailler ?</span></h3>
+            <p>On a construit une banque simulée où des agents IA passent des ordres. Le pirate entre par un vieux service PHP et modifie les chiffres. Les agents ne se doutent de rien : ils continuent à travailler avec des chiffres faux. Et personne ne s'en rend compte.</p>
             <ul class="facts">
-              <li><span><b>market-feed</b> et <b>payment-gateway</b> en PHP 7.4, <b>news-wire</b> touché à T+90 s</span></li>
-              <li><span>core-ledger tourne en PHP 5.6 : impossible à patcher</span></li>
-              <li><span>« Compromis » veut dire des données fausses, pas un plantage</span></li>
+              <li><span><b>8 dirigeants sur 10</b> ont vu un incident lié à l'IA remonter jusqu'au conseil cette année</span></li>
+              <li><span>Seuls <b>37 %</b> disent avoir une gouvernance adaptée aux agents</span></li>
+              <li><span>Le FSB, qui coordonne les régulateurs financiers du G20 : surveiller des agents en temps réel est très difficile</span></li>
             </ul>
-          </div>
-          <figure class="art" data-net="breach"></figure>
-        </div>
-      </article>
-
-      <article class="card" data-tone="threat" role="group" aria-roledescription="fiche" aria-label="3 sur 9 : La contagion">
-        <div class="inner">
-          <div class="copy">
-            <p class="kicker"><b>03</b> La contagion</p>
-            <h3>Une donnée empoisonnée <span>traverse toute la chaîne.</span></h3>
-            <p>Le faux prix entre par le Quant. Les Traders le suivent et se copient entre eux, Risk fait confiance au Quant, l'exécuteur exécute. Chaque message hérite de la provenance de ceux qui l'ont causé : la contamination passe d'agent en agent.</p>
-            <ul class="facts">
-              <li><span><b>8 agents contaminés</b> sur 8</span></li>
-              <li><span><b data-fig="opsA">26</b> opérations contaminées exécutées</span></li>
-              <li><span>Le mimétisme des traders amplifie la perte</span></li>
-            </ul>
-          </div>
-          <figure class="art" data-net="spread"></figure>
-        </div>
-      </article>
-
-      <article class="card" data-tone="threat" role="group" aria-roledescription="fiche" aria-label="4 sur 9 : L'angle mort">
-        <div class="inner">
-          <div class="copy">
-            <p class="kicker"><b>04</b> L'angle mort</p>
-            <h3>Tout est dans les limites. <span>Et pourtant, la banque perd.</span></h3>
-            <p>Aucun agent ne voit les cumuls entre agents, ni d'où viennent les données, ni l'état des services. Risk calcule sa VaR avec les prix du Quant, donc avec les prix faux. Paiement vérifie chaque virement, jamais leur somme.</p>
-            <ul class="facts">
-              <li><span>Risk voit <b>moins de 1 M€</b> de VaR, la réalité monte à <b>160–200 %</b> de la limite</span></li>
-              <li><span>Chaque virement passe sous le plafond de 1 M€</span></li>
-              <li><span><b data-fig="fraud">2,85 M€</b> partent en fraude au virement</span></li>
-            </ul>
+            <p class="src"><b>Source</b>Étude IBM, octobre 2026 ; Financial Stability Board.</p>
           </div>
           <figure class="art">
             <div class="meters" aria-hidden="true">
               <div>
-                <p class="mtitle">Valeur à risque <span>limite 3 M€</span></p>
-                <div class="meter"><span>Ce que Risk voit</span><div class="track" style="--at:.5"><i style="--w:.16"></i><s></s></div><b>&lt; 1 M€</b></div>
-                <div class="meter bad"><span>La réalité</span><div class="track" style="--at:.5"><i style="--w:.9"></i><s></s></div><b>≈ 180 %</b></div>
-              </div>
-              <div>
-                <p class="mtitle">Virements <span>plafond 1 M€ chacun</span></p>
-                <div class="meter"><span>Chaque virement</span><div class="track" style="--at:.333"><i style="--w:.31"></i><s></s></div><b>&lt; 1 M€</b></div>
-                <div class="meter bad"><span>Leur somme</span><div class="track" style="--at:.333"><i style="--w:.95"></i><s></s></div><b data-fig="fraud">2,85 M€</b></div>
+                <p class="mtitle">Dirigeants de grandes entreprises <span>étude IBM</span></p>
+                <div class="meter bad"><span>Incident IA au conseil</span><div class="track"><i style="--w:.8"></i></div><b>80 %</b></div>
+                <div class="meter"><span>Gouvernance adaptée</span><div class="track"><i style="--w:.37"></i></div><b>37 %</b></div>
               </div>
             </div>
           </figure>
         </div>
       </article>
 
-      <article class="card" data-tone="vigie" role="group" aria-roledescription="fiche" aria-label="5 sur 9 : Krys">
+      <article class="card" data-tone="calm" role="group" aria-roledescription="fiche">
         <div class="inner">
           <div class="copy">
-            <p class="kicker"><b>05</b> <span class="name">Krys</span></p>
-            <h3>Une seule vue sur la banque, <span>quatre couches de contrôle.</span></h3>
-            <p>Krys écoute tous les messages du bus et l'état de chaque service. Elle reconstruit la provenance de chaque décision et confronte ce que disent les agents à ce qu'elle mesure elle-même.</p>
+            <p class="kicker"><b>03</b> Pour qui</p>
+            <h3>Pour les banques, <span>et ceux qui répondent de leurs agents.</span></h3>
+            <p>Argus est conçu pour les gens qui doivent rendre compte de ce que font les agents d'une banque.</p>
+          </div>
+          <figure class="art">
+            <ol class="ways">
+              <li><b>La direction des risques</b><span>des limites tenues entre agents, pas seulement agent par agent</span></li>
+              <li><b>Le RSSI</b><span>une faille publiée, et son effet suivi jusqu'au virement</span></li>
+              <li><b>Le conseil</b><span>une réponse prouvée à la question : pourquoi ?</span></li>
+            </ol>
+          </figure>
+        </div>
+      </article>
+
+      <article class="card" data-tone="vigie" role="group" aria-roledescription="fiche">
+        <div class="inner">
+          <div class="copy">
+            <p class="kicker"><b>04</b> La solution</p>
+            <h3>Argus voit ce que font les agents. <span>Krys les contrôle.</span></h3>
+            <p>Argus se branche sur les agents d'une banque. Pour chaque décision, on sait quelle donnée l'a provoquée, et tout est enregistré pour l'audit. <span class="name">Krys</span>, la tour de contrôle, vérifie chaque ordre et chaque virement avant qu'il parte.</p>
+          </div>
+          <figure class="art">
+            <ol class="ways">
+              <li><b>Voir</b><span>la donnée derrière chaque décision, un journal signé pour l'audit</span></li>
+              <li><b>Contrôler</b><span>une opération fondée sur une donnée piratée est bloquée, les autres passent</span></li>
+              <li><b>Anticiper</b><span>dès qu'une faille est publiée, <span class="name">Krys</span> se méfie du service concerné, avant l'attaque</span></li>
+            </ol>
+          </figure>
+        </div>
+      </article>
+
+      <article class="card" data-tone="calm" role="group" aria-roledescription="fiche">
+        <div class="inner">
+          <div class="copy">
+            <p class="kicker"><b>05</b> L'architecture</p>
+            <h3>Huit agents IA, cinq services, <span>une tour de contrôle avant chaque envoi.</span></h3>
+            <p>Un Quant calcule les prix, trois Traders passent des ordres, Compliance et Risk contrôlent, Paiement règle les factures, l'Exécuteur envoie. Rien ne part sans l'accord de la tour de contrôle : dans la Simulation, une tour classique à plafonds à gauche, <span class="name">Krys</span> à droite.</p>
+            <ul class="facts" data-film="reads"></ul>
+          </div>
+          <figure class="art" data-arch="calm"></figure>
+        </div>
+      </article>
+
+      <article class="card" data-tone="threat" role="group" aria-roledescription="fiche">
+        <div class="inner">
+          <div class="copy">
+            <p class="kicker"><b>06</b> La journée</p>
+            <h3>Des deux côtés, les agents sont trompés. <span>Pas des deux côtés, l'argent part.</span></h3>
+            <p>La faille PHP est publiée : <span class="name">Krys</span> isole aussitôt la passerelle de paiement, qui tourne sur un vieux PHP. Dix secondes plus tard, le pirate fausse les prix et détourne les paiements. Les agents ne font aucune erreur : ils croient ce qu'on leur donne. Tout se joue au moment de laisser partir l'argent.</p>
+          </div>
+          <figure class="art" data-film="day"></figure>
+        </div>
+      </article>
+
+      <article class="card" data-tone="vigie" role="group" aria-roledescription="fiche">
+        <div class="inner">
+          <div class="copy">
+            <p class="kicker"><b>07</b> La différence</p>
+            <h3>Même journée, mêmes agents trompés. <span>Seul le portique change.</span></h3>
+            <p>D'un côté, l'argent volé et une banque à l'arrêt. De l'autre, rien de volé et pas d'arrêt général. Et le lendemain, le conseil pose la question : pourquoi ?</p>
+            <div class="ctas">
+              <a class="btn" href="/console">Ouvrir la console <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a>
+              <a class="btn soft" href="/simulation">Revoir la Simulation</a>
+            </div>
+          </div>
+          <figure class="art" data-film="duel"></figure>
+        </div>
+      </article>
+
+      <article class="card" data-tone="vigie" role="group" aria-roledescription="fiche">
+        <div class="inner">
+          <div class="copy">
+            <p class="kicker"><b>08</b> Perspectives</p>
+            <h3>La prochaine faille ne sera pas forcément dans PHP. <span>Mais elle arrivera.</span></h3>
+            <p>Et sans doute plus vite, parce que l'IA aide aussi à les trouver. Trois pistes pour la suite.</p>
+            <ul class="facts">
+              <li><span><b>Voir plus loin</b> : <span class="name">Krys</span> ne repère pas encore un trader qui triche seul sous les plafonds ; Sentinel détecte les manipulations de marché comme le spoofing</span></li>
+              <li><span><b>Sortir de la simulation</b> : brancher Argus sur de vrais agents chez une banque partenaire, régler ses seuils sur de vraies données</span></li>
+              <li><span><b>La conformité</b> : DORA impose déjà de déclarer les incidents, l'AI Act arrive</span></li>
+            </ul>
+          </div>
+          <figure class="art">
+            <ol class="ways">
+              <li><b>Sentinel</b><span>la donnée piratée et l'agent qui dérape, couverts ensemble</span></li>
+              <li><b>Une banque partenaire</b><span>de vrais agents, de vrais seuils, moins de blocages à tort</span></li>
+              <li><b>DORA et AI Act</b><span>Argus prépare déjà le brouillon DORA et signe chaque décision</span></li>
+              <li class="last"><b>La prochaine faille</b><span>elle arrivera : la tour de contrôle doit déjà être là</span></li>
+            </ol>
+          </figure>
+        </div>
+      </article>
+    </div>
+
+    <nav class="deck-nav" aria-label="Fiches du pitch">
+      <button class="square prev" type="button" aria-label="Fiche précédente"><svg viewBox="0 0 16 16" fill="none"><path d="M13 8H3m4-4L3 8l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></button>
+      <ol class="chapters"></ol>
+      <span class="count" aria-live="polite"></span>
+      <button class="square next" type="button" aria-label="Fiche suivante"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></button>
+    </nav>
+    <p class="hint">Glissez la fiche, ou <kbd>←</kbd> <kbd>→</kbd></p>
+  </section>
+
+  <section class="story" id="questions" aria-labelledby="q-title">
+    <div class="story-head">
+      <p class="marker">Les questions</p>
+      <h2 id="q-title">Les chiffres, <span>et d'où ils viennent.</span></h2>
+      <p class="sub">Dix fiches pour répondre au jury. Chaque chiffre est lu dans le film de la Simulation ou dans le rapport du banc, chaque fiche cite sa source.</p>
+    </div>
+
+    <div class="deck" role="region" aria-roledescription="carrousel" aria-label="Les questions">
+      <article class="card" data-tone="threat" role="group" aria-roledescription="fiche">
+        <div class="inner">
+          <div class="copy">
+            <p class="kicker"><b>Q1</b> Les chiffres</p>
+            <h3><q>En haut de page <span data-fig="fraud">2,85 M€</span>, dans la démo <span data-film="cFraud">622 000 €</span> ?</q></h3>
+            <p>Trois banques vivent la même journée. Sans protection, tous les virements détournés partent. La tour classique laisse partir le premier, puis arrête toute la banque. <span class="name">Krys</span> n'en laisse partir aucun. Le haut de page compare à la banque sans protection, la démo à la tour classique.</p>
+            <ul class="facts" data-film="wires"></ul>
+            <p class="src"><b>Source</b>Film de la Simulation, <code>vigie/dashboard-sim.json</code>, php2shell_day ; recoupé avec <code>vigie/RESULTATS_ARGUS.md</code>, graine 42, colonnes A, B, C.</p>
+          </div>
+          <figure class="art" data-film="stolen"></figure>
+        </div>
+      </article>
+
+      <article class="card" data-tone="vigie" role="group" aria-roledescription="fiche">
+        <div class="inner">
+          <div class="copy">
+            <p class="kicker"><b>Q2</b> Avant l'attaque</p>
+            <h3><q>Comment <span class="name">Krys</span> a-t-elle agi avant l'attaque ?</q></h3>
+            <p>Elle tient l'inventaire des services. La CVE vise PHP &lt; 8.1 : market-feed et payment-gateway tournent en PHP 7.4 et ne sont pas patchables. Dès la publication, elle ne fait plus confiance à ce qui passe par eux : un paiement refusé, puis la passerelle isolée, avant la compromission.</p>
+            <ul class="facts" data-film="detect"></ul>
+            <p class="src"><b>Source</b><code>inventory/cve_feed.json</code> ; <code>config.yaml:39-44</code> (versions, patchable) ; règle <code>cve_unpatchable</code>, <code>vigie/detect.py:97</code> ; <code>/improvements</code>, champ detection.</p>
+          </div>
+          <figure class="art" data-arch="breach"></figure>
+        </div>
+      </article>
+
+      <article class="card" data-tone="threat" role="group" aria-roledescription="fiche">
+        <div class="inner">
+          <div class="copy">
+            <p class="kicker"><b>Q3</b> La tour classique</p>
+            <h3><q>La tour classique s'arrête aussi. Où est la différence ?</q></h3>
+            <p>Elle vérifie la demande : bénéficiaire connu, IBAN attendu, montant sous le plafond. La demande est propre ; c'est la passerelle compromise qui crédite un autre IBAN. Elle ne le découvre qu'au reçu, une fois l'argent parti : feu rouge, toute la banque gèle. <span class="name">Krys</span> juge la provenance avant l'envoi, et ne bloque que ce qui passe par le service suspect.</p>
+            <ul class="facts" data-film="classic"></ul>
+            <p class="src"><b>Source</b><code>vigie/classique.py:194-200</code> (contrôles de la demande) ; <code>vigie/classique.py:121-122</code> (reçu, feu rouge) ; <code>config.yaml:105-106</code> (1 M€ par virement, 10 M€ par jour).</p>
+          </div>
+          <figure class="art" data-film="check"></figure>
+        </div>
+      </article>
+
+      <article class="card" data-tone="vigie" role="group" aria-roledescription="fiche">
+        <div class="inner">
+          <div class="copy">
+            <p class="kicker"><b>Q4</b> Le coût</p>
+            <h3><q>Vous bloquez aussi des opérations saines. Combien ça coûte ?</q></h3>
+            <p>Le frein a un prix, et on le mesure. Refuser des ordres, c'est renoncer à des gains : le résultat de trading avec <span class="name">Krys</span> est proche de celui de la tour classique, loin de la banque sans protection. Les traders s'arrêtent ensuite d'eux-mêmes sur leur limite de perte du jour : pas d'arrêt général, mais pas une journée normale non plus.</p>
+            <ul class="facts" data-film="cost"></ul>
+            <p class="src"><b>Source</b>Film, php2shell_day (résultat de trading, événements) ; <code>/improvements</code>, champs refusals et brake_cost_eur ; <code>config.yaml:73</code> (perte du jour d'un trader).</p>
+          </div>
+          <figure class="art" data-film="pnl"></figure>
+        </div>
+      </article>
+
+      <article class="card" data-tone="vigie" role="group" aria-roledescription="fiche">
+        <div class="inner">
+          <div class="copy">
+            <p class="kicker"><b>Q5</b> Un jour normal</p>
+            <h3><q>Et un jour sans attaque, combien de fausses alertes ?</q></h3>
+            <p>Aucune sur une journée propre : rejouée sur dix graines, les trois banques exécutent exactement les mêmes opérations. Le cas difficile est un vrai krach, sans attaque : <span class="name">Krys</span> refuse alors quelques opérations saines, mais en laisse passer plus que la tour classique.</p>
+            <ul class="facts">
+              <li><span>Journée propre, 10 graines : <b>0 faux positif</b>, 319 / 319 opérations saines exécutées</span></li>
+              <li><span>Vrai krach : <span class="name">Krys</span> exécute <b>303 / 317</b> (95,6 %), 10 faux positifs au pire, sur une graine</span></li>
+              <li><span>Vrai krach : la tour classique exécute <b>279 / 317</b> (88,0 %)</span></li>
+            </ul>
+            <p class="src"><b>Source</b><code>vigie/SURETE_UTILITE.md</code>, comparatif au seuil livré, lignes propre et krach_reel (commit cf4973a, 10 graines) ; rejouer : <code>make surete-utilite</code>.</p>
+          </div>
+          <figure class="art" style="align-content:center">
+            <div class="big-fig"><b>0</b><span>faux positif sur une journée propre</span></div>
+            <div class="trio">
+              <div><b>319 / 319</b><span>opérations saines, jour propre</span></div>
+              <div><b>95,6 %</b><span>exécutées par <span class="name">Krys</span>, vrai krach</span></div>
+              <div><b>88,0 %</b><span>par la tour classique, vrai krach</span></div>
+            </div>
+          </figure>
+        </div>
+      </article>
+
+      <article class="card" data-tone="vigie" role="group" aria-roledescription="fiche">
+        <div class="inner">
+          <div class="copy">
+            <p class="kicker"><b>Q6</b> La robustesse</p>
+            <h3><q>Une seule graine, ce n'est pas de la chance ?</q></h3>
+            <p>Le film rejoue la graine 42. Le banc a rejoué php2shell_day sur dix graines : sur chacune, aucune opération contaminée n'est passée avec <span class="name">Krys</span>. Ce qui varie d'une graine à l'autre, c'est le prix du frein.</p>
+            <ul class="facts">
+              <li><span>Opérations contaminées exécutées : <b>296 / 315</b> sans protection, <b>83 / 90</b> tour classique, <b>0 / 347</b> <span class="name">Krys</span></span></li>
+              <li><span>Graine 43 : <b>640 000 €</b> volés côté classique, <b>0 €</b> côté <span class="name">Krys</span></span></li>
+              <li><span>Opérations saines exécutées avec <span class="name">Krys</span> : <b>51 / 79</b> (64,6 %), de 0 % à 87,5 % selon la graine</span></li>
+            </ul>
+            <p class="src"><b>Source</b><code>vigie/SURETE_UTILITE.md</code> (graines 41 à 83, 640 runs, <code>make surete-utilite</code>) ; <code>vigie/RESULTATS_ARGUS.md</code> (graine 43).</p>
+          </div>
+          <figure class="art">
+            <div class="meters" aria-hidden="true">
+              <div>
+                <p class="mtitle">Opérations contaminées exécutées <span>10 graines</span></p>
+                <div class="meter bad"><span>Sans protection</span><div class="track"><i style="--w:.94"></i></div><b>94 %</b></div>
+                <div class="meter bad"><span>Tour classique</span><div class="track"><i style="--w:.922"></i></div><b>92 %</b></div>
+                <div class="meter"><span><span class="name">Krys</span></span><div class="track"><i style="--w:0"></i></div><b>0 %</b></div>
+              </div>
+              <div>
+                <p class="mtitle">Opérations saines exécutées <span>sous attaque</span></p>
+                <div class="meter"><span>Tour classique</span><div class="track"><i style="--w:1"></i></div><b>100 %</b></div>
+                <div class="meter"><span><span class="name">Krys</span></span><div class="track"><i style="--w:.646"></i></div><b>64,6 %</b></div>
+              </div>
+            </div>
+          </figure>
+        </div>
+      </article>
+
+      <article class="card" data-tone="vigie" role="group" aria-roledescription="fiche">
+        <div class="inner">
+          <div class="copy">
+            <p class="kicker"><b>Q7</b> Les autres attaques</p>
+            <h3><q>Ça ne marche que sur PHP2Shell ?</q></h3>
+            <p>Le film contient d'autres journées, à rejouer dans la Simulation par ses Réglages. Ici, le résultat de chaque banque en fin de journée, fraude comprise. En bleu, la meilleure ; en rouge, quand <span class="name">Krys</span> fait moins bien que la tour classique.</p>
+            <p class="src"><b>Source</b>Film, <code>vigie/dashboard-sim.json</code>, généré le <span data-film="when"></span> depuis <code data-film="evidence"></code>.</p>
+          </div>
+          <figure class="art" data-film="table"></figure>
+        </div>
+      </article>
+
+      <article class="card" data-tone="vigie" role="group" aria-roledescription="fiche">
+        <div class="inner">
+          <div class="copy">
+            <p class="kicker"><b>Q8</b> Ce que voit <span class="name">Krys</span></p>
+            <h3><q>Concrètement, que regarde <span class="name">Krys</span> ?</q></h3>
+            <p>Tous les messages du bus et l'état de chaque service. Elle reconstruit la provenance de chaque décision et confronte ce que disent les agents à ce qu'elle mesure elle-même.</p>
             <ul class="facts">
               <li><span><b>Identité</b> : signatures HMAC, faux agents rejetés</span></li>
               <li><span><b>Règles</b> : les limites, cumulées entre agents</span></li>
               <li><span><b>Comportement</b> : dérives (CUSUM), mimétisme entre traders</span></li>
               <li><span><b>Cohérence</b> : registre fantôme, ancre de prix indépendante</span></li>
+              <li data-film="hidden"></li>
             </ul>
+            <p class="src"><b>Source</b><code>bus/message.py</code> (HMAC) ; <code>vigie/provenance.py</code> ; <code>vigie/statistics.py</code> (CUSUM) ; <code>vigie/herding.py</code> ; <code>vigie/shadow.py</code> ; film, lectures des services.</p>
           </div>
           <figure class="art">
             <svg viewBox="0 0 456 330" aria-hidden="true">
@@ -372,69 +624,14 @@
         </div>
       </article>
 
-      <article class="card" data-tone="vigie" role="group" aria-roledescription="fiche" aria-label="6 sur 9 : Le portique">
+      <article class="card" data-tone="vigie" role="group" aria-roledescription="fiche">
         <div class="inner">
           <div class="copy">
-            <p class="kicker"><b>06</b> Le portique</p>
-            <h3>Rien d'irréversible <span>sans son feu vert.</span></h3>
-            <p>Avant chaque ordre au marché et chaque virement, l'exécuteur demande l'approbation de Krys. Une opération dont la provenance traverse un service suspect est refusée, avec la chaîne de messages comme preuve.</p>
-            <ul class="facts">
-              <li><span>Décision en <b data-fig="p50">12,7 ms</b> (p50), <span data-fig="p99">23,4 ms</span> (p99)</span></li>
-              <li><span>Déterministe : un LLM auditeur peut alerter, jamais approuver</span></li>
-              <li><span>Seul un humain, par une décision signée, desserre le frein</span></li>
-            </ul>
-          </div>
-          <figure class="art">
-            <svg class="gate" viewBox="0 0 456 330" aria-hidden="true">
-              <defs><linearGradient id="gateGlow" x1="0" x2="1"><stop offset="0" stop-color="#2B6BFF" stop-opacity="0"/><stop offset=".5" stop-color="#2B6BFF" stop-opacity=".18"/><stop offset="1" stop-color="#2B6BFF" stop-opacity="0"/></linearGradient></defs>
-              <text class="cap" x="262" y="34">PORTIQUE</text>
-              <rect class="glow" x="232" y="50" width="60" height="236"/>
-              <rect class="post" x="260.5" y="50" width="3" height="236"/>
-              <g class="msg ok" style="--d:0s"><rect x="20" y="78" width="132" height="30" rx="2"/><text x="40" y="97">ordre · ACME</text></g>
-              <g class="msg ko" style="--d:1.8s"><rect x="20" y="148" width="132" height="30" rx="2"/><rect x="32" y="159" width="7" height="7" fill="#E0412F"/><text x="48" y="167">virement 0,9 M€</text><text class="prov" x="24" y="196">via payment-gateway</text></g>
-              <text class="no" x="274" y="167" style="--d:1.8s">✕ refusé : provenance suspecte</text>
-              <g class="msg ok" style="--d:3.6s"><rect x="20" y="218" width="132" height="30" rx="2"/><text x="40" y="237">ordre · CITRA</text></g>
-              <text class="cap" x="262" y="312"><tspan data-fig="p50">12,7 ms</tspan> PAR DÉCISION</text>
-            </svg>
-          </figure>
-        </div>
-      </article>
-
-      <article class="card" data-tone="vigie" role="group" aria-roledescription="fiche" aria-label="7 sur 9 : Les résultats">
-        <div class="inner">
-          <div class="copy">
-            <p class="kicker"><b>07</b> Les résultats</p>
-            <h3>La journée PHP2Shell. <span>Avec Krys.</span></h3>
-            <p>Le portique de Krys devant chaque ordre et chaque virement : voici ce que la banque garde. La comparaison avec des contrôles classiques se joue dans la Simulation.</p>
-            <ul class="facts">
-              <li><span>Opérations contaminées exécutées : <b data-fig="opsB">0</b></span></li>
-              <li><span>Compromission repérée <b data-fig="early">10 s</b> en avance, dès la publication de la CVE</span></li>
-              <li><span>Le frein a un coût, et on le mesure : <b data-fig="costAbs">857 k€</b> de trading perdu aux refus</span></li>
-            </ul>
-            <p><a class="btn soft" href="/simulation">Comparer dans la Visualisation <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a></p>
-          </div>
-          <figure class="art" style="align-content:center">
-            <div class="big-fig"><b data-fig="opsB">0</b><span>opération contaminée exécutée</span></div>
-            <div class="trio">
-              <div><b data-fig="fraud">2,85 M€</b><span>fraude bloquée</span></div>
-              <div><b data-fig="p50">12,7 ms</b><span>par décision au portique</span></div>
-              <div><b data-fig="cost">−857 k€</b><span>coût des blocages</span></div>
-            </div>
-          </figure>
-        </div>
-      </article>
-
-      <article class="card" data-tone="vigie" role="group" aria-roledescription="fiche" aria-label="8 sur 9 : Les garanties">
-        <div class="inner">
-          <div class="copy">
-            <p class="kicker"><b>08</b> Les garanties</p>
-            <h3>Le LLM juge. <span>Python décide.</span></h3>
-            <p>Chaque limite est un <code>if</code> Python, jamais une consigne de prompt. Chaque décision est écrite dans un journal append-only chaîné par hash, vérifiable après coup.</p>
-            <ul class="facts">
-              <li><span>Si Krys tombe, chaque agent passe seul en orange : plus rien d'irréversible</span></li>
-              <li><span><code>make verify</code> revérifie toute la chaîne du journal</span></li>
-              <li><span>Aucun code vulnérable, aucun exploit, aucun vrai argent</span></li>
-            </ul>
+            <p class="kicker"><b>Q9</b> Les garanties</p>
+            <h3><q>Et si <span class="name">Krys</span> tombe, ou si le LLM se trompe ?</q></h3>
+            <p>Le LLM juge les textes, news et dossiers KYC ; il peut alerter, jamais approuver. Chaque limite est un <code>if</code> Python, jamais une consigne de prompt. Si <span class="name">Krys</span> ne répond plus, chaque agent passe seul à l'orange : plus rien d'irréversible.</p>
+            <ul class="facts" data-film="safe"></ul>
+            <p class="src"><b>Source</b>Film, journée vigie_debranchee ; <code>config.yaml:124</code> (battement, 5 ticks) ; <code>vigie/METRIQUES.md:36-37</code> (latence, refus au-delà de 200 ms) ; <code>make verify</code> (journal chaîné).</p>
           </div>
           <figure class="art">
             <svg class="chain" viewBox="0 0 456 330" aria-hidden="true">
@@ -455,32 +652,30 @@
         </div>
       </article>
 
-      <article class="card" data-tone="vigie" role="group" aria-roledescription="fiche" aria-label="9 sur 9 : À vous">
+      <article class="card" data-tone="calm" role="group" aria-roledescription="fiche">
         <div class="inner">
           <div class="copy">
-            <p class="kicker"><b>09</b> À vous</p>
-            <h3>Lancez l'attaque <span>vous-même.</span></h3>
-            <p>Toute la banque tourne en local, un processus par agent. Lancez-la, injectez le scénario PHP2Shell, et regardez Krys réagir en direct dans la console.</p>
-            <div class="ctas">
-              <a class="btn" href="/console">Ouvrir la console <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a>
-              <a class="btn soft" href="/simulation">La Visualisation</a>
-            </div>
+            <p class="kicker"><b>Q10</b> Les limites</p>
+            <h3><q>Qu'est-ce que vous ne savez pas encore ?</q></h3>
+            <p>Une banque fictive et des chiffres de simulateur : ils montrent un mécanisme, pas un rendement garanti. Ce qu'on dit sans détour :</p>
+            <ul class="facts" data-film="limits"></ul>
+            <p class="src"><b>Source</b><code>vigie/RESULTATS_ARGUS.md</code>, définitions et limites ; <code>/improvements</code>, detection et indicator_alerts ; <code>vigie/METRIQUES.md</code> (rapport historique dont vient le film).</p>
           </div>
           <figure class="art">
             <div class="term">
-              <div class="term-bar"><i></i><i></i><i></i><span>banque-horizon</span></div>
-              <pre><span class="ln" style="--i:0"><b>$</b> make demo-live</span><span class="ln c" style="--i:1"># la journée, deux banques, un processus par agent</span><span class="ln" style="--i:2"><b>→</b> localhost:8010/simulation</span><span class="ln c" style="--i:3"># puis la console de Krys, en direct</span><span class="ln" style="--i:4"><b>→</b> localhost:8010/console<i class="caret"></i></span></pre>
+              <div class="term-bar"><i></i><i></i><i></i><span>tout se rejoue</span></div>
+              <pre><span class="ln" style="--i:0"><b>$</b> make demo-live</span><span class="ln c" style="--i:1"># la journée, un processus par agent</span><span class="ln" style="--i:2"><b>$</b> make surete-utilite</span><span class="ln c" style="--i:3"># 10 graines, 3 banques, 640 runs</span><span class="ln" style="--i:4"><b>$</b> make verify<i class="caret"></i></span><span class="ln c" style="--i:5"># revérifie la chaîne du journal</span></pre>
             </div>
           </figure>
         </div>
       </article>
     </div>
 
-    <nav class="deck-nav" aria-label="Fiches">
-      <button class="square" id="prev" type="button" aria-label="Fiche précédente"><svg viewBox="0 0 16 16" fill="none"><path d="M13 8H3m4-4L3 8l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></button>
-      <ol class="chapters" id="chapters"></ol>
-      <span class="count" id="count" aria-live="polite">01 / 09</span>
-      <button class="square" id="next" type="button" aria-label="Fiche suivante"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></button>
+    <nav class="deck-nav" aria-label="Fiches des questions">
+      <button class="square prev" type="button" aria-label="Fiche précédente"><svg viewBox="0 0 16 16" fill="none"><path d="M13 8H3m4-4L3 8l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></button>
+      <ol class="chapters"></ol>
+      <span class="count" aria-live="polite"></span>
+      <button class="square next" type="button" aria-label="Fiche suivante"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></button>
     </nav>
     <p class="hint">Glissez la fiche, ou <kbd>←</kbd> <kbd>→</kbd></p>
   </section>
@@ -490,7 +685,7 @@
     <h2 id="close-title">Le reste se voit <span>en direct.</span></h2>
     <div class="ctas">
       <a class="btn" href="/console">Ouvrir la console <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg></a>
-      <a class="btn soft" href="#recit">Relire le récit</a>
+      <a class="btn soft" href="#questions">Les questions</a>
     </div>
   </section>
   <canvas class="band" id="band" aria-hidden="true"></canvas>
@@ -504,7 +699,7 @@
 
 <script>
 "use strict";
-// The pitch page: the figures of the last A/B bench, the lookout's light over the horizon, the deck of cards, and the
+// The pitch page: the figures of the last A/B bench and of the film, the lookout's light over the horizon, two decks of cards, and the
 // ramp of blues that draws the mark and the last band.
 
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
@@ -590,13 +785,15 @@ function countUp() {
   if (g) Object.assign(FIG, {p50: g.p50, p99: g.p99});
   fill();
   countUp();
+  const F = await get("/dashboard/dashboard-sim.json");
+  if (F?.scenarios?.php2shell_day) film(F, I);
+  else for (const el of $$("[data-film], [data-arch]")) el.innerHTML = el.tagName === "FIGURE" ? '<p class="hint">Le film de la Simulation est introuvable.</p>' : "";
 })();
 
 // --- the menu turns solid once the page scrolls, and "Les résultats" opens the deck on its card --------------------
 
 const nav = $("#nav");
 addEventListener("scroll", () => nav.classList.toggle("solid", scrollY > 24), {passive: true});
-for (const a of $$("[data-card]")) a.addEventListener("click", () => go(+a.dataset.card));
 
 // --- the sky: the lookout's light sweeps the horizon and reveals the nodes a contagion has reached -----------------
 
@@ -716,129 +913,287 @@ for (const a of $$("[data-card]")) a.addEventListener("click", () => go(+a.datas
   if (still) { t = 2; for (let i = 0; i < 40; i++) step(.05); draw(); } else requestAnimationFrame(loop);
 })();
 
-// --- the bank's network, drawn for cards 1 to 3: calm, breached, contaminated ------------------------------------
+// --- the film of the Simulation: the pitch and the questions read their figures in it --------------------------------
+// vigie/dashboard-sim.json, the bench replays the 3D plays: php2shell_day with the classic tower ("classic"), Krys
+// ("ours") and no protection ("theirs"). Nothing here is written by hand: a card the film cannot fill says so.
 
-const AG = {q: [46, 100, "Q"], t1: [138, 52, "T1"], t2: [138, 100, "T2"], t3: [138, 148, "T3"], p: [186, 212, "P"], c: [250, 126, "C"], r: [338, 126, "R"], e: [420, 126, "E"]};
-const SV = {mf: [46, "market-feed", "7.4"], nw: [138, "news-wire", "8.1"], pg: [232, "payment-gateway", "7.4"], kyc: [322, "kyc-docs", "8.0"], cl: [410, "core-ledger", "5.6"]};
-const LINKS = [["q", "t1"], ["q", "t2"], ["q", "t3"], ["t1", "c"], ["t2", "c"], ["t3", "c"], ["p", "c"], ["c", "r"], ["r", "e"]];
-const READS = [["mf", "q"], ["nw", "t3"], ["pg", "p"], ["kyc", "c"], ["cl", "r"]];
-const STEP = {q: 0, t1: 1, t2: 1, t3: 1, p: 1, c: 2, r: 3, e: 4}, SY = 290, RAD = 15;
-const seg = (a, b) => { const [x1, y1] = AG[a], [x2, y2] = AG[b], m = (x1 + x2) / 2; return `M${x1 + RAD},${y1} C${m},${y1} ${m},${y2} ${x2 - RAD},${y2}`; };
-const read = (s, a) => { const x = SV[s][0], [ax, ay] = AG[a], y0 = SY - 13, y1 = ay + RAD, m = (y0 + y1) / 2; return `M${x},${y0} C${x},${m} ${ax},${m} ${ax},${y1}`; };
-const chain = parts => parts.map((d, i) => (i ? d.replace(/^M/, "L") : d)).join(" ");
+const NAME = {quant: "Quant", "trader-1": "Trader 1", "trader-2": "Trader 2", "trader-3": "Trader 3", compliance: "Compliance", risk: "Risk", payment: "Paiement", executor: "Exécuteur"};
+const nm = id => NAME[id] ?? id;
+const list = xs => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " et " + xs.at(-1);
+const eur = v => (v < 0 ? "−" : "") + Math.round(Math.abs(v)).toLocaleString("fr-FR").replace(/ | /g, " ") + " €";
+const short = v => Math.abs(v) >= 1e6 ? M(v) : Math.abs(v) < 500 ? eur(v) : K(v);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"})[c]);
+// what a world ends the day with: its trading result, the fraud already taken out
+const net = W => W.pnl.at(-1) - W.fraud.at(-1);
+const WHY = {"untrusted provenance": "provenance non fiable", "orange light, no irreversible action": "feu orange, aucune action irréversible", "the Vigie did not answer in time": "Krys n'a pas répondu à temps"};
+const SAY = [
+  [/^(.+) CVE published \(CVSS (.+)\)$/, (_, n, c) => `CVE ${n} publiée (CVSS ${c.replace(".", ",")})`],
+  [/^(\S+) compromised$/, (_, a) => `${a} compromis`],
+  [/^bank light (\w+)$/, (_, c) => `le feu de la banque passe ${{red: "au rouge", orange: "à l'orange", green: "au vert"}[c] ?? c}`],
+  [/^€([\d.,]+)k wired to a rerouted IBAN$/, (_, k) => `${eur(parseFloat(k) * 1e3)} virés vers un IBAN détourné`],
+  [/^the (gate|executor) refuses (a payment|(\S+)'s order)(?:: (.+))?$/, (_, who, what, a, why) => `${who === "gate" ? "le portique" : "l'exécuteur"} refuse ${a ? "l'ordre de " + nm(a) : "un paiement"}${why ? " : " + (WHY[why] ?? why) : ""}`],
+  [/^the Vigie isolates (\S+)$/, (_, s) => `isole ${s}`],
+  [/^(\S+) stops trading: daily loss over its limit$/, (_, a) => `${nm(a)} s'arrête : perte du jour au-delà de sa limite`],
+  [/^the agents lose the Vigie's heartbeat: each goes orange on its own$/, () => "les agents perdent le battement de Krys : chacun passe seul à l'orange"],
+];
+const say = t => { for (const [re, f] of SAY) if (re.test(t)) return t.replace(re, f); return t; };
+const ACTS = / acts on compromised data$/;
+const tone = (kind, t) => /wired|light red/.test(t) ? "hot" : kind === "good" ? "good" : kind === "bad" ? "bad" : "";
 
-function net(state) {
-  const spread = state === "spread", hot = spread ? Object.keys(AG) : [], bad = state === "calm" ? [] : ["mf", "pg", "nw"];
-  let s = `<svg class="net net-${state}" viewBox="0 0 456 330" aria-hidden="true">`;
-  for (const [a, b] of LINKS) s += `<path class="e${hot.includes(b) ? " hot" : ""}" style="--i:${STEP[b]}" d="${seg(a, b)}"/>`;
-  for (const [v, a] of READS) s += `<path class="e read${spread && bad.includes(v) ? " hot" : ""}" style="--i:0" d="${read(v, a)}"/>`;
-  const flows = spread ? [[read("mf", "q"), seg("q", "t1"), seg("t1", "c"), seg("c", "r"), seg("r", "e")], [read("pg", "p"), seg("p", "c"), seg("c", "r")], [read("nw", "t3"), seg("t3", "c")]]
-    : state === "calm" ? [[seg("q", "t2"), seg("t2", "c"), seg("c", "r"), seg("r", "e")], [read("pg", "p"), seg("p", "c")]] : [];
-  flows.forEach((f, k) => {
-    const dur = 3.4 + k * .5;
-    for (let j = 0; j < 3; j++) s += `<rect x="-2.6" y="-2.6" width="5.2" height="5.2" class="dot${spread ? " bad" : ""}"><animateMotion dur="${dur}s" begin="-${(j * dur / 3 + k * .4).toFixed(2)}s" repeatCount="indefinite" path="${chain(f)}"/></rect>`;
-  });
-  for (const [id, [x, y, t]] of Object.entries(AG)) s += `<g class="ag${hot.includes(id) ? " hot" : ""}" style="--i:${STEP[id]}"><circle cx="${x}" cy="${y}" r="${RAD}"/><text x="${x}" y="${y + 3.5}">${t}</text></g>`;
-  s += `<text class="lbl" x="46" y="130">quant</text><text class="lbl" x="138" y="26">traders</text><text class="lbl" x="186" y="242">paiement</text>`
-    + `<text class="lbl" x="250" y="156">compliance</text><text class="lbl" x="338" y="156">risk</text><text class="lbl" x="420" y="156">exécuteur</text>`;
-  for (const [id, [x, name, v]] of Object.entries(SV))
-    s += `<g class="sv${bad.includes(id) ? " bad" : ""}"><rect x="${x - 40}" y="${SY - 13}" width="80" height="26" rx="2"/><text x="${x}" y="${SY + 3}">${name}</text><text class="ver" x="${x}" y="${SY + 27}">PHP ${v}</text></g>`;
-  if (state === "breach") {
-    const tag = (id, text, i, old) => { const x = SV[id][0], w = text.length * 5.2 + 12; return `<g class="tag${old ? " old" : ""}" style="--i:${i}"><rect x="${x - w / 2}" y="${SY - 34}" width="${w}" height="15" rx="1"/><text x="${x}" y="${SY - 23.5}">${text}</text></g>`; };
-    s += tag("mf", "COMPROMIS T+40", 0) + tag("pg", "COMPROMIS T+40", 1) + tag("nw", "T+90", 2) + tag("cl", "SANS PATCH", 3, true);
+// the bank's map: agents by role, the services under them, the tower after the Exécuteur. Its reads and its messages are
+// the film's; in the breach, each service carries what happened to it and when.
+const POS = {quant: [50, 96], "trader-1": [150, 44], "trader-2": [150, 96], "trader-3": [150, 148], compliance: [250, 96], risk: [340, 96], executor: [430, 96], payment: [295, 192]};
+const SX = {"market-feed": 50, "news-wire": 150, "kyc-docs": 250, "core-ledger": 340, "payment-gateway": 430};
+const PHP = {"market-feed": "7.4", "news-wire": "8.1", "kyc-docs": "8.0", "payment-gateway": "7.4", "core-ledger": "5.6"};  // config.yaml:40-44
+const SY = 262, RAD = 15;
+function arch(S, mode, I) {
+  const breach = mode === "breach", Wk = S.worlds.ours;
+  const line = ([x1, y1], [x2, y2]) => { const d = Math.hypot(x2 - x1, y2 - y1), ux = (x2 - x1) / d, uy = (y2 - y1) / d; return `M${x1 + ux * RAD},${y1 + uy * RAD} L${x2 - ux * RAD},${y2 - uy * RAD}`; };
+  const pairs = [...new Set(S.worlds.theirs.msgs.filter(m => POS[m[1]] && POS[m[2]]).map(m => m[1] + ">" + m[2]))].map(p => p.split(">"))
+    .filter(([a, b], k, all) => !all.slice(0, k).some(([c, d]) => c === b && d === a));  // one stroke for a pair that talks both ways
+  let s = `<svg class="net" viewBox="0 0 560 370" aria-hidden="true"><defs><linearGradient id="towerGlow" x1="0" x2="1"><stop offset="0" stop-color="#2B6BFF" stop-opacity="0"/><stop offset=".5" stop-color="#2B6BFF" stop-opacity=".2"/><stop offset="1" stop-color="#2B6BFF" stop-opacity="0"/></linearGradient></defs>`;
+  for (const [a, b] of pairs) s += `<path class="e" d="${line(POS[a], POS[b])}"/>`;
+  const reads = S.reads.filter(([a, sv, , hidden]) => POS[a] && SX[sv] != null && !hidden);
+  for (const [a, sv] of reads) { const [ax, ay] = POS[a], x = SX[sv], m = (SY - 13 + ay + RAD) / 2; s += `<path class="e read" d="M${x},${SY - 13} C${x},${m} ${ax},${m} ${ax},${ay + RAD}"/>`; }
+  // the tower: nothing leaves the Exécuteur without it
+  s += `<g class="tower"><rect class="glow" x="470" y="50" width="40" height="92"/><rect class="post" x="488.5" y="50" width="3" height="92"/>`
+    + `<text x="490" y="30" text-anchor="middle">TOUR DE</text><text x="490" y="41" text-anchor="middle">CONTRÔLE</text>`
+    + `<path class="arrow" d="M447,96 H484 M480,92 L484,96 L480,100"/><path class="arrow" d="M495,96 H540 M536,92 L540,96 L536,100"/>`
+    + `<text x="518" y="160" text-anchor="middle" style="fill:var(--dim);letter-spacing:0">ordres</text><text x="518" y="171" text-anchor="middle" style="fill:var(--dim);letter-spacing:0">virements</text></g>`;
+  for (const [id, [x, y]] of Object.entries(POS)) s += `<g class="ag"><circle cx="${x}" cy="${y}" r="${RAD}"/><text x="${x}" y="${y + 3.5}">${{quant: "Q", "trader-1": "T1", "trader-2": "T2", "trader-3": "T3", compliance: "C", risk: "R", executor: "E", payment: "P"}[id]}</text></g>`;
+  s += `<text class="lbl" x="50" y="126">quant</text><text class="lbl" x="150" y="20">traders</text><text class="lbl" x="295" y="222">paiement</text>`
+    + `<text class="lbl" x="250" y="126">compliance</text><text class="lbl" x="340" y="126">risk</text><text class="lbl" x="430" y="126">exécuteur</text>`;
+  const hit = {}, iso = {};
+  for (const [t, k, v] of Wk.changes) { if (k.startsWith("s:") && v === "compromised") hit[k.slice(2)] ??= t; if (k === "iso" && v) for (const sv of v.split(",")) iso[sv] ??= t; }
+  const cve = {};
+  for (const a of (I?.indicator_alerts ?? [])) if (a.rule === "cve_unpatchable") cve[a.service] ??= a.tick;
+  for (const [sv, x] of Object.entries(SX)) {
+    const bad = breach && hit[sv] != null;
+    s += `<g class="sv${bad ? " bad" : ""}"><rect x="${x - 42}" y="${SY - 13}" width="84" height="26" rx="2"/><text x="${x}" y="${SY + 3}">${sv}</text><text class="ver" x="${x}" y="${SY + 27}">PHP ${PHP[sv]}</text></g>`;
+    if (!breach) continue;
+    const tags = [];
+    if (cve[sv] != null) tags.push(["cve", `CVE T+${cve[sv]}`]);
+    if (iso[sv] != null) tags.push(["iso", `ISOLÉ T+${iso[sv]}`]);
+    if (hit[sv] != null) tags.push(["", `COMPROMIS T+${hit[sv]}`]);
+    tags.forEach(([c, text], i) => { const w = text.length * 5.2 + 12, y = SY + 38 + i * 19; s += `<g class="tag ${c}" style="--i:${i}"><rect x="${x - w / 2}" y="${y}" width="${w}" height="15" rx="1"/><text x="${x}" y="${y + 10.5}">${text}</text></g>`; });
   }
   return s + "</svg>";
 }
-for (const f of $$("[data-net]")) f.innerHTML = net(f.dataset.net);
-if (still) for (const svg of $$(".net")) svg.pauseAnimations();
 
-// --- the deck: one card on top, the next two peeking under it; drag, buttons, chapters, keys ----------------------
+// the day, side by side: one row per tick until the first euro leaves on the classic side, then the rest of the day in one
+function day(S) {
+  const C = S.worlds.classic, K = S.worlds.ours, key = e => e[0] + "|" + e[2];
+  const shared = new Set(C.events.map(key).filter(k => K.events.some(e => key(e) === k)));
+  const first = C.fraud.findIndex(v => v > 0), end = first < 0 ? S.ticks - 1 : first;
+  const items = (evs, mine) => {
+    const acts = evs.filter(e => ACTS.test(e[2])).map(e => nm(e[2].replace(ACTS, ""))), rest = evs.filter(e => !ACTS.test(e[2]));
+    const out = rest.map(e => `<i class="${tone(e[1], e[2])}">${esc((mine && /^the Vigie/.test(e[2]) ? "Krys " : "") + say(e[2]))}</i>`);
+    if (acts.length) out.push(`<i class="bad">${esc(list(acts))} ${acts.length > 1 ? "agissent" : "agit"} sur des données compromises</i>`);
+    return out.join("");
+  };
+  let rows = `<div class="th"></div><div class="th">Tour classique</div><div class="th k">Krys</div>`, i = 1;
+  const ticks = [...new Set([...C.events, ...K.events].map(e => e[0]).filter(t => t <= end))].sort((a, b) => a - b);
+  for (const t of ticks) {
+    const both = C.events.filter(e => e[0] === t && shared.has(key(e))), c = C.events.filter(e => e[0] === t && !shared.has(key(e))), k = K.events.filter(e => e[0] === t && !shared.has(key(e)));
+    if (both.length) rows += `<div class="t" style="--i:${i}">T+${t}</div><div class="c both" style="--i:${i++}">${items(both)}${c.length || k.length ? "" : "<i class=\"quiet\">les deux banques, pareil</i>"}</div>`;
+    if (c.length || k.length) rows += `<div class="t" style="--i:${i}">${both.length ? "" : "T+" + t}</div><div class="c" style="--i:${i}">${items(c) || '<i class="quiet">rien ne bouge</i>'}</div><div class="c" style="--i:${i++}">${items(k, true) || '<i class="quiet">—</i>'}</div>`;
+  }
+  // after: the classic side stopped, Krys refusing one by one, and what both still went through
+  const after = W => W.events.filter(e => e[0] > end);
+  const frozen = C.changes.filter(([t, k, v]) => t > end && k.startsWith("z:") && v).length;
+  const stops = after(K).filter(e => /stops trading/.test(e[2])), refused = after(K).filter(e => /refuses/.test(e[2])).length;
+  const cAfter = after(C).filter(e => !shared.has(key(e)) && !/stops trading/.test(e[2]));
+  const red = C.changes.some(([, k, v]) => k === "light" && v === "ROUGE"), kRed = K.changes.some(([, k, v]) => k === "light" && v === "ROUGE");
+  rows += `<div class="t" style="--i:${i}">T+${end + 1}<br>→ ${S.ticks}</div>`
+    + `<div class="c" style="--i:${i}">${frozen ? `<i class="bad">${frozen} agents gelés : la banque est à l'arrêt</i>` : ""}${cAfter.length ? `<i class="bad">${cAfter.length} autres événements</i>` : ""}${red ? "" : '<i class="quiet">pas d\'arrêt</i>'}</div>`
+    + `<div class="c" style="--i:${i++}"><i class="good">${refused} refus de plus, ordres et paiements</i>${stops.length ? `<i>${list(stops.map(e => nm(e[2].split(" ")[0])))} s'arrêtent sur leur limite de perte du jour (T+${stops[0][0]} à T+${stops.at(-1)[0]})</i>` : ""}<i class="quiet">${kRed ? "feu rouge" : "pas d'arrêt général, feu vert toute la journée"}</i></div>`;
+  const later = after(C).filter(e => shared.has(key(e)));
+  if (later.length) rows += `<div class="t" style="--i:${i}"></div><div class="c both" style="--i:${i}">${later.map(e => `<i class="bad">T+${e[0]} : ${esc(say(e[2]))}</i>`).join("")}</div>`;
+  return `<div class="tl">${rows}</div>`;
+}
 
-const deck = $("#deck"), cards = [...deck.children], N = cards.length;
-const NAMES = cards.map(c => c.querySelector(".kicker").lastChild.textContent.trim());
-$("#chapters").innerHTML = NAMES.map((n, k) => `<li><button type="button" data-k="${k}" aria-label="Fiche ${k + 1} : ${n}"><span>${n}</span></button></li>`).join("");
-const chaps = $$("#chapters button");
-let at = 0;
+// the end of the day, both banks: what was stolen, the light, the agents frozen, the total loss
+function duel(S) {
+  const side = (W, cls, title) => {
+    const red = W.changes.find(([, k, v]) => k === "light" && v === "ROUGE"), frozen = new Set(W.changes.filter(([, k, v]) => k.startsWith("z:") && v).map(([, k]) => k)).size;
+    return `<div class="${cls}"><h4>${title}</h4><b class="big">${eur(W.fraud.at(-1))}</b><span style="color:var(--faint);font-size:12.5px">volés</span><dl>`
+      + `<dt>Feu de la banque</dt><dd>${red ? `rouge à T+${red[0]}` : "vert toute la journée"}</dd>`
+      + `<dt>Agents gelés</dt><dd>${frozen} sur ${S.agents.length}</dd><dt>Perte totale, fraude comprise</dt><dd>${short(Math.min(0, net(W)))}</dd></dl></div>`;
+  };
+  return `<div class="duel">${side(S.worlds.classic, "c", "Tour classique")}${side(S.worlds.ours, "k", "Krys")}</div>`;
+}
 
-function place(drag = 0) {
-  cards.forEach((c, k) => {
-    const d = k - at;
-    c.dataset.d = d < 0 ? "gone" : Math.min(d, 3);
-    c.inert = d !== 0;
-    c.classList.toggle("is-active", d === 0);
-    c.style.zIndex = N - k;
-    c.style.opacity = d < 0 || d > 2 ? 0 : 1;
-    if (d < 0) c.style.transform = "translate3d(calc(-100% - 14vw), 30px, 0) rotate(-10deg)";
-    else if (d === 0) c.style.transform = drag ? `translate3d(${drag}px, 0, 0) rotate(${drag * .025}deg)` : "none";
-    else {
-      // while the top card is dragged away, the next one rises into its place
-      const s = d - (d === 1 ? Math.min(1, Math.abs(drag) / 260) : 0);
-      c.style.transform = `translate3d(0, ${s * 22}px, 0) scale(${1 - s * .045})`;
-    }
+const meters = (title, note, rows, fmt) => {
+  const max = Math.max(...rows.map(r => Math.abs(r[1])), 1);
+  return `<div class="meters" aria-hidden="true"><div><p class="mtitle">${title} <span>${note}</span></p>`
+    + rows.map(([l, v, bad]) => `<div class="meter${bad ? " bad" : ""}"><span>${l}</span><div class="track"><i style="--w:${(Math.abs(v) / max).toFixed(3)}"></i></div><b>${fmt(v)}</b></div>`).join("") + "</div></div>";
+};
+const SCEN = {php2shell_day: "PHP2Shell", dossier_piege: "Dossier piégé", faux_agent: "Faux agent", ledger_legacy: "Grand livre ancien", reference_propre: "Journée propre",
+  rumeur_mimetisme: "Rumeur et mimétisme", trader_corrompu_49m: "Trader corrompu", vigie_debranchee: "Krys débranchée"};
+
+function film(F, I) {
+  const S = F.scenarios.php2shell_day, Wc = S.worlds.classic, Wk = S.worlds.ours, Wt = S.worlds.theirs;
+  const P = I?.scenarios?.find(s => s.scenario === "php2shell_day");
+  const put = (k, html) => { for (const el of $$(`[data-film="${k}"]`)) el.innerHTML = html; };
+  const li = xs => xs.map(x => `<li><span>${x}</span></li>`).join("");
+  for (const f of $$("[data-arch]")) f.innerHTML = arch(S, f.dataset.arch, P);
+  // who reads what, from the film's reads
+  const by = {};
+  for (const [a, sv, , hidden] of S.reads) if (!hidden && NAME[a]) (by[sv] ??= []).push(nm(a));
+  put("reads", li(Object.entries(by).map(([sv, as]) => `<b>${esc(list(as))}</b> ${as.length > 1 ? "lisent" : "lit"} ${esc(sv)}`)));
+  put("day", day(S));
+  put("duel", duel(S));
+  put("cFraud", eur(Wc.fraud.at(-1)));
+  // Q1: every rerouted wire of the unprotected bank, and what each bank lets leave
+  const wires = Wt.events.filter(e => /wired/.test(e[2]));
+  put("wires", li([`Sans protection, <b>${wires.length} virements</b> détournés : ${wires.map(e => `T+${e[0]} ${esc(say(e[2]).split(" virés")[0])}`).join(", ")}`,
+    `Tour classique : le premier part, la banque passe au rouge au même tick, puis tout gèle`, `<span class="name">Krys</span> : <b>${eur(Wk.fraud.at(-1))}</b>, tous refusés au portique`]));
+  put("stolen", meters("Argent volé", "même journée", [["Sans protection", Wt.fraud.at(-1), true], ["Tour classique", Wc.fraud.at(-1), true], ["Krys", Wk.fraud.at(-1)]], short));
+  // Q2: when each service was seen and when it was hit
+  const iso = Wk.changes.find(([, k, v]) => k === "iso" && v), firstRefusal = Wk.events.find(e => /refuses a payment/.test(e[2]));
+  put("detect", li([...(P?.detection ?? []).map(d => d.detected_at != null ? `<b>${esc(d.service)}</b> : signalé T+${d.detected_at}, compromis T+${d.compromised_at}` : `<b>${esc(d.service)}</b> : compromis T+${d.compromised_at} par une autre voie, pas signalé par l'inventaire`),
+    ...(firstRefusal ? [`Premier paiement refusé à T+${firstRefusal[0]}, ${iso ? `${esc(iso[2])} isolé à T+${iso[0]}` : ""}`] : [])]));
+  // Q3: the classic tower, the tick its light turned red, what it froze
+  const red = Wc.changes.find(([, k, v]) => k === "light" && v === "ROUGE"), wire = Wc.events.find(e => /wired/.test(e[2]));
+  const frozen = Wc.changes.filter(([, k, v]) => k.startsWith("z:") && v);
+  put("classic", li([wire ? `T+${wire[0]} : <b>${esc(say(wire[2]))}</b>` : "Aucun virement détourné", red ? `T+${red[0]} : le feu passe au rouge, au même tick : le reçu montre un autre IBAN` : "Le feu reste vert",
+    frozen.length ? `T+${frozen[0][0]} : <b>${frozen.length} agents gelés</b>, plus rien ne passe, ni le sain ni le contaminé` : ""].filter(Boolean)));
+  put("check", `<div class="check"><p class="mtitle">Le virement de T+${wire?.[0] ?? "?"} <span>${wire ? esc(say(wire[2]).split(" virés")[0]) : ""}</span></p>`
+    + `<div><h4>Tour classique</h4><ul><li>Bénéficiaire connu</li><li>IBAN attendu dans la demande</li><li>Sous 1 M€ par virement</li><li>Sous 10 M€ dans la journée</li></ul><p class="verdict ok">Approuvé : l'argent part</p><p class="after">Au reçu, l'IBAN crédité n'est pas le bon : feu rouge, trop tard.</p></div>`
+    + `<div class="k"><h4>Krys</h4><ul><li>Mêmes plafonds</li><li class="ko">Provenance : passe par payment-gateway, ${iso ? `isolée depuis T+${iso[0]}` : "suspecte"}</li></ul><p class="verdict ko">Refusé : rien ne part</p><p class="after">Les opérations qui ne passent pas par la passerelle continuent.</p></div></div>`);
+  // Q4: the brake's price
+  const stops = Wk.events.filter(e => /stops trading/.test(e[2])), R = P?.refusals ? Object.values(P.refusals) : [];
+  const nR = R.reduce((a, r) => a + r.count, 0), sane = R.reduce((a, r) => a + r.clean, 0), held = R.reduce((a, r) => a + (r.frozen_eur || 0), 0);
+  put("cost", li([`Résultat de trading : <span class="name">Krys</span> <b>${short(Wk.pnl.at(-1))}</b>, tour classique <b>${short(Wc.pnl.at(-1))}</b>, sans protection <b>${short(Wt.pnl.at(-1))}</b>`,
+    ...(nR ? [`${nR} refus au portique, dont <b>${sane} opération${sane > 1 ? "s" : ""} saine${sane > 1 ? "s" : ""}</b> : ${short(held)} gelés en attente d'un humain, pas perdus`] : []),
+    ...(stops.length ? [`${list(stops.map(e => nm(e[2].split(" ")[0])))} s'arrêtent sur leur propre limite, de T+${stops[0][0]} à T+${stops.at(-1)[0]} : pas d'arrêt général`] : [])]));
+  put("pnl", meters("Résultat de trading", "hors fraude", [["Sans protection", Wt.pnl.at(-1), Wt.pnl.at(-1) < 0], ["Tour classique", Wc.pnl.at(-1), Wc.pnl.at(-1) < 0], ["Krys", Wk.pnl.at(-1), Wk.pnl.at(-1) < 0]], short)
+    + (P ? `<div class="trio"><div><b>${K(P.brake_cost_eur)}</b><span>coût des blocages, face à la banque sans protection</span></div><div><b>${M(P.avoided_fraud_eur)}</b><span>fraude évitée, même comparaison</span></div><div><b>${M(P.avoided_loss_eur)}</b><span>perte évitée au total</span></div></div>` : ""));
+  // Q7: every day of the film, the three banks' end of day
+  const rows = Object.entries(F.scenarios).map(([id, s]) => {
+    const [t, c, k] = ["theirs", "classic", "ours"].map(w => net(s.worlds[w])), best = Math.max(t, c, k);
+    const cell = (v, kr) => `<td class="${v === best && !(t === c && c === k) ? "best" : kr && v < c ? "worse" : ""}">${short(v)}</td>`;
+    return `<tr><td>${esc(SCEN[id] ?? id)}</td>${cell(t)}${cell(c)}${cell(k, true)}</tr>`;
+  }).join("");
+  put("table", `<table class="tbl"><thead><tr><th>Journée</th><th>Sans protection</th><th>Classique</th><th>Krys</th></tr></thead><tbody>${rows}</tbody></table>`);
+  put("when", esc(FMT.when(F.generated_at)));
+  put("evidence", esc(F.evidence_dir));
+  // Q8: the reads no agent declared
+  const hid = S.reads.filter(r => r[3]);
+  for (const el of $$('[data-film="hidden"]')) el.innerHTML = hid.length ? `<span><b>Dépendances mesurées</b> : ${esc(list([...new Set(hid.map(r => nm(r[0])))]))} lisent ${esc(list([...new Set(hid.map(r => r[1]))]))} sans l'avoir déclaré</span>` : "";
+  // Q9: the day Krys is unplugged
+  const V = F.scenarios.vigie_debranchee, lost = V?.worlds.ours.events.find(e => /heartbeat/.test(e[2]));
+  put("safe", li([...(V && lost ? [`Krys débranchée : à T+${lost[0]} chaque agent passe seul à l'orange ; volé : <b>${eur(V.worlds.theirs.fraud.at(-1))}</b> sans protection, <b>${eur(V.worlds.ours.fraud.at(-1))}</b> avec Krys`] : []),
+    `Décision au portique en <b>${FMT.p50(FIG.p50)}</b> (p50), ${FMT.p99(FIG.p99)} (p99) ; au-delà de 200 ms, refus par défaut`,
+    "Journal append-only chaîné par hash, <code>make verify</code> le revérifie", "Seul un humain, par une décision signée, desserre le frein"]));
+  // Q10: what the measures do not say
+  const wrong = (P?.indicator_alerts ?? []).filter(a => a.rule === "cve_unpatchable" && !a.true).map(a => a.service);
+  const missed = (P?.detection ?? []).filter(d => d.detected_at == null).map(d => d.service);
+  const clean = F.scenarios.reference_propre, cleanCost = clean ? net(clean.worlds.ours) - net(clean.worlds.classic) : 0;
+  put("limits", li(["Ces cas « ne constituent pas une validation statistique hors simulateur »",
+    ...(missed.length ? [`${esc(list(missed))}, compromis par une autre voie que la CVE, n'est pas signalé par l'inventaire`] : []),
+    ...(wrong.length ? [`${esc(list(wrong))} est signalé à la CVE alors qu'il n'est pas attaqué ce jour-là : une alerte de trop`] : []),
+    "Sous attaque, le frein coûte : 64,6 % des opérations saines passent, sur dix graines",
+    ...(cleanCost < 0 ? [`Dans le film, la journée propre coûte ${short(-cleanCost)} à Krys : c'est le rapport historique ; la remesure de la fusion donne 0 faux positif (Q5)`] : []),
+    "Un trader qui triche seul sous les plafonds n'est pas vu : c'est le rôle de Sentinel"]));
+}
+
+// --- the decks: one card on top, the next two peeking under it; drag, buttons, chapters, keys ---------------------
+
+const DECKS = {};
+let inView = null;
+function deck(sec) {
+  const root = sec.querySelector(".deck"), cards = [...root.children], N = cards.length;
+  const NAMES = cards.map(c => c.querySelector(".kicker").textContent.replace(/^\s*\S+\s*/, "").trim());
+  cards.forEach((c, k) => c.setAttribute("aria-label", `${k + 1} sur ${N} : ${NAMES[k]}`));
+  const ol = sec.querySelector(".chapters");
+  ol.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
+  ol.innerHTML = NAMES.map((n, k) => `<li><button type="button" data-k="${k}" aria-label="Fiche ${k + 1} : ${n}"><span>${n}</span></button></li>`).join("");
+  const chaps = [...ol.querySelectorAll("button")], count = sec.querySelector(".count"), prev = sec.querySelector(".prev"), next = sec.querySelector(".next");
+  let at = 0;
+
+  function place(drag = 0) {
+    cards.forEach((c, k) => {
+      const d = k - at;
+      c.dataset.d = d < 0 ? "gone" : Math.min(d, 3);
+      c.inert = d !== 0;
+      c.classList.toggle("is-active", d === 0);
+      c.style.zIndex = N - k;
+      c.style.opacity = d < 0 || d > 2 ? 0 : 1;
+      if (d < 0) c.style.transform = "translate3d(calc(-100% - 14vw), 30px, 0) rotate(-10deg)";
+      else if (d === 0) c.style.transform = drag ? `translate3d(${drag}px, 0, 0) rotate(${drag * .025}deg)` : "none";
+      else {
+        // while the top card is dragged away, the next one rises into its place
+        const s = d - (d === 1 ? Math.min(1, Math.abs(drag) / 260) : 0);
+        c.style.transform = `translate3d(0, ${s * 22}px, 0) scale(${1 - s * .045})`;
+      }
+    });
+    if (drag) return;
+    chaps.forEach((b, k) => { b.toggleAttribute("aria-current", k === at); b.classList.toggle("past", k < at); });
+    count.textContent = `${String(at + 1).padStart(2, "0")} / ${String(N).padStart(2, "0")}`;
+    prev.disabled = at === 0;
+    next.disabled = at === N - 1;
+  }
+  function go(k) { at = Math.max(0, Math.min(N - 1, k)); place(); }
+
+  prev.onclick = () => go(at - 1);
+  next.onclick = () => go(at + 1);
+  for (const b of chaps) b.onclick = () => go(+b.dataset.k);
+
+  let x0 = null, y0 = 0, dx = 0, t0 = 0, pid = null, dragging = false;
+  root.addEventListener("pointerdown", e => {
+    if (e.button !== 0 || e.target.closest("a, button")) return;
+    // a press under the top card, on the edge of the next one, turns the page
+    if (!cards[at].contains(e.target)) { if (e.pointerType === "mouse") go(at + 1); return; }
+    x0 = e.clientX; y0 = e.clientY; dx = 0; t0 = performance.now(); pid = e.pointerId;
   });
-  if (drag) return;
-  chaps.forEach((b, k) => { b.toggleAttribute("aria-current", k === at); b.classList.toggle("past", k < at); });
-  $("#count").textContent = `${String(at + 1).padStart(2, "0")} / ${String(N).padStart(2, "0")}`;
-  $("#prev").disabled = at === 0;
-  $("#next").disabled = at === N - 1;
+  addEventListener("pointermove", e => {
+    if (x0 == null || e.pointerId !== pid) return;
+    dx = e.clientX - x0;
+    if (!dragging && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(e.clientY - y0)) { dragging = true; root.classList.add("dragging"); }
+    // at either end the card resists
+    if (dragging) place((dx > 0 && at === 0) || (dx < 0 && at === N - 1) ? dx * .2 : dx);
+  });
+  function release(e) {
+    if (x0 == null || e.pointerId !== pid) return;
+    const v = dx / Math.max(1, performance.now() - t0);
+    root.classList.remove("dragging");
+    if (dragging && (dx < -110 || v < -.55)) go(at + 1);
+    else if (dragging && (dx > 110 || v > .55)) go(at - 1);
+    else place();
+    x0 = null; dragging = false;
+  }
+  addEventListener("pointerup", release);
+  addEventListener("pointercancel", release);
+  // a click that ended a drag must not follow a link
+  root.addEventListener("click", e => { if (Math.abs(dx) > 8) e.preventDefault(); }, true);
+
+  // a horizontal swipe on a trackpad turns one card per gesture
+  let wheelLock = 0, wheelSum = 0;
+  root.addEventListener("wheel", e => {
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+    e.preventDefault();
+    if (performance.now() < wheelLock) return;
+    wheelSum += e.deltaX;
+    if (Math.abs(wheelSum) > 60) { go(at + Math.sign(wheelSum)); wheelSum = 0; wheelLock = performance.now() + 650; }
+  }, {passive: false});
+
+  // the arrow keys turn the cards of the deck on screen
+  const d = {go: k => go(k), step: s => go(at + s)};
+  new IntersectionObserver(([e]) => { if (e.isIntersecting) inView = d; else if (inView === d) inView = null; }, {threshold: .4}).observe(root);
+  cards.forEach(c => c.style.transition = "none");
+  place();
+  root.getBoundingClientRect();
+  cards.forEach(c => c.style.transition = "");
+  DECKS[sec.id] = d;
 }
-function go(k) { at = Math.max(0, Math.min(N - 1, k)); place(); }
-
-$("#prev").onclick = () => go(at - 1);
-$("#next").onclick = () => go(at + 1);
-for (const b of chaps) b.onclick = () => go(+b.dataset.k);
-
-let x0 = null, y0 = 0, dx = 0, t0 = 0, pid = null, dragging = false;
-deck.addEventListener("pointerdown", e => {
-  if (e.button !== 0 || e.target.closest("a, button")) return;
-  // a press under the top card, on the edge of the next one, turns the page
-  if (!cards[at].contains(e.target)) { if (e.pointerType === "mouse") go(at + 1); return; }
-  x0 = e.clientX; y0 = e.clientY; dx = 0; t0 = performance.now(); pid = e.pointerId;
-});
-addEventListener("pointermove", e => {
-  if (x0 == null || e.pointerId !== pid) return;
-  dx = e.clientX - x0;
-  if (!dragging && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(e.clientY - y0)) { dragging = true; deck.classList.add("dragging"); }
-  // at either end the card resists
-  if (dragging) place((dx > 0 && at === 0) || (dx < 0 && at === N - 1) ? dx * .2 : dx);
-});
-function release(e) {
-  if (x0 == null || e.pointerId !== pid) return;
-  const v = dx / Math.max(1, performance.now() - t0);
-  deck.classList.remove("dragging");
-  if (dragging && (dx < -110 || v < -.55)) go(at + 1);
-  else if (dragging && (dx > 110 || v > .55)) go(at - 1);
-  else place();
-  x0 = null; dragging = false;
-}
-addEventListener("pointerup", release);
-addEventListener("pointercancel", release);
-// a click that ended a drag must not follow a link
-deck.addEventListener("click", e => { if (Math.abs(dx) > 8) e.preventDefault(); }, true);
-
-// a horizontal swipe on a trackpad turns one card per gesture
-let wheelLock = 0, wheelSum = 0;
-deck.addEventListener("wheel", e => {
-  if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
-  e.preventDefault();
-  if (performance.now() < wheelLock) return;
-  wheelSum += e.deltaX;
-  if (Math.abs(wheelSum) > 60) { go(at + Math.sign(wheelSum)); wheelSum = 0; wheelLock = performance.now() + 650; }
-}, {passive: false});
-
-// the arrow keys turn the cards while the deck is on screen
-let inView = false;
-new IntersectionObserver(([e]) => inView = e.isIntersecting, {threshold: .4}).observe(deck);
+for (const sec of $$("section.story")) deck(sec);
 addEventListener("keydown", e => {
   if (!inView || e.altKey || e.ctrlKey || e.metaKey || e.target.matches?.("input, textarea, select")) return;
-  if (e.key === "ArrowRight") { e.preventDefault(); go(at + 1); }
-  if (e.key === "ArrowLeft") { e.preventDefault(); go(at - 1); }
+  if (e.key === "ArrowRight") { e.preventDefault(); inView.step(1); }
+  if (e.key === "ArrowLeft") { e.preventDefault(); inView.step(-1); }
 });
-
-cards.forEach(c => c.style.transition = "none");
-place();
-deck.getBoundingClientRect();
-cards.forEach(c => c.style.transition = "");
+for (const a of $$("[data-card]")) a.addEventListener("click", () => DECKS[a.dataset.deck]?.go(+a.dataset.card));
 </script>
 </body>
 </html>
