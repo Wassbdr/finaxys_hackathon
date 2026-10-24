@@ -1,0 +1,3 @@
+[submodule "vendor/SD-FMM"]
+	path = vendor/SD-FMM
+	url = https://github.com/ys-Dai/SD-FMM.git

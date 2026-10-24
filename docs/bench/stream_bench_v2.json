@@ -1,0 +1,138 @@
+{
+  "environment": {
+    "os": "Windows-11-10.0.26200-SP0",
+    "cpu": "AMD64 Family 25 Model 117 Stepping 2, AuthenticAMD",
+    "logical_cores": "16",
+    "python": "3.12.10",
+    "java": "openjdk version \"25.0.4.1\" 2026-08-18 LTS"
+  },
+  "n_events": 500000,
+  "java": {
+    "runs": [
+      {
+        "engine": "java",
+        "n_events": 500000,
+        "throughput_eps": 2077635.4,
+        "timer_overhead_ns": 0,
+        "rows_scored": 7852,
+        "n_alerts": 4762,
+        "latency_ns": {
+          "overall": {
+            "n": 500000,
+            "median": 100,
+            "p99": 600,
+            "p999": 7400,
+            "max": 3744800
+          },
+          "window_close": {
+            "n": 164,
+            "median": 940400,
+            "p99": 2012800,
+            "p999": 2159600,
+            "max": 2159600
+          },
+          "other": {
+            "n": 499836,
+            "median": 100,
+            "p99": 600,
+            "p999": 2200,
+            "max": 3744800
+          }
+        }
+      },
+      {
+        "engine": "java",
+        "n_events": 500000,
+        "throughput_eps": 2217755.2,
+        "timer_overhead_ns": 0,
+        "rows_scored": 7852,
+        "n_alerts": 4762,
+        "latency_ns": {
+          "overall": {
+            "n": 500000,
+            "median": 100,
+            "p99": 600,
+            "p999": 4300,
+            "max": 2277700
+          },
+          "window_close": {
+            "n": 164,
+            "median": 949100,
+            "p99": 1520600,
+            "p999": 1992300,
+            "max": 1992300
+          },
+          "other": {
+            "n": 499836,
+            "median": 100,
+            "p99": 600,
+            "p999": 2000,
+            "max": 2277700
+          }
+        }
+      },
+      {
+        "engine": "java",
+        "n_events": 500000,
+        "throughput_eps": 2326644.1,
+        "timer_overhead_ns": 0,
+        "rows_scored": 7852,
+        "n_alerts": 4762,
+        "latency_ns": {
+          "overall": {
+            "n": 500000,
+            "median": 100,
+            "p99": 500,
+            "p999": 3500,
+            "max": 2978100
+          },
+          "window_close": {
+            "n": 164,
+            "median": 911900,
+            "p99": 2004800,
+            "p999": 2035700,
+            "max": 2035700
+          },
+          "other": {
+            "n": 499836,
+            "median": 100,
+            "p99": 500,
+            "p999": 1600,
+            "max": 2978100
+          }
+        }
+      }
+    ],
+    "median_run": {
+      "engine": "java",
+      "n_events": 500000,
+      "throughput_eps": 2217755.2,
+      "timer_overhead_ns": 0,
+      "rows_scored": 7852,
+      "n_alerts": 4762,
+      "latency_ns": {
+        "overall": {
+          "n": 500000,
+          "median": 100,
+          "p99": 600,
+          "p999": 4300,
+          "max": 2277700
+        },
+        "window_close": {
+          "n": 164,
+          "median": 949100,
+          "p99": 1520600,
+          "p999": 1992300,
+          "max": 1992300
+        },
+        "other": {
+          "n": 499836,
+          "median": 100,
+          "p99": 600,
+          "p999": 2000,
+          "max": 2277700
+        }
+      }
+    }
+  }
+}

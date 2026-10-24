@@ -1,0 +1,258 @@
+{
+  "environment": {
+    "os": "Windows-11-10.0.26200-SP0",
+    "cpu": "AMD64 Family 25 Model 117 Stepping 2, AuthenticAMD",
+    "logical_cores": "16",
+    "python": "3.12.10",
+    "java": "openjdk version \"25.0.4.1\" 2026-08-18 LTS"
+  },
+  "n_events": 500000,
+  "python": {
+    "runs": [
+      {
+        "engine": "python",
+        "n_events": 500000,
+        "throughput_eps": 178979.49542888158,
+        "timer_overhead_ns": 100,
+        "latency_ns": {
+          "overall": {
+            "n": 500000,
+            "median": 4700,
+            "p99": 14200,
+            "p999": 59700,
+            "max": 122926700
+          },
+          "window_close": {
+            "n": 164,
+            "median": 1348600,
+            "p99": 3299800,
+            "p999": 3997900,
+            "max": 3997900
+          },
+          "other": {
+            "n": 499836,
+            "median": 4700,
+            "p99": 13500,
+            "p999": 50400,
+            "max": 122926700
+          }
+        }
+      },
+      {
+        "engine": "python",
+        "n_events": 500000,
+        "throughput_eps": 178386.51820341658,
+        "timer_overhead_ns": 100,
+        "latency_ns": {
+          "overall": {
+            "n": 500000,
+            "median": 4800,
+            "p99": 14200,
+            "p999": 54700,
+            "max": 2950600
+          },
+          "window_close": {
+            "n": 164,
+            "median": 1286900,
+            "p99": 2750600,
+            "p999": 2950600,
+            "max": 2950600
+          },
+          "other": {
+            "n": 499836,
+            "median": 4800,
+            "p99": 13400,
+            "p999": 46000,
+            "max": 1565000
+          }
+        }
+      },
+      {
+        "engine": "python",
+        "n_events": 500000,
+        "throughput_eps": 179110.84647284533,
+        "timer_overhead_ns": 100,
+        "latency_ns": {
+          "overall": {
+            "n": 500000,
+            "median": 4800,
+            "p99": 15200,
+            "p999": 59800,
+            "max": 2482800
+          },
+          "window_close": {
+            "n": 164,
+            "median": 1343500,
+            "p99": 2001900,
+            "p999": 2482800,
+            "max": 2482800
+          },
+          "other": {
+            "n": 499836,
+            "median": 4800,
+            "p99": 14200,
+            "p999": 51000,
+            "max": 638900
+          }
+        }
+      }
+    ],
+    "median_run": {
+      "engine": "python",
+      "n_events": 500000,
+      "throughput_eps": 178979.49542888158,
+      "timer_overhead_ns": 100,
+      "latency_ns": {
+        "overall": {
+          "n": 500000,
+          "median": 4700,
+          "p99": 14200,
+          "p999": 59700,
+          "max": 122926700
+        },
+        "window_close": {
+          "n": 164,
+          "median": 1348600,
+          "p99": 3299800,
+          "p999": 3997900,
+          "max": 3997900
+        },
+        "other": {
+          "n": 499836,
+          "median": 4700,
+          "p99": 13500,
+          "p999": 50400,
+          "max": 122926700
+        }
+      }
+    }
+  },
+  "java": {
+    "runs": [
+      {
+        "engine": "java",
+        "n_events": 500000,
+        "throughput_eps": 2039394.6,
+        "timer_overhead_ns": 0,
+        "rows_scored": 7852,
+        "n_alerts": 4762,
+        "latency_ns": {
+          "overall": {
+            "n": 500000,
+            "median": 100,
+            "p99": 600,
+            "p999": 9200,
+            "max": 3611000
+          },
+          "window_close": {
+            "n": 164,
+            "median": 1135700,
+            "p99": 2463800,
+            "p999": 3044200,
+            "max": 3044200
+          },
+          "other": {
+            "n": 499836,
+            "median": 100,
+            "p99": 600,
+            "p999": 2300,
+            "max": 3611000
+          }
+        }
+      },
+      {
+        "engine": "java",
+        "n_events": 500000,
+        "throughput_eps": 1975919.9,
+        "timer_overhead_ns": 0,
+        "rows_scored": 7852,
+        "n_alerts": 4762,
+        "latency_ns": {
+          "overall": {
+            "n": 500000,
+            "median": 100,
+            "p99": 700,
+            "p999": 5300,
+            "max": 3738300
+          },
+          "window_close": {
+            "n": 164,
+            "median": 1985000,
+            "p99": 3217100,
+            "p999": 3738300,
+            "max": 3738300
+          },
+          "other": {
+            "n": 499836,
+            "median": 100,
+            "p99": 700,
+            "p999": 1700,
+            "max": 3026500
+          }
+        }
+      },
+      {
+        "engine": "java",
+        "n_events": 500000,
+        "throughput_eps": 1941441.5,
+        "timer_overhead_ns": 0,
+        "rows_scored": 7852,
+        "n_alerts": 4762,
+        "latency_ns": {
+          "overall": {
+            "n": 500000,
+            "median": 100,
+            "p99": 600,
+            "p999": 6800,
+            "max": 2603900
+          },
+          "window_close": {
+            "n": 164,
+            "median": 1140900,
+            "p99": 2191000,
+            "p999": 2387800,
+            "max": 2387800
+          },
+          "other": {
+            "n": 499836,
+            "median": 100,
+            "p99": 600,
+            "p999": 2500,
+            "max": 2603900
+          }
+        }
+      }
+    ],
+    "median_run": {
+      "engine": "java",
+      "n_events": 500000,
+      "throughput_eps": 1975919.9,
+      "timer_overhead_ns": 0,
+      "rows_scored": 7852,
+      "n_alerts": 4762,
+      "latency_ns": {
+        "overall": {
+          "n": 500000,
+          "median": 100,
+          "p99": 700,
+          "p999": 5300,
+          "max": 3738300
+        },
+        "window_close": {
+          "n": 164,
+          "median": 1985000,
+          "p99": 3217100,
+          "p999": 3738300,
+          "max": 3738300
+        },
+        "other": {
+          "n": 499836,
+          "median": 100,
+          "p99": 700,
+          "p999": 1700,
+          "max": 3026500
+        }
+      }
+    }
+  }
+}

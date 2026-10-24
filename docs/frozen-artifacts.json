@@ -1,0 +1,16 @@
+{
+  "java/src/sentinel/Config.java": "381dcb390573e8df0720dbed296b01b306d7ff4961f5c3ef7ee1d05765f5fb06",
+  "java/src/sentinel/Engine.java": "3c24f9f2e6ed7af5e4ee556be200f250994c74443c18a027209fed6f025453f4",
+  "java/src/sentinel/EventReader.java": "2024764aa5b9e610a74f9c92cb8d0e254edd008e9cc3d7a7f5880495bd531ede",
+  "java/src/sentinel/FeatureExtractor.java": "1175f2aef743a902be3b21ca1d532dd06c58af502a791767b11e26cfc5edccab",
+  "java/src/sentinel/LgbmModel.java": "0d4b0d6b8d7fbde06decd3fa49961b75233e5232eef2c0a83b890f2a4da954ce",
+  "java/src/sentinel/Main.java": "fa4aa5015bd07f98643457471bf6bb1781285ffaedca2f1ba7338d4ca63d8e0b",
+  "java/src/sentinel/SelfTest.java": "7ee5c3163a3d000af9637e55b0625b156ca5aa6fcac49b1ac9a7259401ae2b8f",
+  "models/iforest.joblib": "e9ad358a97229810aa8d352c2b81ce509d6b39a4bae7d4f1544579488ae4f122",
+  "models/iforest_threshold.json": "3be23b279f95f7346d515969194830d85c8e136433d14b555d9750f3bff6a4fb",
+  "models/lgbm.txt": "e0588e1724d2fcb0f0458bbcdbbecd004e9092248476d74b4d55c06fd81f39b2",
+  "models/thresholds.json": "a29460d7f45060080c2c81d3ab8888e2d7733f3265bae1f1a0fc668ad6eb0e13",
+  "models/tuned_rules.json": "9d5b95622b7b3f53bbaf81a09af8ad80459d8388f8a2b42d735ff0ba81313b8c",
+  "src/sentinel/detect/rules.py": "b03588845a4fb018aa8f39e226c9c5440bdaf23af4cc625763d5bc27aa982b49",
+  "src/sentinel/features/extractor.py": "0eb5669684bc4e341b7607e73c1d36365e4fd161dc3969fd02bb12b6828be790"
+}
