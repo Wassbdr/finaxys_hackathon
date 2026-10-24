@@ -282,15 +282,17 @@ world.add(tower);
 for (const n of Object.values(nodes)) if (n.g.parent === world) n.g.position.set(POS[n.id][0], 0, POS[n.id][1]);
 tower.position.set(POS.vigie[0], 0, POS.vigie[1]);
 
+const FLOOR = 0.05;
 const at = id => v(POS[id][0], id === "vigie" ? 4.4 : nodes[id].leds ? 0.8 : 1, POS[id][1]);
 // the agents a link's end stands for: a pad's, or the one node
 const members = id => pads.find(p => p.id === id)?.ids ?? [id];
 // a pad's end of a link is the point of its rim nearest the link's other end
 function end(id, other) {
   const p = pads.find(q => q.id === id);
-  if (!p) return at(id);
+  // a link runs on the floor from under the centre of a thing's feet, the Vigie's from the foot of its tower (Marius, 24-10)
+  if (!p) return at(id).setY(FLOOR);
   const o = at(other), x = THREE.MathUtils.clamp(o.x, p.x - p.hx, p.x + p.hx), z = THREE.MathUtils.clamp(o.z, p.z - p.hz, p.z + p.hz), d = Math.hypot(o.x - x, o.z - z) || 1;
-  return v(x + ((o.x - x) / d) * p.r, 0.3, z + ((o.z - z) / d) * p.r);
+  return v(x + ((o.x - x) / d) * p.r, FLOOR, z + ((o.z - z) / d) * p.r);
 }
 
 // What stands under a point of the window (clientX, clientY): the id of an agent, a service or "vigie", "pad:<role>"
@@ -1081,7 +1083,7 @@ renderer.setAnimationLoop(now => {
     if (p.at < 0) continue;
     if (!p.m.visible) (p.m.visible = true), depart(p);
     const u = Math.min(1, p.at / p.dur), e = u * u * (3 - 2 * u);
-    p.l.curve.getPoint(p.back ? 1 - e : e, p.m.position);
+    p.l.curve.getPoint(p.back ? 1 - e : e, p.m.position).y += 0.15;  // over the floor its link lies on
     p.m.rotation.y += dt * 6;
     if (u === 1) arrive(p), world.remove(p.m), (p.done = true);
   }
