@@ -1,7 +1,7 @@
 # Onglet Détails
 
-Ouvrir `/dashboard#details`. La page `/demo/page` donne un résumé et ce lien.
-Un message peut être partagé par `/dashboard?details_message_id=<identifiant encodé>&details_mode=archive#details` ; `live` sélectionne le journal de la démo.
+Ouvrir `/console#details` : le bloc Preuves de la vue Gouvernance. La page `/simulation` donne un résumé et ce lien.
+Un message peut être partagé par `/console?details_message_id=<identifiant encodé>&details_mode=archive#details` ; `live` sélectionne le journal de la démo.
 
 Tout le lot est en lecture seule : aucune route POST, aucun transport externe, aucun appel LLM. Le fournisseur du journal de la démo est celui de Krys, déjà borné au tick affiché et filtré par vérification HMAC. Sans ce fournisseur, la source « démo » indique son indisponibilité, sans basculer silencieusement sur l’archive.
 

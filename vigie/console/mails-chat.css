@@ -24,12 +24,15 @@
 .mc-state::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--orange); }
 #mc-open { position: fixed; z-index: 110; right: 20px; bottom: 20px; box-shadow: var(--lift); font-family: var(--sans); }
 #mc-chat { position: fixed; z-index: 111; right: 20px; bottom: 76px; width: min(480px, calc(100vw - 40px));
-  max-height: calc(100dvh - 100px); overflow-y: auto; box-sizing: border-box; padding: 18px;
+  max-height: calc(100dvh - var(--menu, 0px) - 96px); overflow-y: auto; box-sizing: border-box; padding: 18px;
   background: var(--surface); border: 1px solid var(--line-2); border-radius: 4px; box-shadow: var(--lift); }
 #mc-chat[hidden] { display: none; }
-.mc-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-#krys-log { max-height: 32vh; overflow-y: auto; padding-left: 22px; overflow-wrap: anywhere; }
-#krys-log li { border-left: 3px solid var(--line-2); padding-left: 12px; margin: 12px 0; }
+/* le chat de la vue Krys garde ses styles (accueil.css) ; la bulle ne fixe que sa fermeture et la hauteur du journal */
+.mc-header { display: flex; justify-content: flex-end; margin: -6px -6px 4px 0; }
+#mc-chat .mc-close { padding: 6px 10px; border: 1px solid var(--line-2); border-radius: 3px; background: var(--surface); font: inherit; font-size: 14px; color: var(--text); cursor: pointer; }
+#mc-chat .mc-close:hover { background: var(--wash); }
+#mc-chat .mc-close:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+#mc-chat #krys-log { max-height: 30vh; }
 @media (max-width: 600px) {
   #mc-chat { right: 8px; bottom: 66px; width: calc(100vw - 16px); max-height: calc(100dvh - 82px); padding: 12px; }
   #mc-open { right: 8px; bottom: 10px; }

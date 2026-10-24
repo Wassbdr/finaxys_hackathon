@@ -10,7 +10,7 @@
   const pct = value => value == null ? 'N/A' : number(100 * value) + ' %';
   const data = '/console/details/data/';
   const proof = (name, label = name) => `<a href="${data + encodeURIComponent(name)}" target="_blank" rel="noopener">${esc(label)}</a>`;
-  const link = mid => `<a href="/dashboard?details_message_id=${encodeURIComponent(mid)}&amp;details_mode=${encodeURIComponent(document.getElementById('details-mode').value)}#details" data-details-message="${esc(mid)}"><code>${esc(mid)}</code></a>`;
+  const link = mid => `<a href="/console?details_message_id=${encodeURIComponent(mid)}&amp;details_mode=${encodeURIComponent(document.getElementById('details-mode').value)}#details" data-details-message="${esc(mid)}"><code>${esc(mid)}</code></a>`;
   const limit = text => `<p class="details-limit">Limite : ${esc(text)}</p>`;
   const table = (headers, rows) => `<div class="details-table"><table><thead><tr>${headers.map(x => `<th scope="col">${esc(x)}</th>`).join('')}</tr></thead><tbody>${rows.map(row => `<tr>${row.map(x => `<td>${x}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   async function get(url) {

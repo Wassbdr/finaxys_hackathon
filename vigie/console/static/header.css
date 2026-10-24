@@ -1,0 +1,30 @@
+/* L'en-tête commun des espaces d'Argus : la marque, qui ramène à la présentation, les trois espaces au centre, et à
+   droite l'état de la démo (direct, rejeu ou données d'exemple) avec le feu de la banque. La présentation n'en a pas. */
+.top { position: sticky; top: 0; z-index: 20; height: var(--menu); display: flex; justify-content: center;
+  border-bottom: 1px solid var(--line); background: var(--bg); }
+.top .brand { position: absolute; left: 20px; top: 0; height: 100%; display: flex; align-items: center; gap: 10px; color: var(--text);
+  text-decoration: none; font: 500 17px var(--sans); letter-spacing: -.03em; }
+.top .brand svg { width: 26px; height: 19px; }
+.top :focus-visible { outline: 3px solid rgb(31 91 255 / .35); outline-offset: -3px; }
+.spaces { display: flex; gap: 2px; }
+.spaces a { display: flex; align-items: center; padding: 0 16px; border-bottom: 2px solid transparent; font-size: 14.5px; white-space: nowrap;
+  color: var(--dim); text-decoration: none; transition: color .2s; }
+.spaces a:hover, .spaces a[aria-current] { color: var(--text); }
+.spaces a[aria-current] { font-weight: 500; border-bottom-color: var(--blue); }
+
+/* the state of the demo, and the bank's light: only orange and red light it, a green bank shows a plain "normal" */
+.top .bank { position: absolute; right: 16px; top: 0; height: 100%; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); }
+.top .mode { padding: 2px 7px; border: 1px solid var(--line-2); border-radius: 2px; font: 500 10.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+.top .mode:empty { display: none; }
+.top .mode.live { color: var(--text); }
+.top .mode.live::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; vertical-align: 1px; background: var(--green); }
+.top .mode.warn, .top .warn { color: var(--orange); font-weight: 500; }
+.top .box { display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px; border: 1px solid var(--line-2); border-radius: 2px; background: var(--surface); font-weight: 500; }
+.lamp { color: var(--c); }
+.lamp::before { content: ""; width: .5em; height: .5em; background: var(--c); }
+.lamp.calm { color: var(--text); } .lamp.calm::before { display: none; }
+.s-red.lamp::before { animation: beat 1.6s ease-out infinite; }
+@keyframes beat { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 55%, transparent); } 100% { box-shadow: 0 0 0 7px transparent; } }
+@media (prefers-reduced-motion: reduce) { .spaces a { transition: none; } .lamp::before { animation: none !important; } }
+@media (max-width: 1100px) { .top .brand span { display: none; } }
+@media (max-width: 760px) { .top { justify-content: flex-start; padding-left: 56px; } .spaces a { padding: 0 10px; } .top .bank { display: none; } }

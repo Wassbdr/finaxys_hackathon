@@ -17,7 +17,7 @@ from vigie.krys_api import attach_krys
 
 ROOT = Path(__file__).resolve().parents[1]
 SPACES = ['/', '/simulation', '/console', '/regulation']
-PAGES = ['vigie/landing.html', 'vigie/demo_page.html', 'vigie/dashboard.html', 'vigie/regulation.html', 'vigie/argus.html']
+PAGES = ['vigie/landing.html', 'vigie/demo_page.html', 'vigie/dashboard.html', 'vigie/regulation.html']
 
 
 def client():
@@ -106,3 +106,30 @@ def test_the_console_sends_the_anchors_that_left_to_their_space():
     result = subprocess.run([node, str(ROOT/'tests/console_anchors_dom.cjs'), str(ROOT/'vigie/dashboard.html')],
                             capture_output=True, text=True, timeout=10)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_the_console_has_five_views_and_each_former_tab_lands_in_one():
+    html = (ROOT/'vigie/dashboard.html').read_text()
+    views = re.findall(r'<a href="#([a-z]+)" data-tab="\1"', html)
+    assert views == ['krys', 'alertes', 'synthese', 'parc', 'gouvernance']
+    sections = {m.group(1): m.group(2) for m in re.finditer(r'<section id="([a-z-]+)"[^>]*>(.*?)</section>', html, re.S)}
+    assert set(views) <= set(sections) and 'hidden' not in re.search(r'<section id="krys"[^>]*>', html).group(0)
+    moved = dict(re.findall(r'(\w+): "(\w+)"', re.search(r'moved: \{(.*?)\}', html).group(1)))
+    assert set(moved) == {'summary', 'actions', 'agents', 'guardrails', 'improve', 'metrics', 'impact', 'details'}
+    for block, view in moved.items():
+        assert f'<div id="{block}"></div>' in sections[view], (block, view)
+    # the chat of the former Krys page, once, in the Krys view; the console loads its client once
+    for element in ['krys-log', 'krys-question-form', 'krys-question', 'krys-action-form', 'krys-confirm', 'krys-recap', 'url']:
+        assert html.count(f'id="{element}"') == 1 and f'id="{element}"' in sections['krys'], element
+    assert html.count('<script src="/demo/krys.js"></script>') == 1
+    assert '/demo/krys.js' not in re.sub(r'/\*.*?\*/', '', (ROOT/'vigie/console/mails-chat.js').read_text(), flags=re.S)
+
+
+def test_the_console_reads_the_krys_bank_and_says_live_or_replay():
+    code = (ROOT/'vigie/dashboard.js').read_text()
+    for route in ('/state', '/vigie', '/graph'):
+        assert f'getJson("{route}" + WORLD)' in code, route
+    assert 'WORLD = h?.worlds?.includes("C") ? "?world=C" : ""' in code and 'getJson("/health")' in code
+    html = (ROOT/'vigie/dashboard.html').read_text()
+    assert '<a href="/console" aria-current="page">Console</a>' in html and '<a href="/regulation">Régulation</a>' in html
+    assert 'id="mode"' in html and 'id="light"' in html and 'id="waiting"' in html

@@ -26,6 +26,8 @@ def client_app():
 
 def test_accueil_route_local_resources_and_console_anchors():
     client, _ = client_app()
+    # l'ancienne page du chat est la vue Krys, par défaut, de la console
+    assert client.get('/argus', follow_redirects=False).headers['location'] == '/console'
     response = client.get('/argus')
     assert response.status_code == 200
     html = response.text
@@ -33,15 +35,15 @@ def test_accueil_route_local_resources_and_console_anchors():
     assert 'En attente des premières preuves signées' in html
     for resource in re.findall(r'(?:src|href)="([^"]+)"', html):
         assert not resource.startswith(('http:', 'https:', '//'))
-        if resource.startswith('/dashboard#'):
-            anchor = resource.split('#')[1]
-            dashboard = client.get('/dashboard').text
-            assert f'id="{anchor}"' in dashboard
-            assert f'data-tab="{anchor}"' in dashboard
+        if resource.startswith('#'):
+            assert f'id="{resource[1:]}"' in html, resource
         elif resource.startswith('/'):
             assert client.get(resource).status_code == 200, resource
+    for view in ('krys', 'alertes', 'synthese', 'parc', 'gouvernance'):
+        assert f'href="#{view}" data-tab="{view}"' in html and f'<section id="{view}"' in html
     assert client.get('/argus/../api/app.py').status_code == 404
     assert client.get('/argus/secret.js').status_code == 404
+    assert client.get('/argus/accueil.js').status_code == 404
     demo = client.get('/demo/page').text
     assert 'href="/console"' in demo
 
@@ -63,7 +65,7 @@ def test_accueil_chat_empty_proofs_and_csrf():
 
 def test_accueil_reuses_xss_safe_chat_dom():
     assert shutil.which('node'), 'Node requis pour vérifier le DOM du chat'
-    html = (ROOT / 'vigie/argus.html').read_text()
+    html = (ROOT / 'vigie/dashboard.html').read_text()
     for element in ['krys-log', 'krys-confirm', 'krys-recap', 'krys-question-form',
                     'krys-question', 'krys-action-form', 'krys-action', 'krys-target', 'url']:
         assert f'id="{element}"' in html
@@ -77,7 +79,7 @@ def test_accueil_suggestions_mobile_and_impact_fallback():
 
 
 def test_launch_access_fields_absent_from_all_chat_surfaces():
-    for rel in ['vigie/argus.html','vigie/demo_page.html','vigie/console/mails-chat.js',
+    for rel in ['vigie/dashboard.html','vigie/demo_page.html','vigie/console/mails-chat.js',
                 'vigie/console/conformite.js','vigie/krys_chat.js','vigie/console/accueil.js']:
         text=(ROOT/rel).read_text()
         assert 'krys-token' not in text and 'X-Demo-Token' not in text

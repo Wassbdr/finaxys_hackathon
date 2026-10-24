@@ -12,6 +12,9 @@ router = APIRouter()
 CSS, JS, FONT = 'text/css', 'text/javascript', 'font/woff2'
 FILES = {
     'tokens.css': (STATIC/'tokens.css', CSS),
+    'header.css': (STATIC/'header.css', CSS),
+    'accueil.js': (HERE/'accueil.js', JS),
+    'accueil.css': (HERE/'accueil.css', CSS),
     'simulation.css': (STATIC/'simulation.css', CSS),
     'helper.js': (HERE/'helper.js', JS),
     'helper.css': (HERE/'helper.css', CSS),
