@@ -127,7 +127,7 @@ function renderBar() {
   lamp.className = c === "green" ? "box lamp calm" : `box lamp s-${c}`; lamp.textContent = c === "green" ? "normal" : word;
   const conn = $("conn");
   // a finished day is not a breakdown (Edouard, 24-10): say which one it is
-  conn.textContent = !live ? "demo data, no simulation running" : stale ? (S.tick >= 179 ? `simulated day over (tick ${S.tick}): relaunch to replay it` : `simulation paused at tick ${S.tick}`) : "";
+  conn.textContent = !live ? "demo data, no simulation running" : stale ? (S.tick >= 179 ? "day over" : `paused · tick ${S.tick}`) : "";
   conn.className = !live || stale ? "warn" : "";
   document.body.classList.toggle("stale", stale);
 }
