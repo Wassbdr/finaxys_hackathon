@@ -46,13 +46,15 @@
     const counts = `${number(row.numerator)} / ${number(row.denominator)}`;
     return row.unit === 'ratio' ? `${counts} · ${ratio(row.numerator, row.denominator)}` : counts;
   }
-  function group(doc, data) {
+  // Sur la page Simulation, deux banques seulement : la banque sans protection reste dans les archives, pas à l'écran.
+  const SHOWN_BANKS = row => row.label !== 'Sans Krys';
+  function group(doc, data, two = false) {
     const box = node(doc, 'div', null, 'impact-comparison');
     box.append(node(doc, 'h4', data.label));
     const ticks = data.injection_tick !== undefined;
     if (ticks) box.append(node(doc, 'p', `Injection à t${data.injection_tick} ; barre = tick médian du constat, parmi les journées avec constat.`, 'impact-axis'));
     const maximum = Math.max(1, ...data.rows.map(row => Number.isFinite(row.value) ? row.value : 0));
-    for (const row of data.rows) {
+    for (const row of two ? data.rows.filter(SHOWN_BANKS) : data.rows) {
       const item = node(doc, 'div', null, 'impact-row');
       item.append(node(doc, 'span', row.label, 'impact-bank'));
       item.append(node(doc, 'span', valueText(row), 'impact-value'));
@@ -67,18 +69,18 @@
     }
     return box;
   }
-  function card(doc, data, terms) {
+  function card(doc, data, terms, two = false) {
     const article = node(doc, 'article', null, 'impact-card');
     article.id = `impact-${data.id}`;
     const head = node(doc, 'div', null, 'impact-card-head');
     head.append(node(doc, 'h3', data.title));
     head.append(node(doc, 'span', `mesuré · ${data.measured_commit.slice(0, 7)}`, 'impact-stamp'));
     article.append(head, node(doc, 'p', data.sample, 'impact-sample'));
-    for (const comparison of data.groups) article.append(group(doc, comparison));
+    for (const comparison of data.groups) article.append(group(doc, comparison, two));
     if (data.id === 'contamination') {
       article.append(glossary(doc, 'Donnée contaminée', terms.contamination));
     }
-    if (data.bound) {
+    if (data.bound && !two) {
       article.append(node(doc, 'p', `Refus explicites : sans protection ${data.refusals.A}, contrôles classiques ${data.refusals.B}, Krys ${data.refusals.C}.`, 'impact-note'));
       const bound = node(doc, 'p', null, 'impact-note');
       bound.append(glossary(doc, 'Borne conditionnelle à 95 %',
@@ -87,7 +89,7 @@
       article.append(bound);
     }
     if (data.id === 'detection') article.append(node(doc, 'p', `Contrôles classiques : premier constat une fois le premier virement volé dans ${data.classical_after_theft_days}/10 journées PHP2Shell ; aucun constat du registre altéré dans 10/10 journées, ni de la rumeur dans 6/10.`, 'impact-note'));
-    if (data.id === 'fraud') article.append(node(doc, 'p', `Dénominateur commun : ${number(data.groups[0].rows[0].denominator, 2)} € simulés volés sans Krys, sur les deux journées.`, 'impact-note'));
+    if (data.id === 'fraud' && !two) article.append(node(doc, 'p', `Dénominateur commun : ${number(data.groups[0].rows[0].denominator, 2)} € simulés volés sans Krys, sur les deux journées.`, 'impact-note'));
     if (data.id === 'outage') article.append(node(doc, 'p', `Indisponibilité : sans relais ≥ ${data.unavailable_without_relay_min} ticks (fin d’observation sans reprise), avec relais ${data.unavailable_with_relay_max} tick dans les six cas.`, 'impact-note'));
     article.append(node(doc, 'p', `Ce que cela veut dire — ${data.meaning}`, 'impact-meaning'));
     article.append(node(doc, 'p', `Limite — ${data.limit}`, 'impact-limit'));
@@ -110,7 +112,8 @@
     target.append(node(doc, 'h2', 'Impact : ce que les essais montrent'));
     target.append(node(doc, 'p', 'Argus · banque simulée. Ces chiffres archivés ne changent pas avec le direct.', 'lead'));
     const grid = node(doc, 'div', null, 'impact-grid');
-    for (const item of data.cards) grid.append(card(doc, item, data.glossary));
+    const two = target.dataset && target.dataset.banks === 'deux';
+    for (const item of data.cards) grid.append(card(doc, item, data.glossary, two));
     const foot = node(doc, 'footer', null, 'impact-method');
     foot.append(node(doc, 'p', data.method));
     foot.append(glossary(doc, 'Opération saine', data.glossary.healthy));
