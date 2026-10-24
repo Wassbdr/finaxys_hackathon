@@ -749,7 +749,8 @@ export function frameAll(start) {
   let d = 40;
   // the distance at which the points span 45% of the screen's width (90% for Krys alone), so that with their names
   // everything takes at most its share of it, and 65% of its height, the top and bottom agents getting more room (Marius, 24-10), and the aim that centres them in its half: seen at an angle, the near agents look
-  // bigger than the far ones, so the middle of the box is not the middle of the picture; found in a few steps
+  // bigger than the far ones, so the middle of the box is not the middle of the picture; found in a few steps; a tenth
+  // of the height above the middle, the room above the agents being too wide (Marius, 24-10)
   for (let i = 0; i < 6; i++) {
     cam.position.copy(dir).multiplyScalar(d).add(c);
     cam.lookAt(c);
@@ -758,7 +759,7 @@ export function frameAll(start) {
     const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
     right.setFromMatrixColumn(cam.matrixWorld, 0);
     up.setFromMatrixColumn(cam.matrixWorld, 1);
-    c.addScaledVector(right, ((x0 + x1) / 2 - (2 * MID - 1)) * d * tan * cam.aspect).addScaledVector(up, ((y0 + y1) / 2) * d * tan);
+    c.addScaledVector(right, ((x0 + x1) / 2 - (2 * MID - 1)) * d * tan * cam.aspect).addScaledVector(up, ((y0 + y1) / 2 - 0.1) * d * tan);
     d *= Math.max((x1 - x0) / 2 / (0.9 * WIDE), (y1 - y0) / 2 / 0.65);
   }
   goal = { target: c, pos: dir.multiplyScalar(d).add(c) };
@@ -884,7 +885,7 @@ function fit2d(w, h) {
   g2.setTransform(dpr, 0, 0, dpr, 0, 0);
   // a little further out than the agents' own box, and no wider than half the screen, as in 3D (Marius, 24-10)
   s2 = Math.min((WIDE * w) / (MAP.x1 - MAP.x0), (0.85 * h) / (MAP.z1 - MAP.z0));
-  o2 = [MID * w - ((MAP.x0 + MAP.x1) / 2) * s2, h / 2 - ((MAP.z0 + MAP.z1) / 2) * s2];
+  o2 = [MID * w - ((MAP.x0 + MAP.x1) / 2) * s2, 0.45 * h - ((MAP.z0 + MAP.z1) / 2) * s2];
 }
 function flatOn(d) {
   renderer.domElement.hidden = labels.domElement.hidden = d === "2D";
