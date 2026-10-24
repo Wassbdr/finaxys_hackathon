@@ -191,14 +191,14 @@
   .sim-side { position: absolute; z-index: 1; top: 24px; left: 25%; translate: -50%; margin: 0; pointer-events: none; white-space: nowrap; }
   .sim-side.ours { left: 75%; }
   /* what each Vigie refused, newest first, on the left of its side (Marius, 24-10) */
-  .sim-refused { position: absolute; z-index: 1; top: 10%; left: 24px; max-width: 340px; max-height: 34vh; overflow: hidden; margin: 0; padding: 0; list-style: none;
+  .sim-refused { position: absolute; z-index: 1; top: 10%; left: 24px; max-width: 360px; max-height: 34vh; overflow: hidden; margin: 0; padding: 0; list-style: none;
     font-size: 12px; line-height: 1.35; pointer-events: none;
     mask-image: linear-gradient(#000 calc(34vh - 28px), transparent 34vh); }
   .sim-refused.ours { left: calc(50% + 24px); }
   .sim-refused:empty { display: none; }
   .sim-refused::before { content: "Refused"; display: block; margin-bottom: 6px; font-weight: 600; }
   .sim-refused li { margin-bottom: 4px; line-height: 23px; }
-  .sim-refused b { display: block; width: fit-content; margin-bottom: 2px; line-height: 1.35; font-variant-numeric: tabular-nums; }
+  .sim-refused b { display: inline-block; min-width: 40px; margin-right: 4px; text-align: center; font-variant-numeric: tabular-nums; }
   /* a refusal too long for one line wraps only at its colon, each line a pill of its own */
   .sim-refused span.chip { --c: var(--red); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
   .sim-refused span span { white-space: nowrap; }
