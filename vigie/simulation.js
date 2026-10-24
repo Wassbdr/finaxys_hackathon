@@ -15,13 +15,15 @@ if (!F) {
 
 // The film is timed at 3 ticks/s; 1× plays it 4 times slower, flights included (Marius found 3 ticks/s far too fast).
 const TPS = 3, SPEEDS = [0.25, 0.5, 1, 2, 4], SLOW = 0.25;
-// Where everything stands: the Agents tab's "Who feeds whom" graph turned 45°, so that its columns (the services, the
-// quant, the traders and payment, compliance, risk, the executor) run from bottom left to top right on the 2D map and
-// in the 3/4 view, each column's rows in the graph's order, and the Vigie last, after the executor (Marius, 24-10)
+// Where everything stands: the Agents tab's "Who feeds whom" graph turned so that its columns (the services, the quant,
+// the traders and payment, compliance, risk, the executor) climb the floor from front to back, leaning LEAN to the right,
+// each column's rows in the graph's order, and the Vigie last, after the executor (Marius, 24-10)
 const COLUMNS = [["core-ledger", "kyc-docs", "market-feed", "news-wire", "payment-gateway"], ["quant"], ["trader-1", "trader-2", "trader-3", "payment"], ["compliance"], ["risk"], ["executor"], ["vigie"]];
-const tilt = (c, r) => [(c + r) / Math.SQRT2, (r - c) / Math.SQRT2], untilt = (x, z) => [(x - z) / Math.SQRT2, (x + z) / Math.SQRT2];
+const LEAN = Math.PI / 9, sin = Math.sin(LEAN), cos = Math.cos(LEAN);
+const tilt = (c, r) => [c * sin + r * cos, r * sin - c * cos], untilt = (x, z) => [x * sin - z * cos, x * cos + z * sin];
 const POS = {};
-COLUMNS.forEach((ids, k) => ids.forEach((id, i) => (POS[id] = tilt((k - 3) * 7, (i - (ids.length - 1) / 2) * 5))));
+COLUMNS.forEach((ids, k) => ids.forEach((id, i) => (POS[id] = tilt((k - 3) * 9, (i - (ids.length - 1) / 2) * 6))));
+POS.vigie = tilt(3.5 * 9, 0);  // half a step further, so that the name at the foot of its tall tower clears the executor
 const SKIN = { quant: 0xa78bfa, trader: 0x60a5fa, payment: 0x34d399, compliance: 0xfb923c, risk: 0xf472b6, executor: 0x2dd4bf, vigie: 0x94a3b8 };
 const LIGHT = { VERT: 0x34d399, ORANGE: 0xfbbf24, ROUGE: 0xf87171, QUARANTAINE: 0xf87171 };
 const LED = { normal: 0x34d399, compromised: 0xef4444, down: 0x1e293b, stale: 0xfbbf24, slow: 0xfbbf24 };
@@ -252,7 +254,7 @@ for (const [role, members] of Object.entries(Object.groupBy(first.agents.filter(
     zone.add(m);
   }
   zone.userData.pick = "pad:" + role;
-  zone.rotation.y = Math.PI / 4;
+  zone.rotation.y = Math.PI / 2 - LEAN;
   const p = { id: "pad:" + role, role, r: 2.4, c: "#" + new THREE.Color(c).getHexString(), n: members.length, ids: members.map(a => a.id), zone };
   fitPad(p);
   pads.push(p);
@@ -655,7 +657,7 @@ function frameAll(start) {
   const tan = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)), right = v(0, 0, 0), up = v(0, 0, 0);
   let d = 40;
   // the distance at which the points span 45% of the screen's width, so that with their names everything takes at most
-  // half of it, and 65% of its height, the top and bottom agents getting more room (Marius, 24-10), and the aim that centres them on screen: seen at an angle, the near agents look
+  // half of it, and 65% of its height, the top and bottom agents getting more room (Marius, 24-10), and the aim that centres them in the right half: seen at an angle, the near agents look
   // bigger than the far ones, so the middle of the box is not the middle of the picture; found in a few steps
   for (let i = 0; i < 6; i++) {
     cam.position.copy(dir).multiplyScalar(d).add(c);
@@ -665,7 +667,7 @@ function frameAll(start) {
     const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
     right.setFromMatrixColumn(cam.matrixWorld, 0);
     up.setFromMatrixColumn(cam.matrixWorld, 1);
-    c.addScaledVector(right, ((x0 + x1) / 2) * d * tan * cam.aspect).addScaledVector(up, ((y0 + y1) / 2) * d * tan);
+    c.addScaledVector(right, ((x0 + x1) / 2 - 0.5) * d * tan * cam.aspect).addScaledVector(up, ((y0 + y1) / 2) * d * tan);
     d *= Math.max((x1 - x0) / 2 / 0.45, (y1 - y0) / 2 / 0.65);
   }
   goal = { target: c, pos: dir.multiplyScalar(d).add(c) };
@@ -684,8 +686,9 @@ new ResizeObserver(() => {
   renderer.setSize(w, h);
   labels.setSize(w, h);
   fit2d(w, h);
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
+  // everything stands in the right half of the window (Marius, 24-10): the picture is moved a quarter of its width to
+  // the right, the camera still turning about the middle of the scene
+  camera.setViewOffset(w, h, -w / 4, 0, w, h);
   const f = Math.max(1, 1.75 / camera.aspect);
   camera.position.sub(controls.target).multiplyScalar(f / fit).add(controls.target);
   fit = f;
@@ -773,7 +776,7 @@ function fit2d(w, h) {
   g2.setTransform(dpr, 0, 0, dpr, 0, 0);
   // a little further out than the agents' own box, and no wider than half the screen, as in 3D (Marius, 24-10)
   s2 = Math.min((0.5 * w) / (MAP.x1 - MAP.x0), (0.85 * h) / (MAP.z1 - MAP.z0));
-  o2 = [w / 2 - ((MAP.x0 + MAP.x1) / 2) * s2, h / 2 - ((MAP.z0 + MAP.z1) / 2) * s2];
+  o2 = [0.75 * w - ((MAP.x0 + MAP.x1) / 2) * s2, h / 2 - ((MAP.z0 + MAP.z1) / 2) * s2];
 }
 function flatOn(d) {
   renderer.domElement.hidden = labels.domElement.hidden = d === "2D";
@@ -810,7 +813,7 @@ function draw2d() {
   for (const p of pads) {
     g2.save();
     g2.translate(...to2(p.x, p.z));
-    g2.rotate(-Math.PI / 4);
+    g2.rotate(LEAN - Math.PI / 2);
     g2.beginPath();
     g2.roundRect(-(p.hx + p.r) * s2, -(p.hz + p.r) * s2, 2 * (p.hx + p.r) * s2, 2 * (p.hz + p.r) * s2, p.r * s2);
     g2.fillStyle = p.c;
