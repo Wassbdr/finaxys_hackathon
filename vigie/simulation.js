@@ -19,7 +19,7 @@ const TPS = 3, SPEEDS = [0.25, 0.5, 1, 2, 4], SLOW = 0.25;
 // the traders and payment, compliance, risk, the executor) climb the floor from front to back, leaning LEAN to the right,
 // each column's rows in the graph's order, and the Vigie last, after the executor (Marius, 24-10)
 const COLUMNS = [["core-ledger", "kyc-docs", "market-feed", "news-wire", "payment-gateway"], ["quant"], ["trader-1", "trader-2", "trader-3", "payment"], ["compliance"], ["risk"], ["executor"], ["vigie"]];
-const LEAN = THREE.MathUtils.degToRad(7), sin = Math.sin(LEAN), cos = Math.cos(LEAN);
+const LEAN = THREE.MathUtils.degToRad(10), sin = Math.sin(LEAN), cos = Math.cos(LEAN);
 const tilt = (c, r) => [c * sin + r * cos, r * sin - c * cos], untilt = (x, z) => [x * sin - z * cos, x * cos + z * sin];
 const POS = {};
 COLUMNS.forEach((ids, k) => ids.forEach((id, i) => (POS[id] = tilt((k - 3) * 9, (i - (ids.length - 1) / 2) * 6))));
