@@ -17,10 +17,12 @@ async function run(active) {
   get('proof-status').textContent = 'attente';
   const suggestion = new Element();
   suggestion.dataset = {question: '<script>question</script>'};
+  suggestion.closest = selector => selector === '[data-question]' ? suggestion : null;
+  const listeners = {};
   const network = [];
   vm.runInNewContext(fs.readFileSync(process.argv[2], 'utf8'), {
     document: {getElementById: get, querySelector: () => ({content: 'Voit. Isole. Prouve.'}),
-      querySelectorAll: () => [suggestion]},
+      addEventListener: (kind, listener) => { listeners[kind] = listener; }},
     MutationObserver: class { observe() {} },
     fetch: async (url, options) => {
       network.push([url, options.redirect, options.credentials]);
@@ -31,7 +33,9 @@ async function run(active) {
   // la vue Krys ne lit que l'état de la démo : ni la console, ni une donnée de banque
   assert.deepEqual(network, [['/demo', 'error', 'omit']]);
   assert.equal(get('argus-phrase').textContent, 'Voit. Isole. Prouve.');
-  suggestion.listeners.click.listener();
+  // une suggestion arrivée après le chargement est servie par le même écouteur
+  listeners.click({target: suggestion});
+  listeners.click({target: {closest: () => null}});
   assert.equal(get('krys-question').value, '<script>question</script>');
   assert.equal(get('krys-question').focused, true);
   assert.equal(get('krys-question-form').listeners.submit, undefined);

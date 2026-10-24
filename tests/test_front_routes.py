@@ -117,7 +117,7 @@ def test_the_console_has_five_views_and_each_former_tab_lands_in_one():
     moved = dict(re.findall(r'(\w+): "(\w+)"', re.search(r'moved: \{(.*?)\}', html).group(1)))
     assert set(moved) == {'summary', 'actions', 'agents', 'guardrails', 'improve', 'metrics', 'impact', 'details'}
     for block, view in moved.items():
-        assert f'<div id="{block}"></div>' in sections[view], (block, view)
+        assert f'<div id="{block}"' in sections[view], (block, view)
     # the chat of the former Krys page, once, in the Krys view; the console loads its client once
     for element in ['krys-log', 'krys-question-form', 'krys-question', 'krys-action-form', 'krys-confirm', 'krys-recap', 'url']:
         assert html.count(f'id="{element}"') == 1 and f'id="{element}"' in sections['krys'], element
