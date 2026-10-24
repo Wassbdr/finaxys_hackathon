@@ -3,7 +3,8 @@
 (function () {
   'use strict';
   const BASE = '/console/conformite/';
-  const STATUS = {couvert: ['✅ Couvert dans la démo', 'couvert'], partiel: ['🟡 Partiel', 'partiel'], 'hors-perimetre': ['❌ Hors périmètre', 'hors-perimetre']};
+  // l'état se lit en mots et en couleur (pastille de conformite.css), sans pictogramme dépendant des polices du poste
+  const STATUS = {couvert: ['Couvert dans la démo', 'couvert'], partiel: ['Partiel', 'partiel'], 'hors-perimetre': ['Hors périmètre', 'hors-perimetre']};
   function node(doc, tag, text, className) {
     const el = doc.createElement(tag);
     if (text != null) el.textContent = String(text);
@@ -24,7 +25,7 @@
     const p = node(doc, 'p'); p.append(node(doc, 'strong', label + ' '), node(doc, 'span', text)); return p;
   }
   function render(root, data, compact = false) {
-    const doc = root.ownerDocument;
+    const doc = root.ownerDocument, adopted = !!(root.dataset && root.dataset.adopted);
     // Le résumé natif reste manipulable et le reste du contenu n'est jamais du HTML tiers.
     if (compact) root.replaceChildren(node(doc, 'summary', 'Conformité — preuves et limites'));
     else root.replaceChildren(node(doc, 'h1', data.titre));
@@ -38,7 +39,10 @@
         const status = STATUS[item.status] || STATUS.partiel;
         article.append(node(doc, 'span', status[0], 'conformite-status ' + status[1]), node(doc, 'h2', item.titre));
         article.append(link(doc, item.article, item.source || BASE + 'preuves/mesure'));
-        article.append(paragraph(doc, 'Argus :', item.fait), paragraph(doc, 'Contrôles classiques :', item.classiques));
+        // Dans l'espace Régulation d'une banque qui a adopté Argus, la matrice dit ce que fait Argus : la comparaison aux
+        // contrôles classiques vit dans la Simulation.
+        article.append(paragraph(doc, 'Argus :', item.fait));
+        if (!adopted) article.append(paragraph(doc, 'Contrôles classiques :', item.classiques));
         article.append(paragraph(doc, 'Limite :', item.limite));
         article.append(link(doc, 'Preuve : ' + item.preuve_label, BASE + 'preuves/' + item.preuve));
         grid.append(article);
@@ -47,7 +51,7 @@
     } else {
       root.append(node(doc, 'p', 'Journal signé : couvert dans la démonstration. Notification DORA et contrôle humain : partiels. Organisation du déployeur : hors périmètre.'));
       root.append(node(doc, 'p', 'Les contrôles classiques reproduisent déjà les contrôles avant ordre et l’arrêt. Limite : ni qualification réglementaire ni borne universelle de perte ne sont démontrées.'));
-      const full = node(doc, 'a', 'Ouvrir la matrice complète dans la console'); full.href = '/dashboard#conformite'; root.append(full);
+      const full = node(doc, 'a', 'Ouvrir la matrice complète dans la console'); full.href = '/regulation#conformite'; root.append(full);
     }
     root.append(paragraph(doc, 'Calendrier :', data.calendar));
     root.append(link(doc, data.calendar_note, data.calendar_source));

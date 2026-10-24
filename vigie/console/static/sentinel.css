@@ -1,0 +1,19 @@
+/* Sentinel aux couleurs d'Argus. La page du collègue (vendor/sentinel) est servie telle quelle : api/app.py n'y ajoute
+   que cette feuille, après ses propres styles. Ses variables portent les jetons d'Argus (tokens.css), en clair, Geist
+   pour toutes les familles, coins nets ; la couleur garde son sens : achat en bleu, vente en orange, suspect en cyan. */
+@import url("/console/static/tokens.css");
+/* :not(#argus) l'emporte sur ses thèmes, le sombre compris : Argus est clair */
+:root:not(#argus) {
+  color-scheme: light;
+  --bg: #F8F6F0; --panel: #FFFFFF; --panel-2: #EEF3FB; --ink: #0E1726; --muted: #455064; --line: rgb(14 23 38 / .14);
+  --buy: #1F5BFF; --buy-soft: #DDEBFF; --sell: #D97706; --sell-soft: #FDEBD3; --suspect: #0891B2; --suspect-soft: #D5F0F6;
+  --primary: #0E1726; --primary-ink: #FFFFFF; --flag: #E0412F; --flag-soft: #FBE0DC; --ok: #16A34A; --ok-soft: #DCF5E3;
+  --warn-soft: #FDEBD3; --focus: #1F5BFF;
+  --serif: "Geist", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --sans: "Geist", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+body { -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { font-weight: 500 !important; letter-spacing: -.02em; }
+*, *::before, *::after { border-radius: min(4px, var(--argus-radius, 4px)) !important; }
+::selection { background: #A8C8FF; }

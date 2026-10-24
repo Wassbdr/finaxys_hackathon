@@ -31,6 +31,7 @@ Toutes les routes acceptent ?world=A|B en mode comparaison.
 from __future__ import annotations
 
 import json
+import re
 import shlex
 import shutil
 import threading
@@ -38,7 +39,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 
 from sim.config import ROOT, load_config
@@ -197,7 +198,15 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
     def colleague_page(name: str):
         if name not in COLLEAGUE_PAGES:
             raise HTTPException(404)
-        return FileResponse(ROOT / COLLEAGUE_PAGES[name])
+        # Le fichier du collègue ne change pas : à l'envoi, ses polices distantes cèdent la place à la feuille d'Argus
+        # (jetons, Geist servie depuis le dépôt), ajoutée après ses propres styles. La démo tourne ainsi sans réseau.
+        html = (ROOT / COLLEAGUE_PAGES[name]).read_text(encoding="utf-8")
+        html = re.sub(r'<link rel="(?:preconnect|stylesheet)" href="https://fonts\.(?:googleapis|gstatic)\.com[^"]*"[^>]*>\n?', "", html)
+        # la page n'a pas d'en-tête explicite : la feuille vient juste après son premier bloc de styles, donc après eux
+        sheet = '<link rel="stylesheet" href="/console/static/sentinel.css">\n'
+        end = html.find("</style>")
+        html = html[:end + 8] + "\n" + sheet + html[end + 8:] if end >= 0 else sheet + html
+        return HTMLResponse(html)
 
     @app.get("/argus")
     def argus():

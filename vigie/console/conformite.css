@@ -21,3 +21,4 @@
 .conformite-badge { border:1px solid var(--line-2); border-radius:0; color:var(--dim); font:400 .7rem var(--sans); padding:.1rem .25rem; text-decoration:none; }
 .conformite-badge:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
 @media(max-width:750px) { .conformite-grid { grid-template-columns:1fr; } .conformite-card { padding:.8rem; } }
+.conformite-status::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 7px; vertical-align: 1px; background: currentColor; }
