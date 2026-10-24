@@ -132,7 +132,7 @@ def test_api_csrf_rights_and_strict_confirmation(setup_chat):
     attach_krys(app, lambda: setup_chat[1])
     client = TestClient(app)
     assert client.post('/demo/krys/ask', json={'question': 'R0'}).status_code == 403
-    headers = {'Origin': 'http://127.0.0.1:8010', 'X-Demo-Token': app.state.mutation_token}
+    headers = {'Origin': 'http://127.0.0.1:8010'}
     assert client.post('/demo/krys/ask', headers=headers, json={'question': 'R0'}).status_code == 200
     assert client.post('/demo/krys/actions/prepare', headers=headers, json={'action': 'unfreeze', 'target': 'ACME'}).status_code == 403
     assert client.post('/demo/krys/actions/confirm', headers=headers, json={'action_id': 'x', 'confirmation': 'confirmer', 'question': 'yes'}).status_code == 422
@@ -146,7 +146,7 @@ def test_enabled_api_requires_separate_one_use_confirmation(setup_chat):
     broker = HumanActions(book, MessageFactory('human', keys), sent.append)
     attach_krys(app, lambda: book, broker)
     client = TestClient(app)
-    headers = {'Origin': 'http://127.0.0.1:8010', 'X-Demo-Token': app.state.mutation_token}
+    headers = {'Origin': 'http://127.0.0.1:8010'}
     prepared = client.post('/demo/krys/actions/prepare', headers=headers,
                            json={'action': 'unfreeze', 'target': 'ACME'}).json()
     assert not sent
@@ -239,7 +239,7 @@ def test_sources_and_oracle_never_read_by_chat(tmp_path, cfg, monkeypatch):
     display.directory = tmp_path
     display.frame = {'tick': 0}
     app = create_demo_app(display, {'C': Forbidden()})
-    headers = {'Origin': 'http://127.0.0.1:8010', 'X-Demo-Token': app.state.mutation_token}
+    headers = {'Origin': 'http://127.0.0.1:8010'}
     with TestClient(app) as client:
         answer = client.post('/demo/krys/ask', headers=headers, json={'question': 'R0'}).json()
     assert answer['outcome'] == 'answer'

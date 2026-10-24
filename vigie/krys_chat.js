@@ -42,11 +42,11 @@
   async function post(path, body) {
     const response = await fetch(base() + '/demo/krys/' + path, {
       method: 'POST', credentials: 'omit', redirect: 'error',
-      headers: {'Content-Type': 'application/json', 'X-Demo-Token': byId('krys-token').value},
+      headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(body)
     });
     if (!response.ok) {
-      let detail = 'Krys indisponible ; la démo continue. Ouvrez /demo/page et vérifiez le jeton de lancement.';
+      let detail = 'Krys indisponible ; la démo continue. Ouvrez /demo/page depuis une origine locale autorisée.';
       try {
         const error = await response.json();
         if (typeof error.detail === 'string') detail = error.detail;
@@ -91,7 +91,7 @@
       show(result.status + ' · ' + result.message_id);
     } catch (error) { show(error.message); }
   });
-  for (const id of ['krys-action', 'krys-target', 'krys-token', 'url']) {
+  for (const id of ['krys-action', 'krys-target', 'url']) {
     byId(id).addEventListener('input', clearPending);
   }
 }());

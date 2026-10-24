@@ -2,16 +2,17 @@
 
 `make demo-live` ou `make demo-replay`, puis `/dashboard#mails-chat` : le même
 journal C vérifié et la même borne de relecture que le chatbot de `/demo/page`.
-La bulle demeure disponible en changeant d’onglet. Le jeton affiché au lancement
-reste uniquement dans la page ; il est nécessaire aux questions, commandes et envois.
+La bulle demeure disponible en changeant d’onglet. Une question se pose directement,
+sans champ d’accès supplémentaire ; les écritures exigent une origine exacte
+autorisée et un contenu JSON.
 Préparer puis confirmer une commande conserve les contrôles existants. Aucune
 commande humaine n’est activée par ce lot.
 
 Le serveur autonome `python -m api.app` expose aussi ces fonctions, en lecture seule
 pour les commandes humaines. Son journal par défaut est `runs_dir/<préfixe>/journal.jsonl`
 (monde C si configuré). Pour un autre dossier de lancement, définir
-`KRYS_CONSOLE_JOURNAL=/chemin/du/journal.jsonl`. Il affiche désormais le jeton de
-lancement et protège les écritures de son API avec le garde CSRF existant.
+`KRYS_CONSOLE_JOURNAL=/chemin/du/journal.jsonl`. Il affiche les origines autorisées
+et protège les écritures de son API avec le garde CSRF existant.
 Les instances génériques `create_app()` sans raccord Krys n’ajoutent aucune autorité.
 
 ## Brouillons locaux
@@ -37,7 +38,7 @@ ou `starttls` (587), `KRYS_SMTP_PORT`, `KRYS_MAIL_STATE` (par défaut
 Ne pas mettre de valeur réelle dans le dépôt ou une commande partagée.
 
 Même après activation, l’envoi demeure manuel : bouton « Envoyer à l’adresse
-configurée », jeton et origine autorisée. `POST /console/mails-chat/send` accepte
+configurée », origine autorisée et contenu JSON. `POST /console/mails-chat/send` accepte
 seulement un identifiant d’incident ; le serveur recalcule le mail depuis les preuves.
 Il refuse un journal incomplet. Il n’accepte ni destinataire ni contenu libre.
 Le corps ne contient ni cible, ni document, ni texte d’alerte : seulement les

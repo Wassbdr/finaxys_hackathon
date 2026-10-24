@@ -19,7 +19,7 @@ def test_conformite_assets_and_proofs_are_read_only_and_whitelisted(cfg, tmp_pat
         assert client.get('/console/conformite/data/config.yaml').status_code == 404
         assert client.get('/console/conformite/%2e%2e/config.yaml').status_code == 404
         assert client.post('/demo/krys/ask', json={'question': 'Brouillon DORA'}).status_code == 403
-        headers = {'Origin': 'http://127.0.0.1:8010', 'X-Demo-Token': app.state.mutation_token}
+        headers = {'Origin': 'http://127.0.0.1:8010'}
         result = client.post('/demo/krys/ask', headers=headers, json={'question': 'Brouillon DORA'})
         assert result.status_code == 200
         assert result.json()['outcome'] == 'no_source'
@@ -71,7 +71,7 @@ def test_dora_button_question_reuses_signed_chat_draft_without_human_command():
     book.accept(status)
     app = create_demo_app(Display(), {}, allowed_origins=['http://127.0.0.1:8010'], krys_knowledge=lambda: book)
     with TestClient(app) as client:
-        headers = {'Origin': 'http://127.0.0.1:8010', 'X-Demo-Token': app.state.mutation_token}
+        headers = {'Origin': 'http://127.0.0.1:8010'}
         response = client.post('/demo/krys/ask', headers=headers, json={'question': 'Brouillon DORA'})
         assert response.status_code == 200
         answer = response.json()

@@ -134,9 +134,9 @@ def test_api_recomputes_from_sources_and_requires_csrf(tmp_path, incident):
     assert not calls and len(result['items']) == 1
     body = {'incident_id': result['items'][0]['id']}
     assert client.post('/console/mails-chat/send', json=body).status_code == 403
-    headers = {'Origin': 'http://127.0.0.1:8010', 'X-Demo-Token': app.state.mutation_token}
-    assert client.post('/console/mails-chat/send', json=body, headers={'Origin': headers['Origin']}).status_code == 403
-    assert client.post('/console/mails-chat/send', json=body, headers={**headers, 'X-Demo-Token': 'incorrect'}).status_code == 403
+    headers = {'Origin': 'http://127.0.0.1:8010'}
+    invalid = client.post('/console/mails-chat/send', content='{}', headers={**headers, 'Content-Type': 'text/plain'})
+    assert invalid.status_code == 415 and invalid.json()['detail'] == 'Content-Type application/json requis'
     assert client.post('/console/mails-chat/send', json={**body, 'to': 'attacker'}, headers=headers).status_code == 422
     assert client.post('/console/mails-chat/send', json={'incident_id': 'missing'}, headers=headers).status_code == 404
     assert client.post('/console/mails-chat/send', json=body, headers={**headers, 'Origin': 'https://attacker.invalid'}).status_code == 403
@@ -173,7 +173,7 @@ def test_standalone_reads_only_verified_journal(cfg, tmp_path, incident):
     assert client.get('/console/mails-chat/mails-chat.js').status_code == 200
     assert client.get('/console/mails-chat/mails-chat.css').status_code == 200
     assert client.get('/console/mails-chat/not-allowed').status_code == 404
-    headers = {'Origin': f'http://127.0.0.1:{cfg["api"]["port"]}', 'X-Demo-Token': app.state.mutation_token}
+    headers = {'Origin': f'http://127.0.0.1:{cfg["api"]["port"]}'}
     assert client.post('/demo/krys/ask', json={'question': 'alertes'}).status_code == 403
     result = client.post('/demo/krys/ask', json={'question': 'alertes'}, headers=headers).json()
     assert result['citations'][0]['message_id'] == message['message_id']
@@ -220,3 +220,25 @@ def test_smtp_transport_uses_tls_before_login_and_single_envelope(tmp_path, inci
     else:
         assert calls[0][1]['context'].check_hostname
     assert calls[-1] == ('send', ['operator@example.invalid'])
+
+
+def test_unprotected_mailbox_cannot_send_even_with_explicit_smtp(tmp_path, incident):
+    calls=[]
+    app=FastAPI()
+    attach_mailbox(app, lambda: incident[0], Mailer(configured(tmp_path), transport=calls.append))
+    client=TestClient(app)
+    response=client.post('/console/mails-chat/send', json={'incident_id':drafts(incident[0])[0]['id']},
+                         headers={'Origin':'http://127.0.0.1:8010'})
+    assert response.status_code==403 and response.json()['detail']=='Garde des écritures indisponible'
+    assert calls==[]
+
+
+def test_protected_mailbox_keeps_smtp_disabled_by_default(incident):
+    calls=[]
+    app=FastAPI();protect_mutations(app,['http://127.0.0.1:8010'])
+    attach_mailbox(app,lambda:incident[0],Mailer({},transport=calls.append))
+    client=TestClient(app)
+    response=client.post('/console/mails-chat/send',json={'incident_id':drafts(incident[0])[0]['id']},
+                         headers={'Origin':'http://127.0.0.1:8010'})
+    assert response.status_code==403 and response.json()['detail']=='SMTP désactivé ; boîte de démonstration uniquement'
+    assert calls==[]

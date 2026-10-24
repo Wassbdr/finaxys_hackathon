@@ -170,7 +170,7 @@ def test_api_rephrases_question_only_and_human_routes_bypass_it():
     app = FastAPI()
     protect_mutations(app, ['http://127.0.0.1:8010'])
     attach_krys(app, lambda: Knowledge(lambda _: False), rephraser=enabled(client))
-    headers = {'Origin': 'http://127.0.0.1:8010', 'X-Demo-Token': app.state.mutation_token}
+    headers = {'Origin': 'http://127.0.0.1:8010'}
     with TestClient(app) as api:
         answer = api.post('/demo/krys/ask', headers=headers, json={'question': 'Présente le projet Argus.'}).json()
         assert answer['rephrased'] is True

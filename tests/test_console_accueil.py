@@ -53,7 +53,7 @@ def test_accueil_chat_empty_proofs_and_csrf():
                  ('actions/confirm', {'action_id': 'x', 'confirmation': 'confirmer'})]
     for endpoint, body in endpoints:
         assert client.post('/demo/krys/' + endpoint, json=body).status_code == 403
-    headers = {'Origin': 'http://127.0.0.1:8010', 'X-Demo-Token': app.state.mutation_token}
+    headers = {'Origin': 'http://127.0.0.1:8010'}
     answer = client.post('/demo/krys/ask', headers=headers, json=endpoints[0][1])
     assert answer.status_code == 200
     assert answer.json()['citations'] == []
@@ -64,13 +64,21 @@ def test_accueil_chat_empty_proofs_and_csrf():
 def test_accueil_reuses_xss_safe_chat_dom():
     assert shutil.which('node'), 'Node requis pour vérifier le DOM du chat'
     html = (ROOT / 'vigie/argus.html').read_text()
-    for element in ['krys-log', 'krys-confirm', 'krys-recap', 'krys-token', 'krys-question-form',
+    for element in ['krys-log', 'krys-confirm', 'krys-recap', 'krys-question-form',
                     'krys-question', 'krys-action-form', 'krys-action', 'krys-target', 'url']:
         assert f'id="{element}"' in html
     assert '<script src="/demo/krys.js"></script>' in html
     subprocess.run(['node', str(ROOT / 'tests/krys_dom.cjs'), str(ROOT / 'vigie/krys_chat.js')], check=True)
 
 
-def test_accueil_suggestions_token_mobile_and_impact_fallback():
+def test_accueil_suggestions_mobile_and_impact_fallback():
     subprocess.run(['node', str(ROOT / 'tests/accueil_dom.cjs'),
                     str(ROOT / 'vigie/console/accueil.js')], check=True)
+
+
+def test_launch_access_fields_absent_from_all_chat_surfaces():
+    for rel in ['vigie/argus.html','vigie/demo_page.html','vigie/console/mails-chat.js',
+                'vigie/console/conformite.js','vigie/krys_chat.js','vigie/console/accueil.js']:
+        text=(ROOT/rel).read_text()
+        assert 'krys-token' not in text and 'X-Demo-Token' not in text
+        assert 'Jeton de lancement' not in text

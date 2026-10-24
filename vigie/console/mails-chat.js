@@ -33,7 +33,6 @@
   const header = append(node('div', null, {class: 'mc-header'}), node('h2', 'Demandez à Krys', {id: 'mc-title'}), close);
   append(panel, header, node('p', 'Réponses sourcées du journal et du texte de référence. Lecture seule par défaut. Le chat ne signe aucune commande.'),
     node('input', null, {id: 'url', type: 'hidden', value: location.origin}));
-  field(panel, 'Jeton de lancement (gardé dans cette page uniquement)', 'krys-token', {type: 'password', autocomplete: 'off', spellcheck: 'false'});
   const question = node('form', null, {id: 'krys-question-form'});
   field(question, 'Votre question : alertes, état, pourquoi message_id…', 'krys-question', {maxlength: '1000', required: '', autocomplete: 'off'});
   append(question, node('button', 'Demander', {type: 'submit'}));
@@ -64,12 +63,10 @@
   document.body.appendChild(node('script', null, {src: '/demo/krys.js'}));
 
   async function send(item, button) {
-    const token = document.getElementById('krys-token').value;
-    if (!token) { openChat(true); status.textContent = 'Jeton de lancement requis pour envoyer.'; return; }
     button.disabled = true;
     try {
       const response = await fetch('/console/mails-chat/send', {method: 'POST', credentials: 'omit', redirect: 'error',
-        headers: {'Content-Type': 'application/json', 'X-Demo-Token': token}, body: JSON.stringify({incident_id: item.id})});
+        headers: {'Content-Type': 'application/json'}, body: JSON.stringify({incident_id: item.id})});
       const result = await response.json();
       status.textContent = typeof result.detail === 'string' ? result.detail : 'Réponse du transport indisponible.';
     } catch (_) { status.textContent = 'Envoi incertain ; aucune relance automatique.'; }

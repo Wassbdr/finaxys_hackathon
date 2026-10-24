@@ -31,15 +31,6 @@
   adaptMenu();
   mobile.addEventListener('change', adaptMenu);
 
-  /* Le jeton reste en mémoire de page. Son absence ne produit aucune requête. */
-  byId('krys-question-form').addEventListener('submit', event => {
-    if (!byId('krys-token').value.trim()) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      byId('krys-access').open = true;
-      byId('krys-token').focus();
-    }
-  }, true);
   new MutationObserver(() => {
     byId('krys-log').scrollTop = byId('krys-log').scrollHeight;
   }).observe(byId('krys-log'), {childList: true});

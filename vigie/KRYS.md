@@ -1,9 +1,9 @@
 # Argus — Demandez à Krys
 
 Depuis la racine, lancer `make demo-live`, puis ouvrir
-`http://127.0.0.1:8010/demo/page`. Copier le jeton de lancement affiché dans le
-terminal dans le champ masqué du panneau. Le jeton reste en mémoire dans cette
-page, sans stockage persistant. L’API écoute sur 127.0.0.1 ; conserver le tunnel
+`http://127.0.0.1:8010/demo/page` ou `/argus`. Poser directement une question,
+sans champ d’accès ni secret de lancement à saisir. La bulle de la console et
+le brouillon DORA utilisent le même accès local. L’API écoute sur 127.0.0.1 ; conserver le tunnel
 SSH habituel. Une page ouverte directement en `file://` ne peut pas commander
 l’API : son origine n’est pas autorisée.
 
@@ -88,8 +88,9 @@ Pour autoriser l’opérateur local à envoyer les commandes existantes :
 .venv/bin/python -m vigie.demo_live live --human-commands
 ```
 
-Cette autorisation concerne le détenteur du jeton éphémère de lancement ; ce
-n’est pas un système de comptes individuels. Par défaut, ces routes refusent
+Cette autorisation est une option explicite du lanceur local ; ce n’est pas
+un système de comptes individuels. L’origine exacte de la page et le contenu
+JSON restent contrôlés pour chaque écriture. Par défaut, ces routes refusent
 avec 403. Le replay reste en lecture seule même avec cette option. Choisir
 « Lever un gel » avec le nom de l’actif, ou « Reprendre après un rouge » avec
 `*`, préparer le récapitulatif, puis cliquer sur **Confirmer**. Le nonce expire
@@ -120,9 +121,10 @@ DORA ne qualifie ni conformité, ni échéance, ni impact client : ces champs
 restent à valider et compléter par un humain.
 
 Toutes les écritures réutilisent le garde CSRF de la démo (origine exacte,
-jeton éphémère, JSON). Les commandes ont un schéma fermé distinct des questions.
+contenu `application/json` obligatoire), y compris les questions du chat.
+Les commandes ont un schéma fermé distinct des questions.
 Les journaux du chat sont limités à 128 catégories et nombres de sources en
-mémoire : aucun texte, nom, adresse IP, jeton ou empreinte de question.
+mémoire : aucun texte, nom, adresse IP ou empreinte de question.
 Le DOM du panneau emploie `textContent` et ne transforme pas les preuves en
 liens arbitraires. Les gardes d’injection sont heuristiques et peuvent refuser
 des questions contenant une attaque citée ; ce n’est pas un classifieur.
@@ -130,3 +132,8 @@ des questions contenant une attaque citée ; ce n’est pas un classifieur.
 Le panneau est indépendant du flux et du tableau de la démo : une indisponibilité
 du chatbot ne coupe pas les trois banques. Aucun tableau comparatif ni seuil
 du portique n’est modifié.
+
+Le CORS reste limité aux origines configurées. Une origine étrangère ou absente
+renvoie 403 ; un contenu non JSON depuis une origine autorisée renvoie 415.
+L’envoi SMTP réel reste désactivé par défaut, indépendamment de la disponibilité
+du chat et des brouillons.
