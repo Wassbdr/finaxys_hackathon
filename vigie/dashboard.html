@@ -236,11 +236,13 @@
     <a href="#guardrails" data-tab="guardrails" data-name="Guardrails" data-help="Guardrails|Every limit in force, each agent's and KRYS's, with how much of it is used now">Guardrails</a>
     <a href="#metrics" data-tab="metrics" data-name="Metrics" data-help="Metrics|The live indicators and the bench's figures without and with KRYS">Metrics</a>
     <a href="#improve" data-tab="improve" data-name="Improvements" data-help="Improvements|The thresholds in force and what the replays propose to change">Improvements</a>
+    <a href="#conformite" data-tab="conformite" data-name="Conformité" data-help="Conformité|Éléments de preuve, portée et limites réglementaires">Conformité</a>
     <span class="line" aria-hidden="true"></span>
   </div>
   <div class="bank"><span id="conn"></span>Bank<span class="box lamp calm" id="light">-</span></div>
 </nav>
 <main>
+  <section id="conformite" hidden></section>
   <section id="agents"></section>
   <section id="summary" hidden></section>
   <section id="guardrails" hidden></section>
@@ -253,5 +255,6 @@
 <div class="toast" id="toast" hidden></div>
 <script src="/dashboard/dashboard.js"></script>
 <script type="module" src="/dashboard/simulation.js"></script>
+<script src="/console/conformite/conformite.js"></script>
 </body>
 </html>

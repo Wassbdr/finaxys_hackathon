@@ -179,6 +179,9 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
     def landing():
         return FileResponse(ROOT / "vigie" / "landing.html", headers=FRESH)
 
+    from vigie.console.conformite import router as conformite_router
+    app.include_router(conformite_router)
+
     @app.get("/dashboard")
     def dashboard():
         return FileResponse(ROOT / "vigie" / "dashboard.html", headers=FRESH)
