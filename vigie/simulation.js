@@ -15,16 +15,14 @@ if (!F) {
 
 // The film is timed at 3 ticks/s; 1× plays it 4 times slower, flights included (Marius found 3 ticks/s far too fast).
 const TPS = 3, SPEEDS = [0.25, 0.5, 1, 2, 4], SLOW = 0.25;
-// Things of one kind stand together first (the five services in one column, the traders on their pad), and only then
-// are the links placed to cross as few others as they can: 15 crossings as drawn, against 43 at first, most of them the
-// traders' fans to their six shared neighbours. Searched offline, with no node hidden behind the tower in the 3/4 view
-// (Marius, 23-10)
-const POS = {
-  "market-feed": [-1.3, -8], "news-wire": [-1.3, -4.5], "payment-gateway": [-1.3, -1], "kyc-docs": [-1.3, 2.5], "core-ledger": [-1.3, 6],
-  quant: [6, -7.92], "trader-1": [2.08, -7.96], "trader-2": [2.08, -3.46], "trader-3": [2.08, 1.04], payment: [-4.23, 2.38],
-  compliance: [5.08, 5], risk: [8.69, 7.23], executor: [-10.15, 2.15], vigie: [-7, 5.69],
-};
-const SKIN = { quant: 0xa78bfa, trader: 0x60a5fa, payment: 0x34d399, compliance: 0xfb923c, risk: 0xf472b6, executor: 0x2dd4bf, vigie: 0xf8fafc };
+// Where everything stands: the Agents tab's "Who feeds whom" graph turned 45°, so that its columns (the services, the
+// quant, the traders and payment, compliance, risk, the executor) run from bottom left to top right on the 2D map and
+// in the 3/4 view, each column's rows in the graph's order, and the Vigie last, after the executor (Marius, 24-10)
+const COLUMNS = [["core-ledger", "kyc-docs", "market-feed", "news-wire", "payment-gateway"], ["quant"], ["trader-1", "trader-2", "trader-3", "payment"], ["compliance"], ["risk"], ["executor"], ["vigie"]];
+const tilt = (c, r) => [(c + r) / Math.SQRT2, (r - c) / Math.SQRT2], untilt = (x, z) => [(x - z) / Math.SQRT2, (x + z) / Math.SQRT2];
+const POS = {};
+COLUMNS.forEach((ids, k) => ids.forEach((id, i) => (POS[id] = tilt((k - 3) * 7, (i - (ids.length - 1) / 2) * 5))));
+const SKIN = { quant: 0xa78bfa, trader: 0x60a5fa, payment: 0x34d399, compliance: 0xfb923c, risk: 0xf472b6, executor: 0x2dd4bf, vigie: 0x94a3b8 };
 const LIGHT = { VERT: 0x34d399, ORANGE: 0xfbbf24, ROUGE: 0xf87171, QUARANTAINE: 0xf87171 };
 const LED = { normal: 0x34d399, compromised: 0xef4444, down: 0x1e293b, stale: 0xfbbf24, slow: 0xfbbf24 };
 const DOT = { read: 0x6aa6ff, hidden: 0xf59e0b, bad: 0xef4444, price: 0x2b6bff, order: 0x1446c8, payment: 0x16a34a, decision: 0x8b5cf6, brake: 0xf97316, exec: 0x22c55e, approve: 0x16a34a, refuse: 0xef4444, wire: 0xeab308, fraud: 0xef4444 };
@@ -67,7 +65,7 @@ sec.innerHTML = `<div class="settings"><div class="fold">
       ${row("Bubbles", choice("bubbles", OFF_ON), "What each agent says, over its head")}
       ${row("Helper", choice("helper", OFF_ON), "A box that follows the pointer: what is under it, or what happens at this tick")}
       ${row("Details", choice("details", OFF_ON), "Whether the helper's box adds what an agent reads, its messages of this tick and its last event")}
-      <span class="opt" data-help="Layout|Hold Option over a drop or a service to carry it: it follows the pointer until Option is let go, a role's pad with its agents|Saves where everything stands as the default layout, for everyone"><span>Layout</span><span class="choice"><button type="button" id="sim-save">Save as default</button></span></span>
+      <span class="opt" data-help="Layout|Hold Option over a drop or a service to carry it: it follows the pointer until Option is let go, a role's pad with its agents|Saves where everything stands and the camera's angle as the defaults, for everyone"><span>Layout</span><span class="choice"><button type="button" id="sim-save">Save as default</button></span></span>
     </div></div></div></div>
   <div class="sim-stage"><p class="sim-stop" hidden></p></div>`;
 const ui = { sc: sec.querySelector("#sim-sc"), play: sec.querySelector("#sim-play"), t: sec.querySelector("#sim-t"), tick: sec.querySelector("#sim-tick"),
@@ -100,13 +98,11 @@ sun.shadow.camera.updateProjectionMatrix();
 scene.add(sun);
 const world = new THREE.Group();
 scene.add(world);
-// the ground under everything, in the page's pale blues, in 3D only (Marius, 24-10); sized to the layout once it is read
-const floor = new THREE.Mesh(new THREE.CircleGeometry(1, 96), new THREE.MeshStandardMaterial({ color: 0xe2ebfa, roughness: 0.9 }));
+// no floor to see (Marius, 24-10), only the shadows the blobs cast on it
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), new THREE.ShadowMaterial({ opacity: 0.3 }));
 floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
-const grid = new THREE.PolarGridHelper(1, 12, 8, 96, 0xa8c8ff, 0xddebff);
-Object.assign(grid.material, { transparent: true, opacity: 0.6 });
-world.add(floor, grid);
+world.add(floor);
 
 const ball = new THREE.SphereGeometry(1, 40, 28);
 const mat = (color, o) => new THREE.MeshPhysicalMaterial({ color, roughness: 0.35, clearcoat: 0.7, clearcoatRoughness: 0.2, ...o });
@@ -179,6 +175,7 @@ function tag(html, at) {
   d.innerHTML = html;
   const o = new CSS2DObject(d);
   o.position.set(...at);
+  o.center.set(0.5, 0);
   return o;
 }
 
@@ -203,8 +200,9 @@ function blob(id, profile, role = id) {
   const glass = mesh(ball, new THREE.MeshPhysicalMaterial({ color: 0xbae6fd, transparent: true, opacity: 0.22, roughness: 0, clearcoat: 1, depthWrite: false }), [0, 0.95, 0]);
   halo.castShadow = glass.castShadow = false;
   glass.scale.setScalar(0.001);
-  g.add(halo, glass, tag(id === "vigie" ? "KRYS" : profile ? `${esc(id)}<small>${esc(profile)}</small>` : esc(id), [0, -0.1, 1.45]));
-  return (nodes[id] = { id, g, hop, body, skin, base: new THREE.Color(SKIN[role] ?? 0x94a3b8), eyes, mouth, halo, glass, top: 2.9,
+  const label = tag(id === "vigie" ? "KRYS" : profile ? `${esc(id)}<small>${esc(profile)}</small>` : esc(id), [0, 0, 1.45]);
+  g.add(halo, glass, label);
+  return (nodes[id] = { id, g, hop, body, skin, label, base: new THREE.Color(SKIN[role] ?? 0x94a3b8), eyes, mouth, halo, glass, top: 2.9,
     phase: Math.random() * 7, blinkAt: Math.random() * 4, hopAt: -9, gulpAt: -9, shakeAt: -9, look: null, lookUntil: 0, sick: false, asleep: false, level: null });
 }
 
@@ -218,50 +216,33 @@ function server(id) {
     mesh(ball, new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.1, depthWrite: false }), null, 1.5));
   field.position.y = 0.72;
   field.scale.setScalar(0.001);
-  const label = tag(esc(id), [0, 1.8, 0]);
+  // under its front, which turns to the camera
+  const label = tag(esc(id), [0, 0, 0.75]);
   g.add(...leds, field, label);
   return (nodes[id] = { id, g, shell, leds, field, div: label.element, html: "", mode: "normal", iso: false, top: 2.8, phase: Math.random() * 7 });
 }
 
 const first = Object.values(F.scenarios)[0];
-// more room between things: each role moves away from the centre as one block, so a role's column keeps its own
-// spacing, and each service on its own, so their column stretches with the rest (Marius, 23-10, 24-10)
-const SPREAD = 1.5;
-for (const ids of [...Object.values(Object.groupBy(first.agents.filter(a => POS[a.id]), a => a.role)).map(g => g.map(a => a.id)), ["vigie"], ...first.services.filter(s => POS[s]).map(s => [s])]) {
-  const [cx, cz] = ids.reduce(([x, z], id) => [x + POS[id][0] / ids.length, z + POS[id][1] / ids.length], [0, 0]);
-  for (const id of ids) POS[id] = [POS[id][0] + cx * (SPREAD - 1), POS[id][1] + cz * (SPREAD - 1)];
-}
 // the layout saved from the Settings box (Layout › Save as default) wins over the one above
 const SAVED = await fetch("/dashboard/sim-layout.json").then(r => (r.ok ? r.json() : {}), () => ({}));
 for (const id in SAVED) if (POS[id]) POS[id] = SAVED[id];
-{
-  const ps = Object.values(POS), xs = ps.map(p => p[0]), zs = ps.map(p => p[1]);
-  const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cz = (Math.min(...zs) + Math.max(...zs)) / 2;
-  const r = Math.max(...ps.map(([x, z]) => Math.hypot(x - cx, z - cz))) + 4;
-  floor.position.set(cx, 0, cz);
-  grid.position.set(cx, 0.01, cz);
-  floor.scale.setScalar(r);
-  grid.scale.setScalar(r);
-}
 for (const s of first.services) if (POS[s]) world.add(server(s).g);
 for (const a of first.agents) if (POS[a.id]) world.add(blob(a.id, a.profile, a.role).g);
-// agents of one role stand on one pad named after the role, as the other tabs make them one block; its name stands on
-// its right, clear of the agents' own names (Marius, 23-10); the pad is a rounded box around its agents, fitted again
-// whenever one of them moves (Marius, 24-10)
+// agents of one role stand on one pad, as the other tabs make them one block (Marius, 23-10), with no name of its own
+// (Marius, 24-10); the pad is a rounded box around its agents, turned with the graph, fitted again whenever one of them
+// moves (Marius, 24-10)
 const pads = [];
 const pill = (hx, hz, r) => new THREE.Shape().absarc(hx, -hz, r, -Math.PI / 2, 0).absarc(hx, hz, r, 0, Math.PI / 2)
   .absarc(-hx, hz, r, Math.PI / 2, Math.PI).absarc(-hx, -hz, r, Math.PI, Math.PI * 1.5);
 function fitPad(p) {
-  const xs = p.ids.map(id => POS[id][0]), zs = p.ids.map(id => POS[id][1]);
+  const cs = p.ids.map(id => untilt(...POS[id])), xs = cs.map(c => c[0]), zs = cs.map(c => c[1]);
   p.hx = (Math.max(...xs) - Math.min(...xs)) / 2;
   p.hz = (Math.max(...zs) - Math.min(...zs)) / 2;
-  p.x = Math.min(...xs) + p.hx;
-  p.z = Math.min(...zs) + p.hz;
+  [p.x, p.z] = tilt(Math.min(...xs) + p.hx, Math.min(...zs) + p.hz);
   const rim = pill(p.hx, p.hz, p.r);
   rim.holes.push(pill(p.hx, p.hz, p.r - 0.14));
   p.zone.children.forEach((m, i) => (m.geometry.dispose(), (m.geometry = new THREE.ShapeGeometry(i ? rim : pill(p.hx, p.hz, p.r), 24))));
   p.zone.position.set(p.x, 0, p.z);
-  p.label.position.set(p.x + p.hx + p.r + 1.6, 0, p.z);
 }
 for (const [role, members] of Object.entries(Object.groupBy(first.agents.filter(a => POS[a.id]), a => a.role))) {
   if (members.length < 2) continue;
@@ -272,13 +253,12 @@ for (const [role, members] of Object.entries(Object.groupBy(first.agents.filter(
     m.renderOrder = 1;
     zone.add(m);
   }
-  const label = tag(`${esc(role)}<small>${members.length} agents</small>`, [0, 0, 0]);
-  Object.assign(label.element.style, { color: "#" + new THREE.Color(c).getHexString(), fontSize: "15px", letterSpacing: ".12em", textTransform: "uppercase" });
   zone.userData.pick = "pad:" + role;
-  const p = { id: "pad:" + role, role, r: 2.4, c: label.element.style.color, n: members.length, ids: members.map(a => a.id), zone, label };
+  zone.rotation.y = Math.PI / 4;
+  const p = { id: "pad:" + role, role, r: 2.4, c: "#" + new THREE.Color(c).getHexString(), n: members.length, ids: members.map(a => a.id), zone };
   fitPad(p);
   pads.push(p);
-  world.add(zone, label);
+  world.add(zone);
 }
 const tower = new THREE.Group(), lamp = mesh(ball, new THREE.MeshStandardMaterial({ color: 0x0b0d12, emissive: LIGHT.VERT, emissiveIntensity: 2 }), [0, 6.15, -1.15], 0.26);
 const beam = new THREE.PointLight(LIGHT.VERT, 6, 7);
@@ -296,15 +276,18 @@ world.add(tower);
 for (const n of Object.values(nodes)) if (n.g.parent === world) n.g.position.set(POS[n.id][0], 0, POS[n.id][1]);
 tower.position.set(POS.vigie[0], 0, POS.vigie[1]);
 
+const FLOOR = 0.05;
 const at = id => v(POS[id][0], id === "vigie" ? 4.4 : nodes[id].leds ? 0.8 : 1, POS[id][1]);
 // the agents a link's end stands for: a pad's, or the one node
 const members = id => pads.find(p => p.id === id)?.ids ?? [id];
 // a pad's end of a link is the point of its rim nearest the link's other end
 function end(id, other) {
   const p = pads.find(q => q.id === id);
-  if (!p) return at(id);
-  const o = at(other), x = THREE.MathUtils.clamp(o.x, p.x - p.hx, p.x + p.hx), z = THREE.MathUtils.clamp(o.z, p.z - p.hz, p.z + p.hz), d = Math.hypot(o.x - x, o.z - z) || 1;
-  return v(x + ((o.x - x) / d) * p.r, 0.3, z + ((o.z - z) / d) * p.r);
+  // a link runs on the floor from under the centre of a thing's feet, the Vigie's from the foot of its tower (Marius, 24-10)
+  if (!p) return at(id).setY(FLOOR);
+  const o = at(other), [ox, oz] = untilt(o.x - p.x, o.z - p.z), x = THREE.MathUtils.clamp(ox, -p.hx, p.hx), z = THREE.MathUtils.clamp(oz, -p.hz, p.hz), d = Math.hypot(ox - x, oz - z) || 1;
+  const [dx, dz] = tilt(x + ((ox - x) / d) * p.r, z + ((oz - z) / d) * p.r);
+  return v(p.x + dx, FLOOR, p.z + dz);
 }
 
 // What stands under a point of the window (clientX, clientY): the id of an agent, a service or "vigie", "pad:<role>"
@@ -370,18 +353,19 @@ function link(a, b, hidden) {
   if (links.has(key) || ![a, b].every(id => nodes[id] || pads.some(p => p.id === id))) return links.get(key);
   const material = new THREE.MeshBasicMaterial({ color: PLAIN, transparent: true, opacity: 0.16, depthWrite: false });
   const redMat = new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.85, depthWrite: false });
-  const l = { a, b, g: new THREE.Group(), curve: new THREE.QuadraticBezierCurve3(), material, redMat, fill: 0, redFrom: null, hidden: !!hidden, vigie: a === "vigie" || b === "vigie", svc: nodes[a]?.leds ? a : nodes[b]?.leds ? b : null };
+  const l = { a, b, g: new THREE.Group(), curve: new THREE.QuadraticBezierCurve3(), material, redMat, fill: 0, redFrom: null, hidden: !!hidden, up: false, vigie: a === "vigie" || b === "vigie", svc: nodes[a]?.leds ? a : nodes[b]?.leds ? b : null };
   shape(l);
   world.add(l.g);
   links.set(key, l);
   return l;
 }
-// a link's arc between its two ends and the tube or the dashes along it, drawn again while a drop is carried
+// a link's line between its two ends, an arc when it bridges another (relief), and the tube or the dashes along it,
+// drawn again while a drop is carried
 function shape(l) {
   const { curve, g } = l;
   curve.v0.copy(end(l.a, l.b));
   curve.v2.copy(end(l.b, l.a));
-  curve.v1.lerpVectors(curve.v0, curve.v2, 0.5).y += 1 + curve.v0.distanceTo(curve.v2) * 0.08;
+  curve.v1.lerpVectors(curve.v0, curve.v2, 0.5).y += l.up ? 1 + curve.v0.distanceTo(curve.v2) * 0.08 : 0;
   curve.needsUpdate = true;
   for (const o of g.children) o.geometry.dispose();
   g.clear();
@@ -393,6 +377,23 @@ function shape(l) {
   g.add(...path(l.material, l.hidden ? 0.03 : 0.035), ...l.red);
   g.traverse(o => (o.castShadow = false));
   redden(l);
+}
+// links run straight; where two cross on the floor, one of them arches over the other, never both (Marius, 24-10):
+// the link that crosses the most straight ones arches first, the shorter on a tie, until no two straight links cross
+function relief() {
+  const ls = [...links.values()].filter(l => !l.vigie || worldName === "ours"), seg = new Map(ls.map(l => [l, [end(l.a, l.b), end(l.b, l.a)]]));
+  const side = (a, b, c) => Math.sign((b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x));
+  const cross = ([p, q], [r, s]) => side(p, q, r) * side(p, q, s) < 0 && side(r, s, p) * side(r, s, q) < 0;
+  let open = ls.flatMap((a, i) => ls.slice(i + 1).filter(b => cross(seg.get(a), seg.get(b))).map(b => [a, b]));
+  const up = new Set(), len = l => seg.get(l)[0].distanceTo(seg.get(l)[1]);
+  while (open.length) {
+    const n = new Map();
+    for (const pair of open) for (const l of pair) n.set(l, (n.get(l) ?? 0) + 1);
+    const [top] = [...n].sort(([a, x], [b, y]) => y - x || len(a) - len(b))[0];
+    up.add(top);
+    open = open.filter(pair => !pair.includes(top));
+  }
+  for (const l of links.values()) if (l.up !== up.has(l)) (l.up = up.has(l)), shape(l);
 }
 // the problem travelling along a link: its red reaches l.fill of the way from the end it comes from (Marius, 24-10); a
 // tube's triangles run along it 36 to a step, so a draw range shows its first part
@@ -548,6 +549,9 @@ function view(k) {
   const target = V.on ? blobs.reduce((c, n) => c.add(n.g.position), v(0, 0, 0)).divideScalar(blobs.length).setY(1) : v(-1.5, 0.8, -1);
   goal = { target, pos: v(...V.dir).setLength(V.dist * fit).add(target) };
 }
+// the angle saved with the layout (Layout › Save as default) becomes the default 3/4 view, the distance fitted on load
+// (Marius, 24-10)
+if (SAVED.camera) VIEWS["3/4"].dir = v(0, 0, 0).setFromSphericalCoords(1, SAVED.camera[1], SAVED.camera[0]).toArray();
 view(VIEWS[set.view] ? set.view : "3/4");
 camera.position.copy(goal.pos);
 controls.target.copy(goal.target);
@@ -573,7 +577,7 @@ function halt(e) {
 function paint() {
   for (const b of sec.querySelectorAll(".choice [data-v]")) b.setAttribute("aria-pressed", JSON.stringify(set[b.parentElement.dataset.set]) === b.dataset.v);
 }
-const apply = { display: flatOn, helper: on => (helper.on = on), details: on => (helper.details = on), view, world: w => ((worldName = w), (W = sc.worlds[w]), seek(tick)) };
+const apply = { display: flatOn, helper: on => (helper.on = on), details: on => (helper.details = on), view, world: w => ((worldName = w), (W = sc.worlds[w]), relief(), seek(tick)) };
 for (const b of sec.querySelectorAll(".choice [data-v]"))
   b.onclick = () => {
     const k = b.parentElement.dataset.set, val = JSON.parse(b.dataset.v);
@@ -617,6 +621,7 @@ function load(n) {
       ks.forEach(k => edges.delete(k));
     }
   for (const [a, b, hidden] of edges.values()) link(a, b, hidden);
+  relief();
   W = sc.worlds[worldName];
   ui.t.max = sc.ticks - 1;
   seek(0);
@@ -651,8 +656,8 @@ function frameAll(start) {
   const c = new THREE.Box3().setFromPoints(pts).getCenter(v(0, 0, 0)), dir = camera.position.clone().sub(controls.target).normalize(), cam = camera.clone();
   const tan = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)), right = v(0, 0, 0), up = v(0, 0, 0);
   let d = 40;
-  // the distance at which the points span 90% of the screen's width and 78% of its height, the top and bottom agents
-  // getting more room (Marius, 24-10), and the aim that centres them on screen: seen at an angle, the near agents look
+  // the distance at which the points span 45% of the screen's width, so that with their names everything takes at most
+  // half of it, and 65% of its height, the top and bottom agents getting more room (Marius, 24-10), and the aim that centres them on screen: seen at an angle, the near agents look
   // bigger than the far ones, so the middle of the box is not the middle of the picture; found in a few steps
   for (let i = 0; i < 6; i++) {
     cam.position.copy(dir).multiplyScalar(d).add(c);
@@ -663,7 +668,7 @@ function frameAll(start) {
     right.setFromMatrixColumn(cam.matrixWorld, 0);
     up.setFromMatrixColumn(cam.matrixWorld, 1);
     c.addScaledVector(right, ((x0 + x1) / 2) * d * tan * cam.aspect).addScaledVector(up, ((y0 + y1) / 2) * d * tan);
-    d *= Math.max((x1 - x0) / 2 / 0.9, (y1 - y0) / 2 / 0.78);
+    d *= Math.max((x1 - x0) / 2 / 0.45, (y1 - y0) / 2 / 0.65);
   }
   goal = { target: c, pos: dir.multiplyScalar(d).add(c) };
   if (start) return camera.position.copy(goal.pos), controls.target.copy(goal.target), (goal = null);
@@ -697,12 +702,18 @@ function animateBlob(b, dt, k) {
   b.hop.position.y = up * 0.5;
   b.body.scale.set(1 - breathe * 0.5 + gulp, 1 + breathe - gulp + up * 0.08, 1 - breathe * 0.5 + gulp);
   b.body.getWorldPosition(tmp);
-  b.body.rotation.y = Math.atan2(camera.position.x - tmp.x, camera.position.z - tmp.z) - world.rotation.y + (s < 0.5 ? Math.sin(s * 40) * 0.25 * (1 - s / 0.5) : 0);
+  const a = Math.atan2(camera.position.x - tmp.x, camera.position.z - tmp.z) - world.rotation.y;
+  b.body.rotation.y = a + (s < 0.5 ? Math.sin(s * 40) * 0.25 * (1 - s / 0.5) : 0);
+  // its name lies on the ground just past its ring on the camera's side, so it reads under it from any angle (Marius,
+  // 24-10); the Vigie's, at the foot of its tower
+  const r = b.id === "vigie" ? 0.9 : 1.45;
+  b.label.position.set(Math.sin(a) * r, b.id === "vigie" ? -b.g.position.y / b.g.scale.y : 0, Math.cos(a) * r);
 
   if (time > b.blinkAt + 0.15) b.blinkAt = time + 1.5 + Math.random() * 4;
   const shut = b.asleep || time >= b.blinkAt;
   if (b.look && time < b.lookUntil && nodes[b.look]) world.localToWorld(look.copy(at(b.look)));
-  else if (b.id === "vigie") world.localToWorld(look.set(Math.sin(time * 0.5) * 12, 0, 2));
+  // the Vigie, idle, sweeps the floor 45° either side of straight ahead (Marius, 24-10)
+  else if (b.id === "vigie") (w => b.body.localToWorld(look.set(Math.sin(w) * 10, -2, Math.cos(w) * 10)))(Math.sin(time * 0.5) * Math.PI / 4);
   else look.copy(camera.position);
   b.body.worldToLocal(look);
   for (const { e, pupil } of b.eyes) {
@@ -738,6 +749,9 @@ function animateServer(n, k) {
   });
   n.shell.emissiveIntensity = bad ? 0.35 + Math.sin(time * 6) * 0.25 : 0;
   n.g.position.x = POS[n.id][0] + (bad ? (Math.random() - 0.5) * 0.06 : 0);
+  // its lit front turns to the camera, as the blobs do (Marius, 24-10)
+  n.g.getWorldPosition(tmp);
+  n.g.rotation.y = Math.atan2(camera.position.x - tmp.x, camera.position.z - tmp.z) - world.rotation.y;
   n.field.scale.setScalar(THREE.MathUtils.lerp(n.field.scale.x, n.iso ? 1 : 0.001, k));
   n.field.rotation.y += 0.01;
 }
@@ -759,7 +773,8 @@ function fit2d(w, h) {
   const dpr = Math.min(devicePixelRatio, 2);
   Object.assign(flat, { width: w * dpr, height: h * dpr });
   g2.setTransform(dpr, 0, 0, dpr, 0, 0);
-  s2 = Math.min(w / (MAP.x1 - MAP.x0), h / (MAP.z1 - MAP.z0));
+  // a little further out than the agents' own box, and no wider than half the screen, as in 3D (Marius, 24-10)
+  s2 = Math.min((0.5 * w) / (MAP.x1 - MAP.x0), (0.85 * h) / (MAP.z1 - MAP.z0));
   o2 = [w / 2 - ((MAP.x0 + MAP.x1) / 2) * s2, h / 2 - ((MAP.z0 + MAP.z1) / 2) * s2];
 }
 function flatOn(d) {
@@ -775,7 +790,7 @@ function pick2d(x, y) {
     const [nx, ny] = to2(...POS[n.id]), e = Math.hypot(px - nx, py - ny);
     if (e < d) (best = n.id), (d = e);
   }
-  const pad = pads.find(p => Math.abs(px - to2(p.x, 0)[0]) < (p.hx + p.r) * s2 && Math.abs(py - to2(0, p.z)[1]) < (p.hz + p.r) * s2);
+  const pad = pads.find(p => (([x, z]) => Math.abs(x) < p.hx + p.r && Math.abs(z) < p.hz + p.r)(untilt((px - to2(p.x, p.z)[0]) / s2, (py - to2(p.x, p.z)[1]) / s2)));
   return best ?? (pad ? "pad:" + pad.role : null);
 }
 // a material's colour as the screen shows it (getHexString turns three.js's linear colour back to sRGB), and its opacity
@@ -795,17 +810,17 @@ function draw2d() {
   g2.clearRect(0, 0, flat.width, flat.height);
   g2.textAlign = "center";
   for (const p of pads) {
-    const [x, y] = to2(p.x - p.hx - p.r, p.z - p.hz - p.r);
+    g2.save();
+    g2.translate(...to2(p.x, p.z));
+    g2.rotate(-Math.PI / 4);
     g2.beginPath();
-    g2.roundRect(x, y, 2 * (p.hx + p.r) * s2, 2 * (p.hz + p.r) * s2, p.r * s2);
+    g2.roundRect(-(p.hx + p.r) * s2, -(p.hz + p.r) * s2, 2 * (p.hx + p.r) * s2, 2 * (p.hz + p.r) * s2, p.r * s2);
     g2.fillStyle = p.c;
     alpha(0.16), g2.fill(), alpha(0.9);
     g2.strokeStyle = p.c;
     g2.lineWidth = 2;
     g2.stroke(), alpha();
-    const [lx, ly] = to2(p.x + p.hx + p.r + 1.6, p.z);
-    text2(p.role.toUpperCase(), lx, ly, 15, p.c);
-    text2(`${p.n} AGENTS`, lx, ly + 15, 10.5, "#455064", 500);
+    g2.restore();
   }
   for (const l of links.values()) {
     if (!l.g.visible) continue;
@@ -850,7 +865,7 @@ function draw2d() {
     g2.restore();
     g2.save();
     g2.globalAlpha = hovered && n.id !== hovered && !near.has(n.id) ? FADE : 1;
-    const [x, y] = to2(...POS[n.id]), ink = near.has(n.id) ? tint : undefined;
+    const [x, y] = to2(...POS[n.id]);
     if (n.leds) {
       const w = 1.7 * s2, h = 1.3 * s2, led = n.mode === "down" ? "#94a3b8" : hex(LED[n.mode] ?? LED.normal);
       if (n.iso) {
@@ -873,7 +888,7 @@ function draw2d() {
       g2.lineWidth = 2;
       g2.stroke();
       for (const k of [-0.3, 0, 0.3]) (g2.fillStyle = led), g2.fillRect(x - 0.35 * s2, y + k * s2 - 1.5, 0.7 * s2, 3);
-      text2(n.id, x, y + h / 2 + 14, 12, ink);
+      text2(n.id, x, y + h / 2 + 14, 12);
       if (n.mode !== "normal" || n.iso) text2((n.iso ? "isolated" : n.mode).toUpperCase(), x, y + h / 2 + 27, 10.5, n.iso ? "#22d3ee" : n.mode === "compromised" ? "#f87171" : "#fbbf24", 700);
       continue;
     }
@@ -900,7 +915,7 @@ function draw2d() {
       g2.setLineDash([]);
     }
     const profile = sc.agents.find(a => a.id === n.id)?.profile;
-    text2(vigie ? "KRYS" : n.id, x, y + 1.3 * s2 + 14, 12, ink);
+    text2(vigie ? "KRYS" : n.id, x, y + 1.3 * s2 + 14, 12);
     if (profile) text2(profile.toUpperCase(), x, y + 1.3 * s2 + 27, 10.5, "#455064", 500);
   }
   g2.restore();
@@ -922,7 +937,7 @@ function draw2d() {
 
 // Hovering a blob or a service fades the others and lights its links (Marius, 23-10). The opacities are changed
 // for the frame's drawing only and put back after it, so show() and the animations keep their own.
-const FADE = 0.15;
+const FADE = 0.15, IVORY = new THREE.Color(0xf8f6f0);
 let hovered = null, dim = new Set(), near = new Set(), tint = "";
 stage.addEventListener("pointermove", e => (carry(e), hover(held ?? pick(e.clientX, e.clientY))));
 stage.addEventListener("pointerleave", () => hover(null));
@@ -930,32 +945,39 @@ function hover(id) {
   id = nodes[id] ? id : null;
   if (id === hovered) return;
   hovered = id;
-  // the nodes linked to it stay lit, and their names and its plain links take its colour (Marius, 23-10); the Vigie's
-  // white and a service's grey would not show, so they lend the brand's blue
+  // the nodes linked to it stay lit and its plain links take its colour (Marius, 23-10), their names staying in ink
+  // (Marius, 24-10); the Vigie's grey and a service's would not show, so they lend the brand's blue
   near = new Set(id ? [...links.values()].filter(l => l.g.visible).flatMap(l => (members(l.a).includes(id) ? members(l.b) : members(l.b).includes(id) ? members(l.a) : [])) : []);
   near.delete(id);
   tint = id && nodes[id].base && id !== "vigie" ? "#" + nodes[id].base.getHexString() : hex(SKY);
-  // a material one node shares with anything else (INK, GOLD, the tower's STEEL) gets a copy of its own, so it fades alone
-  const of = new Map(Object.values(nodes).map(n => [n.g, n])), owner = o => (of.has(o) || !o.parent ? o : owner(o.parent));
+  // a material one node shares with anything else (INK, GOLD, the tower's STEEL) gets a copy of its own, so it fades alone;
+  // the Vigie fades with its tower (Marius, 24-10)
+  const root = n => (n.id === "vigie" ? tower : n.g);
+  const of = new Map(Object.values(nodes).map(n => [root(n), n])), owner = o => (of.has(o) || !o.parent ? o : owner(o.parent));
   const users = new Map();
   scene.traverse(o => o.material && users.set(o.material, (users.get(o.material) ?? new Set()).add(owner(o))));
   dim = new Set();
   for (const n of Object.values(nodes)) {
     const fade = !!id && n.id !== id && !near.has(n.id), copy = new Map();
-    n.g.traverse(o => {
-      if (o.isCSS2DObject) (o.element.style.opacity = fade ? FADE : ""), (o.element.style.color = near.has(n.id) ? tint : "");
+    root(n).traverse(o => {
+      if (o.isCSS2DObject) o.element.style.opacity = fade ? FADE : "";
       if (!o.material) return;
       if (users.get(o.material).size > 1) o.material = copy.get(o.material) ?? copy.set(o.material, o.material.clone()).get(o.material);
-      const m = o.material, solid = !(m.userData.transparent ??= m.transparent);
-      if (solid && m.transparent !== fade) (m.transparent = fade), (m.needsUpdate = true);
-      if (fade) dim.add(m);
+      if (fade) dim.add(o.material);
     });
   }
 }
 function hoverPaint() {
   if (!hovered) return () => {};
   const was = [];
-  for (const m of dim) was.push([m, m.opacity]), (m.opacity *= FADE);
+  // a faded thing stays opaque, its colours washed towards the page's ivory, so no link shows through it (Marius, 24-10);
+  // only what is see-through already (a ring, the quarantine glass) fades by its opacity
+  for (const m of dim) {
+    was.push([m, m.opacity, m.color?.getHex(), m.emissiveIntensity]);
+    if (m.transparent) m.opacity *= FADE;
+    else m.color?.lerp(IVORY, 1 - FADE);
+    if (m.emissive) m.emissiveIntensity *= FADE;
+  }
   for (const l of links.values()) {
     const m = l.material, on = members(l.a).includes(hovered) || members(l.b).includes(hovered);
     was.push([m, m.opacity, m.color.getHex()], [l.redMat, l.redMat.opacity]);
@@ -963,7 +985,7 @@ function hoverPaint() {
     if (!on) l.redMat.opacity *= FADE;
     if (on && m.color.getHex() === PLAIN) m.color.set(tint);
   }
-  return () => was.forEach(([m, o, c]) => ((m.opacity = o), c !== undefined && m.color.setHex(c)));
+  return () => was.forEach(([m, o, c, e]) => ((m.opacity = o), c !== undefined && m.color.setHex(c), e !== undefined && (m.emissiveIntensity = e)));
 }
 
 // Holding Option over a drop, a service or a role's pad picks it up: it follows the pointer on the floor until Option is let go,
@@ -1024,10 +1046,13 @@ function carry(e) {
   fitted.forEach(fitPad);
   const ends = [...ids, ...fitted.map(q => q.id)];
   for (const l of links.values()) if (ends.includes(l.a) || ends.includes(l.b)) shape(l);
+  relief();
   guide();
 }
 sec.querySelector("#sim-save").onclick = async e => {
   const b = e.currentTarget, layout = Object.fromEntries(Object.entries(POS).map(([id, [x, z]]) => [id, [+x.toFixed(2), +z.toFixed(2)]]));
+  const angle = new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
+  layout.camera = [+angle.theta.toFixed(3), +angle.phi.toFixed(3)];
   const r = await fetch("/dashboard/sim-layout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(layout) }).catch(() => null);
   b.textContent = r?.ok ? "Saved" : "Not saved";
   if (r?.ok) moved = false;
@@ -1057,13 +1082,12 @@ renderer.setAnimationLoop(now => {
       }
     }
   }
-  world.rotation.y = Math.sin(time * 0.12) * 0.05;
   for (const p of flying) {
     p.at += film;
     if (p.at < 0) continue;
     if (!p.m.visible) (p.m.visible = true), depart(p);
     const u = Math.min(1, p.at / p.dur), e = u * u * (3 - 2 * u);
-    p.l.curve.getPoint(p.back ? 1 - e : e, p.m.position);
+    p.l.curve.getPoint(p.back ? 1 - e : e, p.m.position).y += 0.15;  // over the floor its link lies on
     p.m.rotation.y += dt * 6;
     if (u === 1) arrive(p), world.remove(p.m), (p.done = true);
   }
