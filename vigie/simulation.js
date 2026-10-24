@@ -1056,7 +1056,6 @@ renderer.setAnimationLoop(now => {
       }
     }
   }
-  world.rotation.y = Math.sin(time * 0.12) * 0.05;
   for (const p of flying) {
     p.at += film;
     if (p.at < 0) continue;
