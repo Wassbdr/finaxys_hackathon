@@ -8,6 +8,7 @@ import threading
 import time
 from pathlib import Path
 
+from bus.redis_bus import next_message
 from journal.writer import read_journal
 
 
@@ -76,7 +77,7 @@ class LiveSource:
         pubsub.subscribe(f"{self.prefix}bus")
         try:
             while True:
-                raw = pubsub.get_message(timeout=0.0)
+                raw = next_message(pubsub, 0.0)
                 if raw is None:
                     await asyncio.sleep(0.05)
                     continue

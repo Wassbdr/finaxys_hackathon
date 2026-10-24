@@ -7,6 +7,16 @@
     POST /inject      {"command": "compromise market-feed"} ou {"scenario": "php2shell_day"}
     POST /record      {"name": "demo1"} : copie la partie en cours dans recordings/
     GET  /recordings  parties enregistrées
+    GET  /vigie       état de la Vigie (indicateurs, actions, décisions du portique)
+    GET  /vigie/graph    layer 1 graph rebuilt from the bus (hidden edges, impact radius)
+    GET  /vigie/metrics  layer 1 metrics (agents, system, CEO figures, baselines)
+    GET  /vigie/findings latest Findings of every layer
+    GET  /improvements dernier rapport de `python -m vigie.improve`
+    GET  /guardrails  the limits of each agent and the Vigie's settings, from config.yaml
+    GET  /dashboard   tableau de bord de la Vigie (7 onglets) ; ?embed=<onglet> montre l'onglet seul, sans menu
+    GET  /dashboard/{dashboard.js,dashboard-demo.json}  its script and the sample data it shows when no run is live
+    GET  /dashboard/{simulation.js,dashboard-sim.json}  the Simulation tab's 3D scene and the bench replays it plays
+    GET  /dashboard/sim-layout.json  where its nodes stand, once saved; POST /dashboard/sim-layout {"quant": [x, z], …, "camera": [azimuth, polar]} saves it
 
 Toutes les routes acceptent ?world=A|B en mode comparaison.
     python -m api.app
@@ -14,6 +24,7 @@ Toutes les routes acceptent ?world=A|B en mode comparaison.
 
 from __future__ import annotations
 
+import json
 import shlex
 import shutil
 import threading
@@ -21,11 +32,13 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from sim.config import ROOT, load_config
 
 RECORDINGS = ROOT / "recordings"
+SIM_LAYOUT = ROOT / "vigie" / "sim-layout.json"
 
 
 class InjectRequest(BaseModel):
@@ -118,6 +131,68 @@ def create_app(sources: dict, targets: dict | None = None, default_world: str = 
             except (ValueError, KeyError) as err:
                 raise HTTPException(400, str(err))
         return {"ok": True, "results": results}
+
+    @app.get("/vigie")
+    def vigie(world: str | None = None):
+        src = source(world)
+        if src.kind != "live":
+            raise HTTPException(409, "the Vigie state is only kept live")
+        decisions = src.client.lrange(f"{src.prefix}vigie:decisions", -200, -1)
+        return {"status": src._json("vigie:status") or {}, "decisions": [json.loads(d) for d in decisions]}
+
+    def vigie_part(world, key, empty):
+        src = source(world)
+        if src.kind != "live":
+            raise HTTPException(409, "the Vigie state is only kept live")
+        return (src._json("vigie:status") or {}).get(key, empty)
+
+    @app.get("/vigie/graph")
+    def vigie_graph(world: str | None = None):
+        return vigie_part(world, "graph", {})
+
+    @app.get("/vigie/metrics")
+    def vigie_metrics(world: str | None = None):
+        return vigie_part(world, "layer1", {})
+
+    @app.get("/vigie/findings")
+    def vigie_findings(world: str | None = None):
+        return vigie_part(world, "findings", [])
+
+    @app.get("/improvements")
+    def improvements():
+        path = ROOT / load_config()["runs_dir"] / "vigie-improve" / "improvements.json"
+        if not path.exists():
+            raise HTTPException(404, "no report yet: run python -m vigie.improve")
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    @app.get("/guardrails")
+    def guardrails():
+        """The limits each agent enforces and the Vigie's settings, as config.yaml sets them."""
+        cfg = load_config()
+        return {"agents": cfg["agents"], "vigie": cfg["vigie"], "gate": cfg["gate"],
+                "llm": {"enabled": cfg["llm"]["enabled"], "guardrails": cfg["llm"]["guardrails"]}}
+
+    @app.get("/dashboard")
+    def dashboard():
+        return FileResponse(ROOT / "vigie" / "dashboard.html")
+
+    @app.get("/dashboard/{name}")
+    def dashboard_file(name: str):
+        if name == "sim-layout.json":
+            return FileResponse(SIM_LAYOUT) if SIM_LAYOUT.exists() else {}
+        if name not in ("dashboard.js", "dashboard-demo.json", "simulation.js", "dashboard-sim.json"):
+            raise HTTPException(404)
+        return FileResponse(ROOT / "vigie" / name)
+
+    @app.post("/dashboard/sim-layout")
+    def save_sim_layout(layout: dict[str, list[float]]):
+        """The Simulation tab's Layout › Save as default: where each node stands on the floor, and the camera's angle."""
+        if len(layout) > 50 or any(not k.replace("-", "").isalnum() or len(p) != 2 or not all(-50 <= c <= 50 for c in p)
+                                   for k, p in layout.items()):
+            raise HTTPException(400, "expected {node id: [x, z]}, |x|, |z| <= 50")
+        rows = ",\n".join(f"  {json.dumps(k)}: {json.dumps(p)}" for k, p in layout.items())
+        SIM_LAYOUT.write_text("{\n" + rows + "\n}\n", encoding="utf-8")
+        return {"ok": True}
 
     @app.get("/compare")
     def compare():
